@@ -180,6 +180,14 @@ try {
   eq(await cdp.eval('typeof KM.play.begin'), 'function', 'all the scripts loaded')
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'home', 'it opens on the home screen')
   eq(
+    await cdp.eval(
+      "(() => { const el = document.createElement('span'); el.className = 'pill'; el.hidden = true;" +
+        " document.body.appendChild(el); const shown = getComputedStyle(el).display; el.remove(); return shown })()",
+    ),
+    'none',
+    'the hidden attribute still hides an element that sets its own display',
+  )
+  eq(
     await cdp.eval("document.getElementById('home-stage').textContent"),
     'Sums up to 24',
     'home shows her current branch',
@@ -196,6 +204,11 @@ try {
   await sleep(400)
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'play', 'Let\'s go opens the play screen')
   eq(await cdp.eval("document.querySelectorAll('#dots i').length"), 10, 'ten dots for ten problems')
+  eq(
+    await cdp.eval("document.getElementById('timer').offsetParent"),
+    null,
+    'no clock ticking at her by default',
+  )
   await cdp.shot('2-play')
 
   for (let n = 0; n < 10; n++) {
@@ -230,6 +243,11 @@ try {
       await sleep(120)
       const slot = await cdp.eval("document.getElementById('slot').className")
       ok(slot.includes('right'), 'a right answer marks the slot green (' + slot + ')')
+      eq(
+        await cdp.eval("document.querySelectorAll('#dots i.fast').length"),
+        1,
+        'answering inside the target turns the dot blue',
+      )
       await cdp.shot('3-correct')
     }
     await sleep(650) // the celebration, then the next problem
@@ -239,6 +257,29 @@ try {
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'result', 'finishing a set opens the results')
   const stars = await cdp.eval("document.querySelectorAll('#res-stars span.on').length")
   ok(stars >= 1, 'at least one star was awarded (' + stars + ')')
+  eq(
+    await cdp.eval("document.getElementById('btn-again').textContent.trim()"),
+    'One more set 🚀',
+    'the main button says what it does next',
+  )
+  eq(
+    await cdp.eval("document.querySelectorAll('#res-starlabels span')[1].textContent"),
+    'All correct',
+    'the stars are labelled with what they were for',
+  )
+  ok(
+    (await cdp.eval("document.getElementById('res-stats').textContent")).includes('under'),
+    'the results count how many were inside the target',
+  )
+  eq(
+    await cdp.eval("document.getElementById('res-history').textContent"),
+    '',
+    'no trend chart until there is more than one set to compare',
+  )
+  ok(
+    await cdp.eval("document.querySelectorAll('#res-starlabels span')[1].classList.contains('on')"),
+    'a perfect set lights the accuracy star',
+  )
   ok(
     (await cdp.eval("document.getElementById('res-badges').textContent")).includes('First Steps'),
     'the first set earns the First Steps badge on screen',
@@ -301,6 +342,22 @@ try {
     'after two goes it shows the answer to copy',
   )
 
+  // Answer this one properly so the set is genuinely part-finished.
+  for (const ch of String(right)) await cdp.click(`.key[data-k="${ch}"]`)
+  await cdp.click('.key[data-k="go"]')
+  await sleep(700)
+
+  // The point of autosave: this answer is on disk now, not at the end of the set.
+  eq(
+    await cdp.eval(`(() => {
+      const raw = JSON.parse(localStorage.getItem('aranumberjungle.v1'))
+      const saved = raw.profiles.find((x) => x.id === raw.activeId)
+      return Object.keys(saved.facts).length === Object.keys(KM.store.profile().facts).length
+    })()`),
+    true,
+    'each answer is written to storage as it happens, not saved up until the end',
+  )
+
   await cdp.click('.screen.active #btn-quit')
   await sleep(300)
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'home', 'the ✕ goes home')
@@ -309,6 +366,18 @@ try {
     1,
     'quitting half way does not record a set',
   )
+
+  // --- the clock, for whoever wants it ---
+  await cdp.eval("(() => { const p = KM.store.profile(); p.settings.timer = true; KM.store.save() })()")
+  await cdp.click('.screen.active #btn-play')
+  await sleep(500)
+  ok(
+    await cdp.eval("!!document.getElementById('timer').offsetParent"),
+    'switching the clock on shows it',
+  )
+  await cdp.click('.screen.active #btn-quit')
+  await sleep(300)
+  await cdp.eval("(() => { const p = KM.store.profile(); p.settings.timer = false; KM.store.save() })()")
 
   // --- auto-check, for whoever wants the extra speed ---
   await cdp.eval(
@@ -330,6 +399,107 @@ try {
   await sleep(300)
   await cdp.eval(
     `(() => { const p = KM.store.profile(); p.settings.autoCheck = false; KM.store.save(); })()`,
+  )
+
+  // --- a half-finished set is never lost -------------------------------
+  eq(await cdp.eval("document.getElementById('btn-resume').hidden"), false, 'home offers to carry on')
+  ok(
+    await cdp.eval("!!document.getElementById('btn-resume').offsetParent"),
+    'the carry-on button is really on screen',
+  )
+  eq(
+    await cdp.eval("document.getElementById('resume-count').textContent"),
+    '1 of 10',
+    'it knows how far she got',
+  )
+  eq(
+    await cdp.eval("document.getElementById('storage-warning').offsetParent"),
+    null,
+    'no storage warning is actually rendered when the browser can save',
+  )
+  ok(
+    (await cdp.eval("Object.keys(JSON.parse(localStorage.getItem('aranumberjungle.v1.session')).problems).length")) === 10,
+    'the unfinished set itself is written to storage',
+  )
+
+  // The real test: a full reload, as if iPadOS had thrown the tab away.
+  await cdp.send('Page.reload')
+  await sleep(1200)
+  eq(
+    await cdp.eval("document.getElementById('btn-resume').hidden"),
+    false,
+    'the half-finished set survives a reload',
+  )
+  await cdp.click('#btn-resume')
+  await sleep(500)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'play', 'carrying on reopens the set')
+  eq(
+    await cdp.eval("document.querySelectorAll('#dots i.done, #dots i.miss, #dots i.fast').length"),
+    1,
+    'it resumes at the problem she was on, keeping what she had answered',
+  )
+  await cdp.click('.screen.active #btn-quit')
+  await sleep(300)
+
+  // --- the second set is compared with the first ----------------------
+  await cdp.click('.screen.active #btn-play')
+  await sleep(500)
+  for (let n = 0; n < 10; n++) {
+    const prob = await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+        const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+    )
+    for (const ch of String(prob.a + prob.b)) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(620)
+  }
+  await sleep(2200)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'result', 'the second set finishes too')
+  ok(
+    (await cdp.eval("document.getElementById('res-history').textContent")).includes('last 2 sets'),
+    'the trend chart appears once there are two sets to compare',
+  )
+  eq(
+    await cdp.eval("document.querySelectorAll('#res-history .sbar').length"),
+    2,
+    'one bar per set on this branch',
+  )
+  ok(
+    (await cdp.eval("document.getElementById('res-stats').textContent")).match(/faster|slower|same as last time/) !==
+      null,
+    'the results say how this set compared with the last one',
+  )
+  await cdp.shot('9-second-set')
+  await cdp.click('.screen.active [data-go="home"]')
+  await sleep(300)
+
+  // --- backup and restore ----------------------------------------------
+  const backup = await cdp.eval('KM.store.exportText()')
+  const before = await cdp.eval('KM.store.profile().totals.problems')
+  ok(before >= 10, 'there is progress to back up (' + before + ' problems)')
+  await cdp.eval('KM.store.reset()')
+  eq(await cdp.eval('KM.store.profile().totals.problems'), 0, 'a wipe really does wipe')
+  const restored = await cdp.eval(`KM.store.importText(${JSON.stringify(backup)})`)
+  eq(restored.ok, true, 'a backup restores cleanly')
+  eq(await cdp.eval('KM.store.profile().totals.problems'), before, 'every problem comes back')
+  eq(
+    await cdp.eval('KM.store.importText("not a backup").ok'),
+    false,
+    'junk is refused rather than wiping her history',
+  )
+  eq(await cdp.eval('KM.store.profile().totals.problems'), before, 'a refused restore changes nothing')
+
+  // --- a corrupted main copy falls back to the backup slot --------------
+  await cdp.eval(`(() => {
+    localStorage.setItem('aranumberjungle.v1.bak', localStorage.getItem('aranumberjungle.v1'))
+    localStorage.setItem('aranumberjungle.v1', '{"profiles":[')
+  })()`)
+  await cdp.send('Page.reload')
+  await sleep(1200)
+  eq(
+    await cdp.eval('KM.store.profile().totals.problems'),
+    before,
+    'a half-written save falls back to the backup copy',
   )
 
   // --- the other screens all render ---

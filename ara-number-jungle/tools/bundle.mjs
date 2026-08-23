@@ -17,13 +17,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
 const html = read('index.html')
+
+// The favicon is the parrot emoji drawn by the system font, inline as SVG.
+const FAVICON =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🦜%3C/text%3E%3C/svg%3E"
 const dataUri = (p, mime) => `data:${mime};base64,${readFileSync(join(root, p)).toString('base64')}`
 
-// The stylesheet's only external reference is the leaf strip.
-const css = read('css/app.css').replace(
-  /url\(['"]\.\.\/icons\/leaves\.svg['"]\)/g,
-  `url('${dataUri('icons/leaves.svg', 'image/svg+xml')}')`,
-)
+// Nothing external left in the stylesheet: the artwork is all emoji now.
+const css = read('css/app.css')
+if (/url\(['"]?\.\./.test(css)) throw new Error('stylesheet still references an external file')
 
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1])
 if (scripts.length !== 9) throw new Error(`expected 9 script tags, found ${scripts.length}`)
@@ -41,7 +43,7 @@ const head = `<title>Ara's Number Jungle</title>
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Ara's Jungle" />
 <link rel="apple-touch-icon" href="${dataUri('icons/icon-180.png', 'image/png')}" />
-<link rel="icon" href="${dataUri('icons/icon.svg', 'image/svg+xml')}" type="image/svg+xml" />
+<link rel="icon" href="${FAVICON}" type="image/svg+xml" />
 <style>\n${css}\n</style>`
 
 const body = `${markup}\n<script>window.KM_NO_SW = true</script>\n${inlined}`

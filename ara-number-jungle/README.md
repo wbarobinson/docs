@@ -106,6 +106,34 @@ If she would rather race, **Grown-ups → Check the answer without tapping ✓**
 submits automatically the moment the answer is full length. Faster, fewer
 taps, no undo.
 
+## Never losing progress
+
+- Every answer is written to storage **as it happens**, not at the end of a set.
+- A set she is part way through is snapshotted too, so an app switch, a reload
+  or tapping ✕ leaves a **Carry on 🪶 (4 of 10)** button waiting on the home
+  screen. It keeps what she had already answered.
+- Each save rolls the previous good copy into a backup slot. If the main copy
+  is ever half-written, the app loads the backup instead of starting over.
+- **Grown-ups → Backup** shows a block of text that is her entire history.
+  Copy it into an email or a note; pasting it into the Restore box on any
+  device brings everything back.
+- If the browser refuses to store anything at all (a `file://` page, a private
+  window), the home screen says so instead of quietly forgetting.
+
+## What she sees after a set
+
+- **Three stars, each with a name:** Finished, Accurate (9 of 10 right first
+  try), Quick. Missing one tells her exactly what to aim at — a perfect but
+  slow set is two stars, not one.
+- The quick star counts either the branch target *or* beating her own best, so
+  there is always a reachable goal even on a day the target is far off.
+  Mastery still needs the real target, so the ladder does not get easier.
+- **Faster than last time!** 9.2s → 8.5s, with the seconds she shaved off, and
+  a bar chart of the last few sets on that branch so progress is visible across
+  days.
+- The next-set button says where it goes: *One more set* on the same branch, or
+  *Start &lt;next branch&gt;* when she has just mastered one.
+
 ## Getting it wrong
 
 Nothing bad happens. A soft low note, a wobble, the slot clears, try again.
@@ -133,6 +161,9 @@ every branch in it.
 
 ## Juice
 
+- **Blue dots** along the top: green means right first time, blue means right
+  first time *and* inside the target — the thing mastery actually turns on.
+  Gold means it took another go.
 - Every key press: ripple under the finger, a wooden tick, the key pressing in.
 - Right answer: the slot flips green, feathers and stars burst out, a chime
   that climbs a pentatonic run as her streak grows, and a praise word floating
@@ -159,11 +190,16 @@ erases her progress, so if you move devices, do it deliberately.
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 287 checks: every generator, mastery, badges, storage
-node tests/smoke.mjs      # 40 checks: drives the real UI in headless Chromium
+node tests/selftest.mjs   # 326 checks: generators, mastery, stars, badges, storage
+node tests/smoke.mjs      # 69 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
+
+One rule worth stating because it was a real bug: **revision is never harder
+than the branch she is on.** Each branch learns what it can produce by sampling
+its own generator, and a tricky fact is only dropped back in if it fits inside
+that. Going to "Add 1" for an easy win gets nothing but adding 1.
 
 `selftest.mjs` runs each of the 46 generators 300 times and checks the
 arithmetic is sound *and* that each branch only produces what its description

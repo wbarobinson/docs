@@ -11,13 +11,20 @@
 ;(function (root) {
   var KM = (root.KM = root.KM || {})
   var KEY = 'aranumberjungle.v1'
+  // A second copy of the last good state, and the set she is part way through.
+  // Losing a practice session to a cleared tab is not acceptable.
+  var BAK = KEY + '.bak'
+  var SESSION = KEY + '.session'
+  var storageOk = null // null until probed
 
   // autoCheck off by default: she should be able to backspace a fat-fingered
 // digit before it is graded. Turn it on for pure speed runs.
 var DEFAULT_SETTINGS = {
   sound: true,
   motion: true,
-  timer: true,
+  // Off by default: a clock ticking up while you think is stressful, and the
+  // set is timed either way. Grown-ups can switch it on.
+  timer: false,
   setSize: 10,
   autoNext: true,
   autoCheck: false,
@@ -60,6 +67,34 @@ var DEFAULT_SETTINGS = {
 
   var state = null
 
+  // Can this browser actually keep anything? Safari on a file:// page and
+  // private windows both say no, and the app should say so out loud rather
+  // than pretend to save.
+  function canStore() {
+    if (storageOk !== null) return storageOk
+    try {
+      root.localStorage.setItem(KEY + '.probe', '1')
+      root.localStorage.removeItem(KEY + '.probe')
+      storageOk = true
+    } catch (e) {
+      storageOk = false
+    }
+    return storageOk
+  }
+
+  function readJSON(key) {
+    try {
+      var raw = root.localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : null
+    } catch (e) {
+      return null
+    }
+  }
+
+  function looksValid(x) {
+    return !!(x && x.profiles && x.profiles.length && x.profiles[0].id)
+  }
+
   function fresh() {
     var p = newProfile('Ara', '🦜')
     return { version: 1, activeId: p.id, profiles: [p] }
@@ -67,13 +102,15 @@ var DEFAULT_SETTINGS = {
 
   function load() {
     if (state) return state
-    try {
-      var raw = root.localStorage && root.localStorage.getItem(KEY)
-      state = raw ? JSON.parse(raw) : fresh()
-    } catch (e) {
-      state = fresh()
+    // Main copy, then the backup, then start over. A half-written main copy
+    // must never cost her the whole history.
+    var main = readJSON(KEY)
+    if (looksValid(main)) state = main
+    else {
+      var bak = readJSON(BAK)
+      state = looksValid(bak) ? bak : fresh()
+      if (looksValid(bak)) state.restoredFromBackup = true
     }
-    if (!state.profiles || !state.profiles.length) state = fresh()
     // Fill in anything a newer version of the app expects.
     state.profiles.forEach(function (p) {
       p.settings = Object.assign({}, DEFAULT_SETTINGS, p.settings || {})
@@ -85,18 +122,93 @@ var DEFAULT_SETTINGS = {
         { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0, bestCombo: 0 },
         p.totals || {},
       )
+      // One-off migration for profiles created when the timer was on by default.
+      if (!p.settingsVersion) {
+        p.settings.timer = false
+        p.settingsVersion = 2
+      }
       if (!p.stageId) p.stageId = KM.DEFAULT_STAGE
       if (!p.unlockedTo) p.unlockedTo = p.stageId
     })
     return state
   }
 
+  // Called after every answered problem, not just at the end of a set.
   function save() {
+    if (!canStore()) return false
+    var s = load()
+    s.savedAt = Date.now()
     try {
-      root.localStorage && root.localStorage.setItem(KEY, JSON.stringify(load()))
+      var text = JSON.stringify(s)
+      // Roll the last known-good copy into the backup slot first.
+      var previous = root.localStorage.getItem(KEY)
+      if (previous && looksValid(readJSON(KEY))) root.localStorage.setItem(BAK, previous)
+      root.localStorage.setItem(KEY, text)
+      return true
     } catch (e) {
-      /* private browsing, a full disk — practice still works, it just forgets */
+      // Out of quota: drop the backup to make room and try once more, because
+      // the live copy matters more than the spare.
+      try {
+        root.localStorage.removeItem(BAK)
+        root.localStorage.setItem(KEY, JSON.stringify(s))
+        return true
+      } catch (e2) {
+        return false
+      }
     }
+  }
+
+  // --- the set she is half way through ----------------------------------
+
+  function saveSession(snapshot) {
+    if (!canStore()) return
+    try {
+      root.localStorage.setItem(SESSION, JSON.stringify(snapshot))
+    } catch (e) {}
+  }
+
+  function loadSession() {
+    var snap = readJSON(SESSION)
+    if (!snap || !snap.problems || !snap.problems.length) return null
+    // Anything older than a day is not "where she left off" any more.
+    if (Date.now() - (snap.savedAt || 0) > 86400000) return null
+    if (snap.i >= snap.problems.length) return null
+    if (snap.profileId && snap.profileId !== load().activeId) return null
+    return snap
+  }
+
+  function clearSession() {
+    try {
+      root.localStorage.removeItem(SESSION)
+    } catch (e) {}
+  }
+
+  // --- backup you can paste somewhere safe ------------------------------
+
+  function exportText() {
+    return JSON.stringify(load())
+  }
+
+  function importText(text) {
+    var incoming
+    try {
+      incoming = JSON.parse(String(text).trim())
+    } catch (e) {
+      return { ok: false, error: 'That does not look like a backup — it should start with {' }
+    }
+    if (!looksValid(incoming)) return { ok: false, error: 'No children found in that backup.' }
+    var known = incoming.profiles.some(function (x) {
+      return x.id === incoming.activeId
+    })
+    if (!known) incoming.activeId = incoming.profiles[0].id
+    state = null // force a re-read through load(), which fills in any gaps
+    try {
+      root.localStorage.setItem(KEY, JSON.stringify(incoming))
+    } catch (e) {
+      return { ok: false, error: 'This browser will not let the app save.' }
+    }
+    load()
+    return { ok: true, profiles: incoming.profiles.length }
   }
 
   function profile() {
@@ -113,6 +225,9 @@ var DEFAULT_SETTINGS = {
         problems: 0,
         correct: 0,
         bestMs: null,
+        bestPerProblem: null,
+        lastPerProblem: null,
+        history: [], // seconds per problem, most recent last
         bestScore: null,
         stars: 0,
         mastered: false,
@@ -153,6 +268,11 @@ var DEFAULT_SETTINGS = {
     st.stars = Math.max(st.stars, stars)
     st.lastAt = Date.now()
     if (st.bestMs === null || res.ms < st.bestMs) st.bestMs = res.ms
+    if (!st.bestPerProblem || perProblem < st.bestPerProblem) st.bestPerProblem = perProblem
+    st.lastPerProblem = perProblem
+    if (!st.history) st.history = []
+    st.history.push(Math.round(perProblem * 10) / 10)
+    if (st.history.length > 12) st.history = st.history.slice(-12)
     if (st.bestScore === null || accuracy > st.bestScore) st.bestScore = accuracy
 
     // Mastery, the Kumon way: three sets in a row that are both accurate and
@@ -256,6 +376,14 @@ var DEFAULT_SETTINGS = {
 
   KM.store = {
     KEY: KEY,
+    BAK: BAK,
+    SESSION: SESSION,
+    canStore: canStore,
+    saveSession: saveSession,
+    loadSession: loadSession,
+    clearSession: clearSession,
+    exportText: exportText,
+    importText: importText,
     load: load,
     save: save,
     profile: profile,
@@ -292,6 +420,7 @@ var DEFAULT_SETTINGS = {
     today: today,
     reset: function () {
       state = fresh()
+      clearSession()
       save()
     },
   }

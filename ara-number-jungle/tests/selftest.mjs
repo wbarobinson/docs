@@ -162,6 +162,49 @@ for (const stage of KM.STAGES) {
   delete p.facts['15+9']
 }
 
+// --- 3b. revision never gets harder than the branch she picked ---------
+// She went to "Add 1" for an easy win and the first few problems were Level A
+// leftovers. Revision has to respect the branch.
+{
+  const p = KM.store.addProfile('Revision', '🦜')
+  ;['18+6', '63+11', '27-8', '89+11', '12*11', '24+4'].forEach((k) => {
+    p.facts[k] = { n: 8, wrong: 6, ms: 9500, lastMs: 9500, lastAt: Date.now() }
+  })
+
+  let worstBranch = null
+  for (const stage of KM.STAGES) {
+    for (let round = 0; round < 12 && !worstBranch; round++) {
+      for (const prob of KM.engine.buildSet(p, stage.id, 10).problems) {
+        // Only revision is under test here; a branch's own generator defines
+        // what that branch is allowed to be.
+        if (prob.revision && !KM.engine.fitsStage(prob, stage)) {
+          worstBranch = stage.id + ' served ' + prob.a + prob.op + prob.b
+        }
+      }
+    }
+  }
+  ok(!worstBranch, 'no branch ever revises something harder than itself (' + worstBranch + ')')
+
+  const easy = KM.engine.buildSet(p, '3A-1', 10).problems
+  ok(
+    easy.every((x) => x.op === '+' && x.b === 1 && x.a <= 9),
+    '"Add 1" is still nothing but adding 1, however much revision is waiting',
+  )
+  ok(
+    KM.engine.fitsStage({ a: 7, b: 1, op: '+', answer: 8 }, KM.stage('3A-1')),
+    'an easy fact is allowed back into an easy branch',
+  )
+  ok(
+    !KM.engine.fitsStage({ a: 18, b: 6, op: '+', answer: 24 }, KM.stage('3A-1')),
+    'a hard fact is not',
+  )
+  ok(
+    KM.engine.fitsStage({ a: 18, b: 6, op: '+', answer: 24 }, KM.stage('A-5')),
+    'but it is welcome back on the branch it came from',
+  )
+  KM.store.removeProfile(KM.store.profile().id)
+}
+
 // --- 4. parsing facts -------------------------------------------------
 {
   eq(KM.engine.parseFact('27+11').answer, 38, 'parses an addition fact')
@@ -174,12 +217,18 @@ for (const stage of KM.STAGES) {
   eq(KM.engine.parseFact('nonsense'), null, 'refuses junk')
 }
 
-// --- 5. stars ---------------------------------------------------------
+// --- 5. stars: finished, accurate, quick ------------------------------
 {
   eq(KM.engine.stars(1, 3.0, 3.6), 3, 'quick and perfect is three stars')
-  eq(KM.engine.stars(1, 4.0, 3.6), 2, 'perfect but slow is two stars')
-  eq(KM.engine.stars(0.8, 3.0, 3.6), 2, 'quick with a couple wrong is two stars')
-  eq(KM.engine.stars(0.5, 9.0, 3.6), 1, 'finishing at all is one star')
+  eq(KM.engine.stars(1, 9.2, 4.0), 2, 'all correct but slow still earns the accuracy star')
+  eq(KM.engine.stars(0.9, 3.0, 3.6), 3, '9 out of 10 counts as accurate')
+  eq(KM.engine.stars(0.8, 3.0, 3.6), 2, 'quick with two wrong is two stars')
+  eq(KM.engine.stars(0.5, 9.0, 3.6), 1, 'finishing at all is always worth one star')
+  ok(KM.engine.stars(0, 99, 3.6) >= 1, 'a rough set is never zero stars')
+  // Beating her own best earns the speed star even when the target is far off.
+  eq(KM.engine.stars(1, 8.0, 4.0, 9.2), 3, 'beating her own best counts as quick')
+  eq(KM.engine.stars(1, 9.5, 4.0, 9.2), 2, 'a slower set than her best does not')
+  eq(KM.engine.stars(1, 8.0, 4.0, 0), 2, 'with no previous best, only the target counts')
 }
 
 // --- 6. playing a set end to end -------------------------------------
@@ -230,11 +279,17 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   ok(KM.store.stageRecord(p, 'A-5').mastered, 'the mastered stage is marked')
   eq(r3.levelledUp, false, 'A-5 to A-6 is not a new level')
 
-  // A slow set should not build a run.
+  // A slow set should not build a run, but perfect accuracy still shows up.
   const slow = playSet(p, 'A-6', { msEach: 12000 })
   eq(slow.quick, false, 'a slow set is not quick')
   eq(slow.run, 0, 'a slow set does not start the run')
-  eq(slow.stars, 1, 'a slow set is one star')
+  eq(slow.stars, 2, 'a slow but perfect set is two stars, not one')
+  const slower = playSet(p, 'A-6', { msEach: 14000, rightFirstTry: 3 })
+  eq(slower.stars, 1, 'slow and scrappy is one star')
+  const improved = playSet(p, 'A-6', { msEach: 11000 })
+  eq(improved.beatOwnBest, true, 'a personal best is recognised')
+  eq(improved.stars, 3, 'beating her own best earns the third star')
+  eq(improved.run, 0, 'but mastery still needs the real target')
 
   // A scrappy set breaks a run that was already going.
   playSet(p, 'A-6', { msEach: 1500 })
@@ -243,7 +298,82 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   eq(scrappy.run, 0, 'a scrappy set resets the run')
 }
 
-// --- 6b. the answer is submitted deliberately by default ---------------
+// --- 5b. she can see herself getting quicker --------------------------
+{
+  const p = KM.store.addProfile('Trend', '🦜')
+  const slow = playSet(p, 'A-5', { msEach: 9200 })
+  eq(slow.improvedBy, 0, 'the first set on a branch has nothing to compare to')
+  eq(slow.previousTime, 0, 'and no previous time')
+  eq(slow.quickAnswers, 0, 'none of them were inside the target')
+
+  const quicker = playSet(KM.store.profile(), 'A-5', { msEach: 8500 })
+  ok(Math.abs(quicker.previousTime - 9.2) < 0.2, 'it remembers what she did last time')
+  ok(Math.abs(quicker.improvedBy - 0.7) < 0.2, 'and works out that she shaved 0.7s off')
+  eq(quicker.beatOwnBest, true, 'a quicker set is a new record')
+  eq(quicker.history.length, 2, 'the branch keeps a history to draw')
+
+  const slipped = playSet(KM.store.profile(), 'A-5', { msEach: 9000 })
+  ok(slipped.improvedBy < 0, 'a slower set reports a negative improvement')
+  eq(slipped.beatOwnBest, false, 'and is not a record')
+
+  const fast = playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
+  eq(fast.quickAnswers, 10, 'every answer inside the target is counted')
+  eq(fast.stars, 3, 'quick and accurate is three stars')
+  eq(KM.store.stageRecord(KM.store.profile(), 'A-5').history.length, 4, 'history keeps growing')
+  KM.store.removeProfile(KM.store.profile().id)
+}
+
+// --- 6a. progress survives being interrupted --------------------------
+{
+  const p = KM.store.profile()
+  const s = KM.engine.start(p, 'A-5', 10)
+  const answeredKeys = []
+  for (let i = 0; i < 4; i++) {
+    const prob = KM.engine.current(s)
+    answeredKeys.push(KM.factKey(prob))
+    s.shownAt = Date.now() - 2000
+    KM.engine.submit(s, prob.answer)
+  }
+  const stored = JSON.parse(memory.get(KM.store.KEY))
+  const savedMe = stored.profiles.find((x) => x.id === stored.activeId)
+  ok(
+    answeredKeys.every((k) => savedMe.facts[k] && savedMe.facts[k].n === p.facts[k].n),
+    'every answer is in storage during the set, not only at the end',
+  )
+
+  const snap = KM.engine.snapshot(s)
+  eq(snap.i, 4, 'the snapshot knows how far she got')
+  const resumed = KM.engine.resume(snap)
+  eq(resumed.i, 4, 'resuming picks up at the same problem')
+  eq(resumed.firstTry, 4, 'and keeps what she had already got right')
+  eq(resumed.problems.length, 10, 'with the same problems still to come')
+
+  // Finish the resumed set: it should score as a whole set of ten.
+  for (let i = 4; i < 10; i++) {
+    const prob = KM.engine.current(resumed)
+    resumed.shownAt = Date.now() - 2000
+    KM.engine.submit(resumed, prob.answer)
+  }
+  const res = KM.engine.finish(resumed)
+  eq(res.count, 10, 'a resumed set still counts as ten problems')
+  eq(res.accuracy, 1, 'and the answers from before the interruption still count')
+}
+
+// --- 6b. backup and restore -------------------------------------------
+{
+  const before = KM.store.profile().totals.problems
+  const backup = KM.store.exportText()
+  KM.store.reset()
+  eq(KM.store.profile().totals.problems, 0, 'a reset really does clear everything')
+  const res = KM.store.importText(backup)
+  eq(res.ok, true, 'a backup restores')
+  eq(KM.store.profile().totals.problems, before, 'with every problem intact')
+  eq(KM.store.importText('rubbish').ok, false, 'junk is refused')
+  eq(KM.store.importText('{"nope":1}').ok, false, 'valid JSON that is not a backup is refused')
+  eq(KM.store.profile().totals.problems, before, 'and a refused restore leaves her history alone')
+}
+
+// --- 6c. the answer is submitted deliberately by default ---------------
 {
   const fresh = KM.store.newProfile('Settings', '🦜')
   eq(fresh.settings.autoCheck, false, 'auto-check is off by default, so a typo can be backspaced')

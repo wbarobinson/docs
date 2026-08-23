@@ -70,6 +70,12 @@
           flapMascot()
           KM.play.begin(lastStage)
           return
+        case 'btn-resume':
+          if (!KM.play.resume()) {
+            KM.ui.toast('That set has gone — starting a fresh one')
+            KM.play.begin()
+          }
+          return
         case 'btn-again':
           KM.play.begin(lastStage || KM.store.profile().stageId)
           return
@@ -99,6 +105,42 @@
           KM.store.save()
           KM.ui.renderGrown()
           KM.ui.toast('Moved to ' + KM.stage(id).name)
+          return
+        }
+        case 'g-copy': {
+          var box = doc.getElementById('g-backup')
+          box.removeAttribute('readonly')
+          box.select()
+          box.setSelectionRange(0, box.value.length)
+          var copied = false
+          try {
+            copied = doc.execCommand('copy')
+          } catch (e) {}
+          if (!copied && root.navigator.clipboard) {
+            root.navigator.clipboard.writeText(box.value).then(function () {
+              KM.ui.toast('Backup copied')
+            })
+          } else {
+            KM.ui.toast(copied ? 'Backup copied' : 'Select the text and copy it')
+          }
+          box.setAttribute('readonly', 'readonly')
+          return
+        }
+        case 'g-restore': {
+          var text = doc.getElementById('g-restore-text').value
+          if (!text.trim()) {
+            KM.ui.toast('Paste a backup first')
+            return
+          }
+          if (!root.confirm('Replace everything on this device with that backup?')) return
+          var res = KM.store.importText(text)
+          if (res.ok) {
+            applySettings()
+            KM.ui.renderGrown()
+            KM.ui.toast('Restored ' + res.profiles + (res.profiles === 1 ? ' child' : ' children'))
+          } else {
+            KM.ui.toast(res.error)
+          }
           return
         }
         case 'g-remove':
@@ -207,6 +249,11 @@
     )
     doc.addEventListener('visibilitychange', function () {
       if (!doc.hidden) KM.audio.unlock()
+      // Backgrounding an iPad tab can be the last thing that happens to it.
+      else KM.store.save()
+    })
+    root.addEventListener('pagehide', function () {
+      KM.store.save()
     })
     root.addEventListener('touchstart', function once() {
       KM.audio.unlock()

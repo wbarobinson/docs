@@ -26,23 +26,43 @@
   function begin(stageId) {
     var p = KM.store.profile()
     var stage = KM.stage(stageId || p.stageId) || KM.stage(KM.DEFAULT_STAGE)
-    s = KM.engine.start(p, stage.id, p.settings.setSize)
+    KM.store.clearSession()
+    startSession(KM.engine.start(p, stage.id, p.settings.setSize))
+  }
+
+  // Pick up a set she was part way through — after an app switch, a reload, or
+  // tapping ✕ and coming back.
+  function resume() {
+    var snap = KM.store.loadSession()
+    if (!snap) return false
+    startSession(KM.engine.resume(snap))
+    KM.ui.toast('Carrying on where you left off 🪶')
+    return true
+  }
+
+  function startSession(session) {
+    s = session
+    var stage = KM.stage(s.stageId)
+    var p = KM.store.profile()
     typed = ''
     locked = false
     revealed = false
     KM.ui.theme(stage.level)
     KM.ui.show('play')
-    el('timer').style.display = p.settings.timer ? '' : 'none'
+    var showTimer = p.settings.timer
+    el('timer').hidden = !showTimer
     drawDots()
     drawCombo()
     drawProblem()
     KM.audio.swoosh()
     if (ticker) root.clearInterval(ticker)
-    ticker = root.setInterval(function () {
-      if (!s || s.finishedAt) return
-      el('timer').textContent = KM.ui.fmtClock(Date.now() - s.startedAt)
-    }, 250)
-    el('timer').textContent = '0:00'
+    if (showTimer) {
+      ticker = root.setInterval(function () {
+        if (!s || s.finishedAt) return
+        el('timer').textContent = KM.ui.fmtClock(Date.now() - s.startedAt)
+      }, 250)
+      el('timer').textContent = '0:00'
+    }
   }
 
   function stop() {
@@ -51,10 +71,17 @@
     s = null
   }
 
+  // Green = right first time. Blue = right first time AND under the branch's
+  // target, which is the thing mastery actually turns on. Gold = took another
+  // go. White = where she is now.
   function drawDots() {
+    var target = KM.stage(s.stageId).target * 1000
     var html = ''
     for (var i = 0; i < s.problems.length; i++) {
-      var cls = i < s.i ? (s.log[i] && s.log[i].firstTry ? 'done' : 'miss') : i === s.i ? 'now' : ''
+      var log = s.log[i]
+      var cls = ''
+      if (i < s.i && log) cls = !log.firstTry ? 'miss' : log.ms <= target ? 'fast' : 'done'
+      else if (i === s.i) cls = 'now'
       html += '<i class="' + cls + '"></i>'
     }
     el('dots').innerHTML = html
@@ -201,6 +228,7 @@
     }
     drawDots()
     drawCombo()
+    if (res.quick && res.firstTry) KM.juice.float('⚡', el('dots'), 'gold')
     if (res.combo === 5 || res.combo === 10 || res.combo === 20) {
       KM.juice.confetti(40)
       KM.audio.squawk()
@@ -241,14 +269,19 @@
     KM.ui.renderResult(res)
   }
 
+  // ✕ keeps the half-finished set: everything answered is already recorded,
+  // and the rest is waiting on the home screen under "Carry on".
   function quit() {
+    var partWayThrough = !!(s && !s.finishedAt && s.i > 0)
+    if (partWayThrough) KM.store.saveSession(KM.engine.snapshot(s))
     stop()
     KM.ui.show('home')
-    KM.ui.toast('Stopped — nothing lost 🪶')
+    KM.ui.toast(partWayThrough ? 'Saved — carry on any time 🪶' : 'Stopped — nothing lost 🪶')
   }
 
   KM.play = {
     begin: begin,
+    resume: resume,
     press: press,
     quit: quit,
     active: function () {

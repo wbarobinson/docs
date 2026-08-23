@@ -20,6 +20,46 @@
     return { a: a, b: b, op: op, answer: answer, revision: true }
   }
 
+  // What can this branch actually throw at her? Learned by sampling its own
+  // generator, so it stays true as the curriculum changes.
+  var profiles = {}
+  function stageProfile(stage) {
+    if (profiles[stage.id]) return profiles[stage.id]
+    var prof = { ops: {}, maxA: 0, maxB: 0, maxAnswer: 0 }
+    for (var i = 0; i < 150; i++) {
+      var p = stage.gen()
+      prof.ops[p.op] = true
+      prof.maxA = Math.max(prof.maxA, p.a)
+      prof.maxB = Math.max(prof.maxB, p.b)
+      prof.maxAnswer = Math.max(prof.maxAnswer, p.answer)
+    }
+    profiles[stage.id] = prof
+    return prof
+  }
+
+  // Sampling can under-estimate a generator's reach, so every real problem it
+  // produces widens the profile.
+  function widenProfile(stage, p) {
+    var prof = stageProfile(stage)
+    prof.ops[p.op] = true
+    prof.maxA = Math.max(prof.maxA, p.a)
+    prof.maxB = Math.max(prof.maxB, p.b)
+    prof.maxAnswer = Math.max(prof.maxAnswer, p.answer)
+  }
+
+  // Revision must never be harder than the branch she chose. Dropping "18 + 6"
+  // into "Add 1" is exactly the thing that makes a child distrust the easy
+  // branch she went to for a confidence boost.
+  function fitsStage(prob, stage) {
+    var prof = stageProfile(stage)
+    return (
+      !!prof.ops[prob.op] &&
+      prob.a <= prof.maxA &&
+      prob.b <= prof.maxB &&
+      prob.answer <= prof.maxAnswer
+    )
+  }
+
   function sameProblem(x, y) {
     return x && y && x.a === y.a && x.b === y.b && x.op === y.op
   }
@@ -31,12 +71,12 @@
 
     // Up to a third of the set is revision, and only if there is anything
     // genuinely worth revising.
-    var tricky = KM.store.trickyFacts(p, 20)
-    var wanted = Math.min(Math.floor(size / 3), tricky.length)
+    var tricky = KM.store.trickyFacts(p, 30)
+    var wanted = Math.floor(size / 3)
     var revision = []
     for (var i = 0; i < tricky.length && revision.length < wanted; i++) {
       var prob = parseFact(tricky[i].key)
-      if (prob) revision.push(prob)
+      if (prob && fitsStage(prob, stage)) revision.push(prob)
     }
 
     var fresh = []
@@ -51,6 +91,7 @@
         })
         if (!dup) break
       }
+      widenProfile(stage, candidate)
       fresh.push(candidate)
     }
 
@@ -65,11 +106,18 @@
     return { stageId: stage.id, problems: out.slice(0, size) }
   }
 
-  function stars(accuracy, perProblem, target) {
-    var r = perProblem / target
-    if (accuracy >= 0.95 && r <= 1) return 3
-    if (accuracy >= 0.8 && r <= 1.5) return 2
-    return 1
+  // One star per thing achieved, so a child can always see which one she
+  // missed and why:
+  //   ⭐ finished the set
+  //   ⭐ got at least 9 of 10 right first try
+  //   ⭐ was quick — inside the branch target, OR faster than her own best
+  //
+  // Beating her own best always counts, so the speed star stays reachable on
+  // the day she is still twice the target. Mastery still needs the real
+  // target, so the ladder does not get easier.
+  function stars(accuracy, perProblem, target, bestPerProblem) {
+    var quick = perProblem <= target || (bestPerProblem > 0 && perProblem < bestPerProblem)
+    return 1 + (accuracy >= 0.9 ? 1 : 0) + (quick ? 1 : 0)
   }
 
   function start(p, stageId, size) {
@@ -95,6 +143,49 @@
       startedAt: Date.now(),
       shownAt: Date.now(),
       finishedAt: null,
+    }
+  }
+
+  // Everything needed to pick a half-finished set back up. Written after every
+  // answer, so the worst an app switch or a crash can cost her is the problem
+  // she was looking at.
+  function snapshot(s) {
+    return {
+      profileId: KM.store.profile().id,
+      stageId: s.stageId,
+      problems: s.problems,
+      i: s.i,
+      combo: s.combo,
+      bestCombo: s.bestCombo,
+      firstTry: s.firstTry,
+      answered: s.answered,
+      log: s.log,
+      thinkMs: s.thinkMs,
+      trickyAtStart: s.trickyAtStart,
+      fixedTricky: s.fixedTricky,
+      savedAt: Date.now(),
+    }
+  }
+
+  function resume(snap) {
+    return {
+      stageId: snap.stageId,
+      problems: snap.problems,
+      i: snap.i,
+      tries: 0,
+      combo: snap.combo || 0,
+      bestCombo: snap.bestCombo || 0,
+      firstTry: snap.firstTry || 0,
+      answered: snap.answered || 0,
+      revealed: false,
+      log: snap.log || [],
+      thinkMs: snap.thinkMs || 0,
+      trickyAtStart: snap.trickyAtStart || {},
+      fixedTricky: !!snap.fixedTricky,
+      startedAt: Date.now(),
+      shownAt: Date.now(),
+      finishedAt: null,
+      resumed: true,
     }
   }
 
@@ -146,6 +237,9 @@
     // earned would count against her next one.
     s.thinkMs += ms
     KM.store.recordProblem(KM.store.profile(), prob, ms, firstTry)
+    // Write it down now. Everything else in this file can be recomputed; the
+    // fact that she answered this problem cannot.
+    KM.store.save()
     s.log.push({ key: key, ms: ms, firstTry: firstTry, revision: !!prob.revision })
 
     s.i++
@@ -153,6 +247,8 @@
     s.shownAt = Date.now()
     var done = s.i >= s.problems.length
     if (done) s.finishedAt = Date.now()
+    if (done) KM.store.clearSession()
+    else KM.store.saveSession(snapshot(s))
 
     return {
       correct: true,
@@ -176,7 +272,13 @@
     var wallMs = (s.finishedAt || Date.now()) - s.startedAt
     var accuracy = count ? s.firstTry / count : 0
     var perProblem = count ? ms / count / 1000 : 999
-    var st = stars(accuracy, perProblem, stage.target)
+    // Read her previous best before recording this set, or she would be
+    // competing against the set she just finished.
+    var record = KM.store.stageRecord(p, s.stageId)
+    var previousBest = record.bestPerProblem || 0
+    var previousTime = record.lastPerProblem || 0
+    var previousHistory = (record.history || []).slice()
+    var st = stars(accuracy, perProblem, stage.target, previousBest)
 
     var res = KM.store.recordSet(p, {
       stageId: s.stageId,
@@ -189,6 +291,16 @@
     res.count = count
     res.ms = ms
     res.wallMs = wallMs
+    res.previousBest = previousBest
+    res.beatOwnBest = previousBest > 0 && perProblem < previousBest
+    res.previousTime = previousTime
+    // Positive means she shaved this many seconds off her last go.
+    res.improvedBy = previousTime > 0 ? previousTime - perProblem : 0
+    res.history = previousHistory.concat([Math.round(perProblem * 10) / 10])
+    res.target = stage.target
+    res.quickAnswers = s.log.filter(function (x) {
+      return x.firstTry && x.ms <= stage.target * 1000
+    }).length
     res.bestCombo = s.bestCombo
     res.fixedTricky = s.fixedTricky
     res.stageId = s.stageId
@@ -200,12 +312,17 @@
       .slice(0, 3)
 
     res.badges = KM.awardBadges(p, res)
+    KM.store.clearSession()
     KM.store.save()
     return res
   }
 
   KM.engine = {
     buildSet: buildSet,
+    fitsStage: fitsStage,
+    stageProfile: stageProfile,
+    snapshot: snapshot,
+    resume: resume,
     parseFact: parseFact,
     stars: stars,
     start: start,

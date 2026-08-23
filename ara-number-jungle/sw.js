@@ -6,7 +6,7 @@
  * (which is not a bad way to run a practice session).
  * Bump CACHE when the files change.
  */
-var CACHE = 'ara-jungle-v1'
+var CACHE = 'ara-jungle-v2'
 var FILES = [
   './',
   './index.html',
@@ -21,8 +21,8 @@ var FILES = [
   './js/play.js',
   './js/app.js',
   './manifest.webmanifest',
-  './icons/icon.svg',
-  './icons/leaves.svg',
+  './icons/icon-180.png',
+  './icons/icon-512.png',
 ]
 
 self.addEventListener('install', function (e) {

@@ -77,6 +77,17 @@
     el('home-stage').textContent = stage.name
     el('home-detail').textContent = stage.detail
 
+    // A half-finished set is offered before anything else.
+    var snap = KM.store.loadSession()
+    var resume = el('btn-resume')
+    resume.hidden = !snap
+    if (snap) {
+      el('resume-count').textContent = snap.i + ' of ' + snap.problems.length
+      var snapStage = KM.stage(snap.stageId)
+      if (snapStage) resume.title = snapStage.name
+    }
+    el('storage-warning').hidden = KM.store.canStore()
+
     var beads = ''
     for (var i = 0; i < 3; i++) beads += '<i class="' + (i < rec.run ? 'on' : '') + '"></i>'
     el('home-run').innerHTML = beads
@@ -330,7 +341,9 @@
     html += '<div class="card"><h2>Settings</h2>'
     html += sw('s-sound', 'Sound effects', p.settings.sound)
     html += sw('s-motion', 'Confetti and wiggles', p.settings.motion)
-    html += sw('s-timer', 'Show the timer while she plays', p.settings.timer)
+    html += sw('s-timer', 'Show the clock while she plays', p.settings.timer)
+    html +=
+      '<p class="tiny muted" style="margin:-2px 0 6px 74px">Off by default. Sets are timed either way — this only decides whether she watches it tick.</p>'
     html += sw('s-autonext', 'Jump straight to the next problem', p.settings.autoNext)
     html += sw('s-autocheck', 'Check the answer without tapping ✓', p.settings.autoCheck)
     html +=
@@ -340,6 +353,22 @@
       html += '<option value="' + n + '"' + (p.settings.setSize === n ? ' selected' : '') + '>' + n + '</option>'
     })
     html += '</select></div></div>'
+
+    // Backup you can paste somewhere safe
+    html +=
+      '<div class="card"><h2>Backup</h2>' +
+      '<p class="tiny muted" style="margin:0 0 8px">Progress lives in this browser only. Copy this text somewhere safe (an email to yourself, a note) and you can paste it back here on any device.</p>' +
+      '<textarea id="g-backup" class="backup" readonly rows="3">' +
+      esc(KM.store.exportText()) +
+      '</textarea>' +
+      '<div class="row wrap" style="margin-top:8px"><button class="btn small" id="g-copy">Copy backup</button></div>' +
+      '<p class="tiny muted" style="margin:14px 0 6px"><b>Restore:</b> paste a backup here and everything in it replaces what is on this device.</p>' +
+      '<textarea id="g-restore-text" class="backup" rows="3" placeholder="Paste a backup here"></textarea>' +
+      '<div class="row wrap" style="margin-top:8px"><button class="btn small ghost" id="g-restore">Restore from this text</button></div>' +
+      (KM.store.canStore()
+        ? ''
+        : '<p class="tiny" style="margin:10px 0 0;color:var(--bad-dark)"><b>Careful:</b> this browser is refusing to save anything, so nothing done here will survive a reload. Open the app from a link rather than a file, and not in a private window.</p>') +
+      '</div>'
 
     // How it works + reset
     html +=
@@ -357,8 +386,47 @@
     el('grown-body').innerHTML = html + '</div>'
   }
 
-  function stat(v, label) {
-    return '<div class="stat"><b>' + v + '</b><span class="tiny muted">' + label + '</span></div>'
+  function stat(v, label, extra) {
+    return (
+      '<div class="stat"><b>' +
+      v +
+      '</b><span class="tiny muted">' +
+      label +
+      '</span>' +
+      (extra || '') +
+      '</div>'
+    )
+  }
+
+  // Seconds per problem for the last few sets on this branch. Shorter is
+  // better, so the bars visibly shrink as she gets quicker.
+  function sparkline(history, target) {
+    if (!history || history.length < 2) return ''
+    var recent = history.slice(-8)
+    var max = Math.max.apply(null, recent)
+    var bars = recent
+      .map(function (v, i) {
+        var last = i === recent.length - 1
+        var h = Math.max(8, Math.round((v / max) * 100))
+        return (
+          '<div class="sbar' +
+          (last ? ' now' : '') +
+          (v <= target ? ' quick' : '') +
+          '"><i style="height:' +
+          h +
+          '%"></i><span>' +
+          v.toFixed(1) +
+          '</span></div>'
+        )
+      })
+      .join('')
+    return (
+      '<div class="card"><h2 class="tiny muted" style="margin:0 0 8px">Seconds a problem, last ' +
+      recent.length +
+      ' sets on this branch</h2><div class="spark">' +
+      bars +
+      '</div></div>'
+    )
   }
   function sw(id, label, on) {
     return (
@@ -387,11 +455,62 @@
     var spans = el('res-stars').children
     for (var i = 0; i < spans.length; i++) spans[i].classList.remove('on')
 
+    // Each star says what it was for, and the ones she missed stay legible so
+    // she can see what to aim at next time.
+    var accurate = res.accuracy >= 0.9
+    var quick = res.stars === 3 || (res.stars === 2 && !accurate)
+    var labels = el('res-starlabels').children
+    labels[0].textContent = 'Finished'
+    labels[1].textContent = res.accuracy === 1 ? 'All correct' : accurate ? 'Accurate' : 'Accuracy'
+    labels[2].textContent = quick ? (res.beatOwnBest ? 'New record' : 'Quick') : 'Speed'
+    for (var L = 0; L < labels.length; L++) {
+      labels[L].classList.toggle('on', L < 1 || (L === 1 && accurate) || (L === 2 && quick))
+    }
+
+    // The next-set button should say where it is going.
+    var again = el('btn-again')
+    var nextStage = res.mastered ? KM.stage(res.nextStageId) : null
+    again.textContent = nextStage ? 'Start ' + nextStage.name + ' 🪶' : 'One more set 🚀'
+
+    // The headline number is seconds-per-problem, because that is the one she
+    // can move. Show where it came from and where it went.
+    var faster = res.improvedBy > 0.05
+    var slower = res.improvedBy < -0.05
+    var deltaChip = faster
+      ? '<span class="delta good">▼ ' + res.improvedBy.toFixed(1) + 's faster</span>'
+      : slower
+        ? '<span class="delta">▲ ' + Math.abs(res.improvedBy).toFixed(1) + 's slower</span>'
+        : res.previousTime
+          ? '<span class="delta">same as last time</span>'
+          : ''
+
     el('res-stats').innerHTML =
-      stat(res.firstTry === undefined ? res.count : Math.round(res.accuracy * res.count) + '/' + res.count, 'first try') +
+      stat(Math.round(res.accuracy * res.count) + '/' + res.count, 'first try') +
       stat(fmtClock(res.ms), 'total time') +
-      stat(res.perProblem.toFixed(1) + 's', 'each (aim ' + stage.target + 's)') +
-      stat('🔥 ' + res.bestCombo, 'best streak')
+      stat(
+        (res.previousTime ? '<s>' + res.previousTime.toFixed(1) + '</s> ' : '') +
+          res.perProblem.toFixed(1) +
+          's',
+        'each (aim ' + stage.target + 's)',
+        deltaChip,
+      ) +
+      stat('🔵 ' + res.quickAnswers + '/' + res.count, 'under ' + stage.target + 's')
+
+    // A banner she cannot miss when she has actually got quicker.
+    el('res-improve').innerHTML = faster
+      ? '<div class="improve">⚡ <b>Faster than last time!</b> ' +
+        res.previousTime.toFixed(1) +
+        's → <b>' +
+        res.perProblem.toFixed(1) +
+        's</b> on every problem' +
+        (res.beatOwnBest ? ' — a new record 🏆' : '') +
+        '</div>'
+      : res.beatOwnBest
+        ? '<div class="improve">🏆 <b>New record!</b> ' + res.perProblem.toFixed(1) + 's on every problem</div>'
+        : ''
+
+    // And the shape of the last few sets, so progress is visible over days.
+    el('res-history').innerHTML = sparkline(res.history, stage.target)
 
     var prog = ''
     if (res.mastered) {
@@ -407,15 +526,23 @@
     } else {
       var beads = ''
       for (var b = 0; b < 3; b++) beads += '<i class="' + (b < res.run ? 'on' : '') + '"></i>'
+      // Turn "you didn't get the star" into a number she can actually chase.
+      var goalMs = stage.target * res.count * 1000
+      var goal = res.previousBest
+        ? 'Beat your best: <b>' + fmtClock(res.previousBest * res.count * 1000) + '</b>'
+        : 'Try it in under <b>' + fmtClock(goalMs) + '</b>'
+      var line = res.mastered
+        ? ''
+        : !accurate
+          ? 'Next time: get 9 out of ' + res.count + ' right first try.'
+          : quick
+            ? res.run + ' of 3 quick, accurate sets in a row — keep going!'
+            : 'Everything right! Now for the speed star. ' + goal
       prog =
         '<div class="runbeads">' +
         beads +
         '</div><p class="tiny muted" style="margin:8px 0 0;text-align:center">' +
-        (res.run === 0
-          ? res.quick
-            ? 'So close — a few more right first try and the run starts.'
-            : 'Good going. Quick sets (under ' + stage.target + 's a problem) build the run.'
-          : res.run + ' of 3 quick, accurate sets in a row') +
+        line +
         '</p>'
     }
     el('res-progress').innerHTML = prog
