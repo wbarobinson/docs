@@ -835,7 +835,14 @@
       }
     },
 
+    hideToast: function () {
+      var t = document.getElementById('toast');
+      clearTimeout(t._timer);
+      t.classList.remove('show');
+    },
+
     showPhoto: function (data, res) {
+      this.hideToast();
       this.photoImg.src = data;
       document.getElementById('photo-stars').textContent =
         new Array(res.stars + 1).join('⭐');
@@ -843,6 +850,7 @@
     },
 
     showBook: function () {
+      this.hideToast();
       var list = Gallery.all();
       this.bookGrid.innerHTML = list.length
         ? ''
@@ -856,6 +864,7 @@
     },
 
     showClients: function () {
+      this.hideToast();
       this.clientView.classList.add('show');
     },
 
