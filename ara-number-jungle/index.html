@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ara's Number Jungle</title>
+    <!-- viewport-fit=cover + no user scaling: this is an app, not a page. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="description" content="A happy numpad maths game for Ara: Kumon-style practice, timing, badges." />
+    <meta name="theme-color" content="#ffd479" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Ara's Jungle" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- ================= HOME ================= -->
+      <section class="screen" id="home">
+        <header class="row spread">
+          <button class="pill" data-go="grown" id="whoami">
+            <span class="avatar" id="home-avatar">🦜</span>
+            <span id="home-name">Ara</span>
+          </button>
+          <div class="row" style="gap: 8px">
+            <span class="pill" id="home-streak" title="Days in a row">🔥 0</span>
+            <span class="pill" id="home-stars">⭐ 0</span>
+            <button class="pill" data-go="badges" id="home-badges">🏅 0</button>
+          </div>
+        </header>
+
+        <div class="hero">
+          <div class="mascot" id="mascot">🦜</div>
+          <div class="card stage-card">
+            <span class="level-tag" id="home-level">Level A · The Canopy</span>
+            <h1 id="home-stage">Add 11</h1>
+            <p class="muted" id="home-detail" style="margin: 0 0 12px">Add 11 to numbers over 24</p>
+            <div class="runbeads" id="home-run" title="Quick, accurate sets in a row"></div>
+            <p class="tiny muted" id="home-runlabel" style="margin: 8px 0 0">
+              Three quick, accurate sets in a row to fly up a branch
+            </p>
+          </div>
+          <button class="btn big good" id="btn-play">Let's go! 🚀</button>
+          <div class="row centre wrap">
+            <button class="btn small ghost" data-go="map">🗺️ Jungle map</button>
+            <button class="btn small ghost" data-go="badges">🏅 Badges</button>
+            <button class="btn small ghost" data-go="grown">👨‍👩‍👧 Grown-ups</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PLAY ================= -->
+      <section class="screen" id="play">
+        <div class="playtop">
+          <button class="btn small ghost" id="btn-quit">✕</button>
+          <div class="dots" id="dots"></div>
+          <span class="pill combo" id="combo">🔥 <b>0</b></span>
+          <span class="pill timer" id="timer">0:00</span>
+        </div>
+        <div class="playmain">
+          <div class="left">
+            <div class="problem" id="problem"></div>
+            <div class="hint" id="hint"></div>
+          </div>
+          <div class="pad" id="pad">
+            <button class="key" data-k="7">7</button>
+            <button class="key" data-k="8">8</button>
+            <button class="key" data-k="9">9</button>
+            <button class="key" data-k="4">4</button>
+            <button class="key" data-k="5">5</button>
+            <button class="key" data-k="6">6</button>
+            <button class="key" data-k="1">1</button>
+            <button class="key" data-k="2">2</button>
+            <button class="key" data-k="3">3</button>
+            <button class="key del" data-k="del">⌫</button>
+            <button class="key" data-k="0">0</button>
+            <button class="key act" data-k="go">✓</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= RESULT ================= -->
+      <section class="screen" id="result">
+        <div class="scroll">
+          <div style="max-width: 680px; margin: 0 auto; display: grid; gap: 14px">
+            <h1 style="text-align: center" id="res-title">Nice work!</h1>
+            <div class="stars" id="res-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
+            <div class="card">
+              <div class="statgrid" id="res-stats"></div>
+            </div>
+            <div class="card" id="res-progress"></div>
+            <div id="res-badges" style="display: grid; gap: 10px"></div>
+            <div class="row centre wrap actions">
+              <button class="btn good" id="btn-again">Again! 🔁</button>
+              <button class="btn ghost" data-go="map">🗺️ Map</button>
+              <button class="btn ghost" data-go="home">🏡 Home</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MAP ================= -->
+      <section class="screen" id="map">
+        <header class="row spread">
+          <h1>🗺️ Jungle map</h1>
+          <button class="btn small ghost" data-go="home">🏡 Home</button>
+        </header>
+        <div class="scroll" id="map-body"></div>
+      </section>
+
+      <!-- ================= BADGES ================= -->
+      <section class="screen" id="badges">
+        <header class="row spread">
+          <h1>🏅 Badges</h1>
+          <button class="btn small ghost" data-go="home">🏡 Home</button>
+        </header>
+        <div class="scroll" id="badges-body"></div>
+      </section>
+
+      <!-- ================= GROWN-UPS ================= -->
+      <section class="screen" id="grown">
+        <header class="row spread">
+          <h1>👨‍👩‍👧 Grown-ups</h1>
+          <button class="btn small ghost" data-go="home">🏡 Home</button>
+        </header>
+        <div class="scroll" id="grown-body"></div>
+      </section>
+    </div>
+
+    <!-- Plain scripts, loaded in dependency order: works from a file:// URL,
+         a static host, or the home screen, with no build step anywhere. -->
+    <script src="js/curriculum.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/badges.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/juice.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/play.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

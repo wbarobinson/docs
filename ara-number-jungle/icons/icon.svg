@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ara the macaw">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd479" />
+      <stop offset="1" stop-color="#ffb347" />
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff5a4d" />
+      <stop offset="1" stop-color="#d3263a" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sky)" />
+  <!-- leaves -->
+  <path d="M0 512c60-80 150-96 210-52C150 496 80 512 0 512z" fill="#2f8f4e" opacity=".55" />
+  <path d="M512 512c-70-70-170-84-236-38 70 40 150 46 236 38z" fill="#25703f" opacity=".55" />
+  <!-- tail -->
+  <path d="M300 300c60 40 96 96 104 176-64-24-112-72-136-128z" fill="#2c7be5" />
+  <path d="M286 316c46 44 70 100 74 168-52-30-92-84-108-140z" fill="#ffc93c" />
+  <!-- body + head -->
+  <circle cx="238" cy="238" r="132" fill="url(#body)" />
+  <!-- wing bars -->
+  <path d="M238 190c56 6 96 44 108 100-58 6-100-32-108-100z" fill="#ffc93c" opacity=".95" />
+  <path d="M256 262c40 6 66 30 74 66-42 4-70-24-74-66z" fill="#2c7be5" opacity=".95" />
+  <!-- face patch -->
+  <ellipse cx="196" cy="212" rx="60" ry="56" fill="#fff6e6" />
+  <circle cx="200" cy="206" r="20" fill="#24304a" />
+  <circle cx="207" cy="199" r="7" fill="#fff" />
+  <!-- beak -->
+  <path d="M148 208c-46 4-70 30-66 62 4 30 32 46 62 38-18-30-16-66 4-100z" fill="#3b4763" />
+  <path d="M144 262c-24 6-34 20-30 36 22 4 38-8 46-24z" fill="#e9edf7" />
+</svg>

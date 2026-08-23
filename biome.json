@@ -53,6 +53,7 @@
       "!dist",
       "!node_modules",
       "!playwright-report",
+      "!ara-number-jungle",
       "!specs/lib",
       "!src/snippets/unformatted",
       "!test-results"
