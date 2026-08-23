@@ -160,16 +160,22 @@
 
   var STYLE_HOLD = 0.3;
 
+  /* Styles whose tail is gathered and sent down the back of the head, rather
+     than sitting at the sides. Their tails must not be drawn over the face. */
+  var BEHIND_STYLES = { ponytail: 1, highpony: 1, braid: 1, halfup: 1 };
+
   function gatherPoint(style, s) {
     switch (style) {
-      case 'ponytail': return { x: HEAD.cx, y: HEAD.cy - 6, k: 5 };
-      case 'highpony': return { x: HEAD.cx, y: HEAD.cy - HEAD.ry * 0.72, k: 4 };
+      /* k is how many segments stay at the roots. The gathered styles use 1,
+         so the whole length sweeps back and can be drawn behind the head. */
+      case 'ponytail': return { x: HEAD.cx, y: HEAD.cy + HEAD.ry * 0.5, k: 1 };
+      case 'highpony': return { x: HEAD.cx, y: HEAD.cy - HEAD.ry * 0.6, k: 1 };
+      case 'braid': return { x: HEAD.cx, y: HEAD.cy + HEAD.ry * 0.58, k: 1 };
+      case 'halfup':
+        return Math.abs(s.angle) < 0.85 ? { x: HEAD.cx, y: HEAD.cy + HEAD.ry * 0.3, k: 1 } : null;
       case 'bun': return { x: HEAD.cx, y: HEAD.cy - HEAD.ry * 0.66, k: 4 };
-      case 'braid': return { x: HEAD.cx, y: HEAD.cy + 24, k: 6 };
       case 'pigtails':
         return { x: HEAD.cx + (s.angle < 0 ? -1 : 1) * (HEAD.rx + 16), y: HEAD.cy - 24, k: 5 };
-      case 'halfup':
-        return Math.abs(s.angle) < 0.85 ? { x: HEAD.cx, y: HEAD.cy - 34, k: 5 } : null;
       default: return null;
     }
   }
@@ -185,6 +191,11 @@
     if (style === 'pigtails') {
       var out = (G.x < HEAD.cx ? -1 : 1);
       return { x: G.x + out * Math.min(30, d * 0.22) + sway, y: G.y + d * 0.95 };
+    }
+    if (BEHIND_STYLES[style]) {
+      /* Swept over one shoulder, so the end of the tail clears her outline
+         and is visible from the front even though it hangs behind her. */
+      return { x: G.x + Math.min(290, d * 0.88) + sway, y: G.y + d * 0.7 };
     }
     return { x: G.x + sway, y: G.y + d };
   }
@@ -363,6 +374,7 @@
     createHair: createHair, step: step, displayPoints: displayPoints,
     brush: brush, cut: cut, dye: dye, curl: curl, blow: blow,
     nearestSegment: nearestSegment, resetHair: resetHair, measure: measure,
+    gatherPoint: gatherPoint, BEHIND_STYLES: BEHIND_STYLES,
     clamp: clamp, lerp: lerp, rand: rand
   };
 })(window);

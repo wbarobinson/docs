@@ -58,6 +58,7 @@ html, body {
 }
 
 .round:active { transform: translateY(3px); box-shadow: 0 1px 0 #e79cc4; }
+.round.off { opacity: 0.45; }
 
 #request {
   display: flex;

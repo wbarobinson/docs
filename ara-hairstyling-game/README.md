@@ -43,9 +43,14 @@ visit it keeps working offline.
 | 🎀 Bows | Tap the hair to clip something on. It stays put as the hair moves |
 | 💇 Styles | Ponytail, high pony, pigtails, bun, braid, half up |
 
+Ponytails, high ponies, braids and half-ups are gathered and sent *behind* her
+head, the way they really sit, so they never hang over her face. 🪞 in the top
+bar is a hand mirror showing the back of her head, which is how you see them.
+Tap it again to put the mirror away.
+
 Two fingers work at once for brushing and curling.
 
-📔 keeps the last eight photos on the iPad itself. 🔔 brings in a new client.
+🪞 shows the back of her hair. 📔 keeps the last eight photos on the iPad itself. 🔔 brings in a new client.
 ↩️ undoes the last thing.
 
 ## How it works
@@ -53,7 +58,10 @@ Two fingers work at once for brushing and curling.
 The hair is about 116 strands, each a chain of points run through a Verlet
 solver with distance constraints, bending stiffness, collision against the
 head, and a curved shoulder line the hair drapes over. Styles (ponytail, bun…)
-pull the strands toward a gather point and a generated tail path. Colour is
+pull the strands toward a gather point and a generated tail path; the gathered
+ones are drawn in the layer behind the head, and the mirror re-renders the same
+strands over the head instead of around it, cached and refreshed every third
+frame. Colour is
 stored per segment, which is why painting the ends works.
 
 Everything is drawn to one canvas in a fixed 1000x750 space that is scaled to

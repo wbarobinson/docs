@@ -25,7 +25,7 @@
 
   var state = {
     strands: [], style: 'down', accessories: [], sparkles: [], clippings: [],
-    confetti: [], volume: 0, time: 0, frame: 0,
+    confetti: [], volume: 0, time: 0, frame: 0, mirror: true, mainColor: null,
     client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
     tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
     pointer: { x: 500, y: 300, active: false },
@@ -370,7 +370,7 @@
     }
   }
 
-  function drawScalp() {
+  function drawScalp(full) {
     /* a cap made of little wedges, each tinted by its own strand's root colour,
        so dyeing the roots actually shows */
     var strands = state.strands;
@@ -382,9 +382,19 @@
       ctx.beginPath();
       ctx.moveTo(HEAD.cx + Math.sin(a - d) * HEAD.rx, HEAD.cy - Math.cos(a - d) * HEAD.ry);
       ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx, HEAD.cy - Math.cos(a + d) * HEAD.ry);
-      ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx * 0.55, HEAD.cy - Math.cos(a + d) * HEAD.ry * 0.55 + 10);
-      ctx.lineTo(HEAD.cx + Math.sin(a - d) * HEAD.rx * 0.55, HEAD.cy - Math.cos(a - d) * HEAD.ry * 0.55 + 10);
+      var inner = full ? 0.1 : 0.55;
+      ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx * inner, HEAD.cy - Math.cos(a + d) * HEAD.ry * inner + 10);
+      ctx.lineTo(HEAD.cx + Math.sin(a - d) * HEAD.rx * inner, HEAD.cy - Math.cos(a - d) * HEAD.ry * inner + 10);
       ctx.closePath();
+      ctx.fill();
+    }
+
+    /* Swept back, the cap would swallow the whole face, so give it a hairline:
+       a forehead in skin, high in the middle and tucked in at the temples. */
+    if (full) {
+      ctx.fillStyle = state.client.skin;
+      ctx.beginPath();
+      ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
       ctx.fill();
     }
   }
@@ -408,13 +418,17 @@
     ctx.stroke();
   }
 
-  function drawStrand(s) {
+  function drawStrand(s, from, to) {
     if (s.n < 1) { return; }
+    from = from || 0;
+    to = (to === undefined || to > s.n) ? s.n : to;
+    if (to <= from) { return; }
+
     var dp = H.displayPoints(s, state.time, dispBuf);
     var shade = 0.75 + (1 - s.depth) * 0.25;
-    var run = 0;
-    for (var i = 1; i <= s.n; i++) {
-      if (i === s.n || s.cols[i] !== s.cols[run]) {
+    var run = from;
+    for (var i = from + 1; i <= to; i++) {
+      if (i === to || s.cols[i] !== s.cols[run]) {
         var w = lerp(s.width, s.width * 0.42, run / s.n);
         strokeRun(dp, run, i, s.cols[run] || s.cols[0], w, shade);
         run = i;
@@ -422,7 +436,7 @@
     }
 
     /* shine ribbon near the roots */
-    if (s.shine > 0.45 && s.n > 3) {
+    if (from === 0 && s.shine > 0.45 && s.n > 3) {
       ctx.globalAlpha = (s.shine - 0.45) * 0.5;
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = s.width * 0.3;
@@ -434,10 +448,31 @@
     ctx.globalAlpha = 1;
   }
 
+  /* Where a strand's gathered tail begins, or -1 when this style keeps the
+     hair at the sides. A ponytail's tail belongs behind the head, not over
+     the face, so it is drawn in its own pass between the body and the head. */
+  function tailStart(s) {
+    if (!H.BEHIND_STYLES[state.style]) { return -1; }
+    var G = H.gatherPoint(state.style, s);
+    if (!G) { return -1; }
+    return Math.min(G.k, s.n);
+  }
+
   function drawHair(layer) {
     for (var i = 0; i < state.strands.length; i++) {
-      if (state.strands[i].layer === layer) { drawStrand(state.strands[i]); }
+      var s = state.strands[i];
+      var k = tailStart(s);
+      if (layer === 'back') {
+        if (s.layer === 'back') { drawStrand(s, 0, k < 0 ? undefined : k); }
+        if (k >= 0) { drawStrand(s, k); }        // the gathered tail, behind her
+      } else if (s.layer === 'front' && k < 0) {
+        drawStrand(s);
+      }
     }
+  }
+
+  function drawAllHair() {
+    for (var i = 0; i < state.strands.length; i++) { drawStrand(state.strands[i]); }
   }
 
   /* ---------- drawing: extras ---------- */
@@ -526,6 +561,98 @@
     }
   }
 
+  var MIRROR = { x: 152, y: 330, r: 104 };
+
+  /* The back of her head, the way a stylist holds up a mirror to show you.
+     Same hair, drawn over the head instead of around it, and no face. */
+  function drawBackView() {
+    ctx.save();
+    ctx.translate(MIRROR.x, MIRROR.y);
+    ctx.scale(0.42, 0.42);
+    ctx.translate(-HEAD.cx, -(HEAD.cy + 95));
+
+    drawBody();
+    ctx.fillStyle = state.mainColor || state.client.hair;
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx + 4, HEAD.ry + 4, 0, 0, 6.2832);
+    ctx.fill();
+    drawAllHair();
+    drawAccessories();
+    drawSparkles();
+    ctx.restore();
+  }
+
+  var mirrorCv = null, mirrorCtx = null;
+
+  function updateMirrorCache() {
+    var m = MIRROR;
+    var px = Math.max(64, Math.min(1024, Math.ceil(m.r * 2 * scale * dpr)));
+    if (!mirrorCv) {
+      mirrorCv = document.createElement('canvas');
+      mirrorCtx = mirrorCv.getContext('2d');
+    }
+    if (mirrorCv.width !== px) { mirrorCv.width = px; mirrorCv.height = px; }
+
+    var k = px / (m.r * 2);
+    mirrorCtx.setTransform(1, 0, 0, 1, 0, 0);
+    mirrorCtx.fillStyle = '#fdf2f9';
+    mirrorCtx.fillRect(0, 0, px, px);
+    mirrorCtx.setTransform(k, 0, 0, k, -(m.x - m.r) * k, -(m.y - m.r) * k);
+
+    var main = ctx;
+    ctx = mirrorCtx;
+    drawBackView();
+    ctx = main;
+  }
+
+  function drawMirror() {
+    if (!state.mirror) { return; }
+    var m = MIRROR;
+    if (!mirrorCv || state.frame % 3 === 0) { updateMirrorCache(); }
+
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#e07cb4';
+    ctx.lineWidth = 28;
+    ctx.beginPath();
+    ctx.moveTo(m.x, m.y + m.r);
+    ctx.lineTo(m.x - 30, m.y + m.r + 96);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffb3d9';
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.moveTo(m.x, m.y + m.r);
+    ctx.lineTo(m.x - 30, m.y + m.r + 96);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, 6.2832);
+    ctx.clip();
+    ctx.drawImage(mirrorCv, m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
+    ctx.restore();
+
+    ctx.strokeStyle = '#ff8fc4';
+    ctx.lineWidth = 16;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r + 7, 0, 6.2832);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffd0e6';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r + 16, 0, 6.2832);
+    ctx.stroke();
+
+    /* a soft glint so it reads as glass */
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r - 16, Math.PI * 1.05, Math.PI * 1.35);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawCursor() {
     if (!state.pointer.active || state.tool === 'style') { return; }
     var r = TOOLS[state.tool].radius;
@@ -545,6 +672,7 @@
     var m = H.measure(state);
     var r = S.score(state.wishes, m, state.accessories);
     state.happy = state.wishes.length ? r.got / state.wishes.length : 1;
+    state.mainColor = m.mainColor;
     UI.markWishes(m);
   }
 
@@ -566,12 +694,13 @@
     drawHair('back');
     drawBody();
     drawHead();
+    drawScalp(!!H.BEHIND_STYLES[state.style]);
     drawFace();
-    drawScalp();
     drawHair('front');
     drawAccessories();
     drawSparkles();
     drawClippings();
+    drawMirror();
     drawConfetti();
     drawCursor();
 
@@ -686,6 +815,13 @@
         Snd.play('spray');
         self.toast('All washed out!');
       });
+      var mirror = document.getElementById('btn-mirror');
+      mirror.addEventListener('click', function () {
+        state.mirror = !state.mirror;
+        mirror.classList.toggle('off', !state.mirror);
+        Snd.play('pop');
+      });
+
       var sound = document.getElementById('btn-sound');
       sound.textContent = Snd.isMuted() ? '🔇' : '🔊';
       sound.addEventListener('click', function () {
