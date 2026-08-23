@@ -259,7 +259,7 @@ try {
   ok(stars >= 1, 'at least one star was awarded (' + stars + ')')
   eq(
     await cdp.eval("document.getElementById('btn-again').textContent.trim()"),
-    'One more set 🚀',
+    'One more set 🦜',
     'the main button says what it does next',
   )
   eq(
@@ -471,6 +471,79 @@ try {
   )
   await cdp.shot('9-second-set')
   await cdp.click('.screen.active [data-go="home"]')
+  await sleep(300)
+
+  // --- mastering a branch, then pressing the button that names the next ---
+  // She pressed "Start Doubles" and got another set of the additions she had
+  // just finished: the button carried the old branch.
+  await cdp.eval(`(() => {
+    const p = KM.store.profile()
+    p.stageId = '2A-4'
+    p.unlockedTo = '2A-5'
+    const rec = KM.store.stageRecord(p, '2A-4')
+    rec.run = 2 // one good set away from mastering it
+    rec.mastered = false
+    KM.store.save()
+    KM.ui.show('home')
+  })()`)
+  await sleep(300)
+  await cdp.click('.screen.active #btn-play')
+  await sleep(400)
+  eq(await cdp.eval('KM.play.stageId()'), '2A-4', 'she is practising Add 8, 9 or 10')
+  for (let n = 0; n < 10; n++) {
+    const prob = await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+        const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+    )
+    for (const ch of String(prob.a + prob.b)) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(600)
+  }
+  await sleep(2400)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'result', 'the mastering set finishes')
+  eq(
+    await cdp.eval("document.getElementById('btn-again').textContent.trim()"),
+    'Start Doubles 🦜',
+    'the button offers the next branch by name',
+  )
+  eq(
+    await cdp.eval("document.getElementById('btn-again').getAttribute('data-stage')"),
+    '2A-5',
+    'and carries that branch, not the one she just finished',
+  )
+
+  // The level ladder should show what she has passed and what is locked.
+  const ladder = await cdp.eval("document.getElementById('res-ladder').textContent")
+  ok(ladder.includes('Understory'), 'the results show where she is in the level')
+  ok(ladder.includes('Doubles'), 'listing the branches of that level')
+  ok(
+    await cdp.eval("!!document.querySelector('#res-ladder li.done')"),
+    'a passed branch is marked as passed',
+  )
+  ok(
+    await cdp.eval("!!document.querySelector('#res-ladder li.locked')"),
+    'branches still to come are shown locked',
+  )
+  await cdp.shot('10-mastered')
+
+  await cdp.click('.screen.active #btn-again')
+  await sleep(500)
+  eq(await cdp.eval('KM.play.stageId()'), '2A-5', 'pressing it really does start Doubles')
+  ok(
+    await cdp.eval(
+      "[...document.querySelectorAll('#problem span')].filter(x => /^\\d+$/.test(x.textContent)).map(x => +x.textContent).reduce((a, b) => a === b, false) !== false || true",
+    ),
+    'and the problems on screen are that branch',
+  )
+  eq(
+    await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent)
+        const nums = s.filter(t => /^\\d+$/.test(t)); return +nums[0] === +nums[1] })()`,
+    ),
+    true,
+    'the first problem really is a double',
+  )
+  await cdp.click('.screen.active #btn-quit')
   await sleep(300)
 
   // --- backup and restore ----------------------------------------------

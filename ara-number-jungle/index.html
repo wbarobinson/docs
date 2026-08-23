@@ -46,7 +46,7 @@
               Three quick, accurate sets in a row to fly up a branch
             </p>
           </div>
-          <button class="btn big good" id="btn-play">Let's go! 🚀</button>
+          <button class="btn big good" id="btn-play">Let's go! 🦜</button>
           <button class="btn gold" id="btn-resume" hidden>Carry on 🪶 <span id="resume-count"></span></button>
           <p class="pill tiny" id="storage-warning" hidden>
             ⚠️ This page can't save progress — open it from a link, not a file
@@ -92,7 +92,9 @@
       <!-- ================= RESULT ================= -->
       <section class="screen" id="result">
         <div class="scroll">
-          <div style="max-width: 680px; margin: 0 auto; display: grid; gap: 14px">
+          <div class="resultgrid">
+            <aside class="card ladder" id="res-ladder"></aside>
+            <div class="resultmain">
             <h1 style="text-align: center" id="res-title">Nice work!</h1>
             <div class="stars" id="res-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
             <div class="starlabels" id="res-starlabels">
@@ -109,6 +111,7 @@
               <button class="btn good" id="btn-again">One more set 🚀</button>
               <button class="btn ghost" data-go="map">🗺️ Map</button>
               <button class="btn ghost" data-go="home">🏡 Home</button>
+            </div>
             </div>
           </div>
         </div>

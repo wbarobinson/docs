@@ -57,6 +57,8 @@
         return
       }
 
+      // Anything carrying data-stage starts that exact branch: map chips, and
+      // the next-set button on the results screen.
       var stageId = btn.getAttribute('data-stage')
       if (stageId) {
         lastStage = stageId
@@ -77,6 +79,7 @@
           }
           return
         case 'btn-again':
+          // Only reached if the results screen never set data-stage on it.
           KM.play.begin(lastStage || KM.store.profile().stageId)
           return
         case 'btn-quit':

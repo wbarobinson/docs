@@ -398,6 +398,114 @@
     )
   }
 
+  // "When do I move up?" answered on the screen itself: the two things a set
+  // has to do, whether this one did them, and how many more are needed.
+  function passingCard(res, stage, accurate) {
+    if (res.mastered) {
+      var next = KM.stage(res.nextStageId)
+      return (
+        '<h2>🏆 ' +
+        esc(stage.name) +
+        ' passed!</h2><p style="margin:0">Three good sets in a row — you have flown up to <b>' +
+        esc(next ? next.name : 'the top of the jungle') +
+        '</b>' +
+        (next ? ': ' + esc(next.detail) : '') +
+        '</p>'
+      )
+    }
+
+    // Passing counts the branch target, never a personal best: the ladder does
+    // not get easier because she had a good day.
+    var counted = accurate && res.quick
+    var needed = Math.max(0, 3 - res.run)
+    var nextStage = KM.nextStage(stage.id)
+    var beads = ''
+    for (var b = 0; b < 3; b++) beads += '<i class="' + (b < res.run ? 'on' : '') + '"></i>'
+
+    return (
+      '<h2>Passing ' +
+      esc(stage.name) +
+      '</h2><p class="tiny muted" style="margin:0 0 10px">Three sets in a row that do both of these:</p>' +
+      '<ul class="reqs">' +
+      req(
+        accurate,
+        '9 of ' + res.count + ' right first try',
+        Math.round(res.accuracy * res.count) + ' of ' + res.count,
+      ) +
+      req(res.quick, 'Under ' + stage.target + 's a problem', res.shown.toFixed(1) + 's') +
+      '</ul><div class="runbeads" style="margin-top:12px">' +
+      beads +
+      '</div><p style="margin:10px 0 0;text-align:center">' +
+      (counted
+        ? '<b>That one counted!</b> ' +
+          res.run +
+          ' of 3. ' +
+          (needed === 1 ? 'One more' : needed + ' more') +
+          ' and you fly up to <b>' +
+          esc(nextStage ? nextStage.name : 'the next branch') +
+          '</b> 🪶'
+        : 'This one did not count, so the run starts again at three. ' +
+          (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
+      '</p>'
+    )
+  }
+
+  function req(done, label, actual) {
+    return (
+      '<li class="' +
+      (done ? 'yes' : 'no') +
+      '"><span class="mk">' +
+      (done ? '✅' : '❌') +
+      '</span><span class="grow">' +
+      label +
+      '</span><b>' +
+      actual +
+      '</b></li>'
+    )
+  }
+
+  // The branches of one level, in order: 🏆 passed, 🪶 where she is now,
+  // 🔒 still to come.
+  function levelLadder(stage, currentId) {
+    var p = KM.store.profile()
+    var lv = KM.level(stage.level)
+    var unlockedIdx = KM.stageIndex(p.unlockedTo)
+    var rows = KM.stagesOfLevel(stage.level)
+      .map(function (st) {
+        var rec = p.stages[st.id] || {}
+        var locked = KM.stageIndex(st.id) > unlockedIdx
+        var here = st.id === currentId
+        // ⭐ passed, 🦜 where she is, ⚪ open but not passed yet, 🔒 still locked.
+        var mark = rec.mastered ? '⭐' : here ? '🦜' : locked ? '🔒' : '⚪'
+        return (
+          '<li class="' +
+          (rec.mastered ? 'done ' : '') +
+          (here ? 'here ' : '') +
+          (locked ? 'locked' : '') +
+          '"><span class="mk">' +
+          mark +
+          '</span><span>' +
+          esc(st.name) +
+          '</span></li>'
+        )
+      })
+      .join('')
+    var prog = KM.store.levelProgress(p, stage.level)
+    return (
+      '<h2 class="tiny muted" style="margin:0 0 8px">' +
+      lv.icon +
+      ' ' +
+      esc(lv.place) +
+      ' · ' +
+      prog.done +
+      ' of ' +
+      prog.total +
+      ' passed</h2><ul class="ladderlist">' +
+      rows +
+      '</ul>'
+    )
+  }
+
   // Seconds per problem for the last few sets on this branch. Shorter is
   // better, so the bars visibly shrink as she gets quicker.
   function sparkline(history, target) {
@@ -462,34 +570,43 @@
     var labels = el('res-starlabels').children
     labels[0].textContent = 'Finished'
     labels[1].textContent = res.accuracy === 1 ? 'All correct' : accurate ? 'Accurate' : 'Accuracy'
-    labels[2].textContent = quick ? (res.beatOwnBest ? 'New record' : 'Quick') : 'Speed'
+    labels[2].textContent = quick
+      ? res.beatOwnBest
+        ? 'New record'
+        : res.matchedOwnBest
+          ? 'Held your best'
+          : 'Quick'
+      : 'Speed'
     for (var L = 0; L < labels.length; L++) {
       labels[L].classList.toggle('on', L < 1 || (L === 1 && accurate) || (L === 2 && quick))
     }
 
-    // The next-set button should say where it is going.
+    // The next-set button says where it is going — and, just as importantly,
+    // carries the branch it means, so pressing "Start Doubles" cannot hand her
+    // another set of the branch she has just finished.
     var again = el('btn-again')
     var nextStage = res.mastered ? KM.stage(res.nextStageId) : null
-    again.textContent = nextStage ? 'Start ' + nextStage.name + ' 🪶' : 'One more set 🚀'
+    again.textContent = nextStage ? 'Start ' + nextStage.name + ' 🦜' : 'One more set 🦜'
+    again.setAttribute('data-stage', nextStage ? nextStage.id : res.stageId)
 
     // The headline number is seconds-per-problem, because that is the one she
     // can move. Show where it came from and where it went.
-    var faster = res.improvedBy > 0.05
-    var slower = res.improvedBy < -0.05
+    var faster = res.improvedBy > 0
+    var slower = res.improvedBy < 0
+    // No chip when the rounded numbers are identical: "same as last time"
+    // sitting beside a record banner was a contradiction.
     var deltaChip = faster
       ? '<span class="delta good">▼ ' + res.improvedBy.toFixed(1) + 's faster</span>'
       : slower
         ? '<span class="delta">▲ ' + Math.abs(res.improvedBy).toFixed(1) + 's slower</span>'
-        : res.previousTime
-          ? '<span class="delta">same as last time</span>'
-          : ''
+        : ''
 
     el('res-stats').innerHTML =
       stat(Math.round(res.accuracy * res.count) + '/' + res.count, 'first try') +
       stat(fmtClock(res.ms), 'total time') +
       stat(
-        (res.previousTime ? '<s>' + res.previousTime.toFixed(1) + '</s> ' : '') +
-          res.perProblem.toFixed(1) +
+        (faster || slower ? '<s>' + res.shownPrevious.toFixed(1) + '</s> ' : '') +
+          res.shown.toFixed(1) +
           's',
         'each (aim ' + stage.target + 's)',
         deltaChip,
@@ -499,53 +616,28 @@
     // A banner she cannot miss when she has actually got quicker.
     el('res-improve').innerHTML = faster
       ? '<div class="improve">⚡ <b>Faster than last time!</b> ' +
-        res.previousTime.toFixed(1) +
+        res.shownPrevious.toFixed(1) +
         's → <b>' +
-        res.perProblem.toFixed(1) +
+        res.shown.toFixed(1) +
         's</b> on every problem' +
         (res.beatOwnBest ? ' — a new record 🏆' : '') +
         '</div>'
       : res.beatOwnBest
-        ? '<div class="improve">🏆 <b>New record!</b> ' + res.perProblem.toFixed(1) + 's on every problem</div>'
-        : ''
+        ? '<div class="improve">🏆 <b>New record!</b> ' + res.shown.toFixed(1) + 's on every problem</div>'
+        : res.matchedOwnBest
+          ? '<div class="improve">🏅 <b>You held your best pace!</b> ' +
+            res.shown.toFixed(1) +
+            's again on every problem</div>'
+          : ''
 
     // And the shape of the last few sets, so progress is visible over days.
     el('res-history').innerHTML = sparkline(res.history, stage.target)
 
-    var prog = ''
-    if (res.mastered) {
-      var next = KM.stage(res.nextStageId)
-      prog =
-        '<h2>🏆 ' +
-        esc(stage.name) +
-        ' mastered!</h2><p style="margin:0">Next up: <b>' +
-        esc(next ? next.name : 'the whole jungle, done') +
-        '</b>' +
-        (next ? ' — ' + esc(next.detail) : '') +
-        '</p>'
-    } else {
-      var beads = ''
-      for (var b = 0; b < 3; b++) beads += '<i class="' + (b < res.run ? 'on' : '') + '"></i>'
-      // Turn "you didn't get the star" into a number she can actually chase.
-      var goalMs = stage.target * res.count * 1000
-      var goal = res.previousBest
-        ? 'Beat your best: <b>' + fmtClock(res.previousBest * res.count * 1000) + '</b>'
-        : 'Try it in under <b>' + fmtClock(goalMs) + '</b>'
-      var line = res.mastered
-        ? ''
-        : !accurate
-          ? 'Next time: get 9 out of ' + res.count + ' right first try.'
-          : quick
-            ? res.run + ' of 3 quick, accurate sets in a row — keep going!'
-            : 'Everything right! Now for the speed star. ' + goal
-      prog =
-        '<div class="runbeads">' +
-        beads +
-        '</div><p class="tiny muted" style="margin:8px 0 0;text-align:center">' +
-        line +
-        '</p>'
-    }
-    el('res-progress').innerHTML = prog
+    // Where this branch sits in the level: what she has passed, where she is,
+    // and what is still locked ahead of her.
+    el('res-ladder').innerHTML = levelLadder(stage, res.nextStageId || stage.id)
+
+    el('res-progress').innerHTML = passingCard(res, stage, accurate)
 
     el('res-badges').innerHTML = (res.badges || [])
       .map(function (b) {
@@ -569,6 +661,14 @@
       if (star >= res.stars) {
         root.clearInterval(timer)
         if (res.stars >= 3) KM.juice.confetti(90)
+        if (res.improvedBy > 0 || res.beatOwnBest) {
+          var banner = doc.querySelector('.improve')
+          if (banner) {
+            KM.juice.pop(banner)
+            KM.juice.burst(banner, { n: 26, speed: 9, color: '#2c7be5' })
+          }
+          KM.audio.squawk()
+        }
         if (res.badges && res.badges.length) {
           KM.audio.badge()
           KM.audio.squawk()

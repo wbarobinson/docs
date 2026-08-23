@@ -162,6 +162,56 @@ for (const stage of KM.STAGES) {
   delete p.facts['15+9']
 }
 
+// --- 3a. repeat sets must not feel like a fixed list -------------------
+// Most branches have a small finite pool (45 problems for "sums up to 24",
+// nine for "add 1"), so picking at random meant the same dozen kept coming up.
+{
+  const p = KM.store.addProfile('Variety', '🦜')
+  const play = (stageId) => {
+    const set = KM.engine.buildSet(p, stageId, 10)
+    const keys = set.problems.map((x) => KM.factKey(x))
+    set.problems.forEach((prob) => KM.store.recordProblem(p, prob, 2000, true))
+    return keys
+  }
+
+  // A branch with room should never repeat inside one set.
+  const wide = ['A-5', 'A-7', 'B-4', 'C-6']
+  wide.forEach((id) => {
+    const keys = play(id)
+    eq(new Set(keys).size, 10, id + ' never repeats a problem inside one set')
+  })
+
+  // Five sets should walk most of the pool rather than circling a favourite few.
+  const union = new Set()
+  const runs = []
+  for (let i = 0; i < 5; i++) {
+    const keys = play('A-5')
+    runs.push(keys)
+    keys.forEach((k) => union.add(k))
+  }
+  ok(union.size >= 40, 'five sets cover most of the 45-problem pool (got ' + union.size + ')')
+  const overlap = runs[0].filter((k) => runs[1].includes(k)).length
+  ok(overlap <= 2, 'two sets in a row barely overlap (shared ' + overlap + ')')
+
+  // A pool smaller than the set has to repeat, but evenly and in a new order.
+  const small = play('3A-1')
+  eq(new Set(small).size, 9, '"Add 1" uses all nine of its facts in one set')
+  const counts = {}
+  small.forEach((k) => (counts[k] = (counts[k] || 0) + 1))
+  eq(Math.max.apply(null, Object.values(counts)), 2, 'and repeats just one of them, only once')
+  const smallAgain = play('3A-1')
+  ok(small.join() !== smallAgain.join(), 'the next set of nine comes in a different order')
+
+  // The tiniest pool of all still behaves.
+  const doubles = play('2A-5')
+  eq(doubles.length, 10, 'a five-problem pool still fills a ten-problem set')
+  eq(new Set(doubles).size, 5, 'using each of its five facts')
+  const dcounts = {}
+  doubles.forEach((k) => (dcounts[k] = (dcounts[k] || 0) + 1))
+  eq(Math.max.apply(null, Object.values(dcounts)), 2, 'exactly twice each, not four times one')
+  KM.store.removeProfile(KM.store.profile().id)
+}
+
 // --- 3b. revision never gets harder than the branch she picked ---------
 // She went to "Add 1" for an easy win and the first few problems were Level A
 // leftovers. Revision has to respect the branch.

@@ -122,6 +122,14 @@ taps, no undo.
 
 ## What she sees after a set
 
+- **Where she is in the level**, down the left: ⭐ branches passed, 🦜 the one
+  she is on, ⚪ open but not passed, 🔒 still to come.
+- **How to graduate**, spelled out rather than implied: the two things a set
+  has to do (9 of 10 right first try, and under the branch's target per
+  problem), ticked or crossed against what she actually did, three beads for
+  the run, and a plain sentence — *"That one counted! 2 of 3. One more and you
+  fly up to Sums up to 28."*
+
 - **Three stars, each with a name:** Finished, Accurate (9 of 10 right first
   try), Quick. Missing one tells her exactly what to aim at — a perfect but
   slow set is two stars, not one.
@@ -139,6 +147,18 @@ taps, no undo.
 Nothing bad happens. A soft low note, a wobble, the slot clears, try again.
 After two goes it shows the answer for her to copy in, and moves on. Wrong
 answers cost the streak and the star rating, never the ability to continue.
+
+## Where the problems come from
+
+Each branch has a finite pool — "sums up to 24" is 45 possible problems, "add
+1" is nine. Picking at random meant the same dozen kept surfacing and a repeat
+set felt like a fixed list. So each slot draws a handful of candidates and
+takes the one she has **practised least recently**, which walks the whole pool
+before coming back round: five sets on her branch now cover 44 or 45 of the 45.
+
+Where the pool is smaller than the set, the repeats are spread evenly — a set
+of ten on "add 1" uses all nine facts and repeats exactly one, in a fresh order
+every time.
 
 ## Tracking and revision
 
@@ -190,8 +210,8 @@ erases her progress, so if you move devices, do it deliberately.
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 326 checks: generators, mastery, stars, badges, storage
-node tests/smoke.mjs      # 69 checks: drives the real UI in headless Chromium
+node tests/selftest.mjs   # 338 checks: generators, mastery, stars, badges, storage
+node tests/smoke.mjs      # 80 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```

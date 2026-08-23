@@ -79,20 +79,34 @@
       if (prob && fitsStage(prob, stage)) revision.push(prob)
     }
 
+    // Most branches have a small, finite pool — "sums up to 24" is 45 problems,
+    // "add 1" is nine. Picking at random means the same dozen keep coming up
+    // and a repeat set feels like a fixed list. So for each slot we generate a
+    // handful of candidates and take the one she has practised least recently,
+    // which walks the whole pool before coming back round.
     var fresh = []
+    var usedInSet = {}
     for (var n = 0; n < size - revision.length; n++) {
-      // Try a few times for a problem we have not already got in this set;
-      // small stages (like "friends of 10") legitimately run out of options.
-      var candidate = null
-      for (var t = 0; t < 12; t++) {
-        candidate = stage.gen()
-        var dup = fresh.some(function (x) {
-          return sameProblem(x, candidate)
-        })
-        if (!dup) break
+      var best = null
+      var bestScore = null
+      for (var t = 0; t < 14; t++) {
+        var candidate = stage.gen()
+        widenProfile(stage, candidate)
+        var key = KM.factKey(candidate)
+        var fact = p.facts[key]
+        // Rank by how many times it is already in THIS set, then by how long
+        // ago she last met it. Never practised counts as time zero, so new
+        // facts come first and a pool smaller than the set spreads its
+        // unavoidable repeats evenly instead of clumping them.
+        var score = [usedInSet[key] || 0, fact ? fact.lastAt || 0 : 0]
+        if (!bestScore || score[0] < bestScore[0] || (score[0] === bestScore[0] && score[1] < bestScore[1])) {
+          best = candidate
+          bestScore = score
+        }
+        if (score[0] === 0 && score[1] === 0) break // can't do better than never met
       }
-      widenProfile(stage, candidate)
-      fresh.push(candidate)
+      usedInSet[KM.factKey(best)] = (usedInSet[KM.factKey(best)] || 0) + 1
+      fresh.push(best)
     }
 
     // Shuffle revision into the middle: never first (a cold start on your
@@ -115,8 +129,17 @@
   // Beating her own best always counts, so the speed star stays reachable on
   // the day she is still twice the target. Mastery still needs the real
   // target, so the ladder does not get easier.
+  // Compare at the precision she is shown, never below it: 3.14 and 3.09 both
+  // read as "3.1", so calling one of them an improvement is a lie.
+  function tenth(x) {
+    return Math.round(x * 10) / 10
+  }
+
   function stars(accuracy, perProblem, target, bestPerProblem) {
-    var quick = perProblem <= target || (bestPerProblem > 0 && perProblem < bestPerProblem)
+    // Matching her best counts as quick — she held the pace, and no child
+    // should lose a star to the second decimal place.
+    var quick =
+      perProblem <= target || (bestPerProblem > 0 && tenth(perProblem) <= tenth(bestPerProblem))
     return 1 + (accuracy >= 0.9 ? 1 : 0) + (quick ? 1 : 0)
   }
 
@@ -292,10 +315,18 @@
     res.ms = ms
     res.wallMs = wallMs
     res.previousBest = previousBest
-    res.beatOwnBest = previousBest > 0 && perProblem < previousBest
     res.previousTime = previousTime
-    // Positive means she shaved this many seconds off her last go.
-    res.improvedBy = previousTime > 0 ? previousTime - perProblem : 0
+    // Everything below is judged on the rounded numbers the results screen
+    // actually prints, so the banner, the chip and the stars cannot disagree.
+    var shown = tenth(perProblem)
+    var shownPrevious = tenth(previousTime)
+    var shownBest = tenth(previousBest)
+    res.shown = shown
+    res.shownPrevious = shownPrevious
+    res.beatOwnBest = shownBest > 0 && shown < shownBest
+    res.matchedOwnBest = shownBest > 0 && shown === shownBest
+    // Positive means she visibly shaved this much off her last go.
+    res.improvedBy = shownPrevious > 0 ? tenth(shownPrevious - shown) : 0
     res.history = previousHistory.concat([Math.round(perProblem * 10) / 10])
     res.target = stage.target
     res.quickAnswers = s.log.filter(function (x) {
