@@ -64,6 +64,24 @@
       }, ok)
     }
   }
+  // "Up to sum of 24" — pick the answer first, then split it. This is how the
+  // Kumon addition sections are actually bounded: by the ceiling the sum
+  // reaches, not by which number is being added.
+  function sumBand(lo, hi, blo, bhi, amin) {
+    return function () {
+      return until(
+        function () {
+          var answer = ri(lo, hi)
+          var b = ri(blo, bhi)
+          return add(answer - b, b)
+        },
+        function (p) {
+          return p.a >= (amin == null ? 1 : amin) && p.answer >= lo && p.answer <= hi
+        },
+      )
+    }
+  }
+
   function subRange(alo, ahi, blo, bhi, ok) {
     return function () {
       return until(function () {
@@ -93,9 +111,9 @@
   // Ara climbs the rainforest, one layer at a time: floor, understory,
   // canopy, the emergent treetops, then out into the open sky.
   KM.LEVELS = [
-    { id: '3A', name: 'Level 3A', place: 'Forest Floor', blurb: 'Sums up to 10', hue: 110, icon: '🌿' },
-    { id: '2A', name: 'Level 2A', place: 'Understory', blurb: 'Adding up to 20', hue: 162, icon: '🌴' },
-    { id: 'A', name: 'Level A', place: 'The Canopy', blurb: 'Big numbers, add & take away', hue: 42, icon: '🍃' },
+    { id: '3A', name: 'Level 3A', place: 'Forest Floor', blurb: 'Adding 1, 2 and 3', hue: 110, icon: '🌿' },
+    { id: '2A', name: 'Level 2A', place: 'Understory', blurb: 'Adding up to 10', hue: 162, icon: '🌴' },
+    { id: 'A', name: 'Level A', place: 'The Canopy', blurb: 'Sums up to 28, then taking away', hue: 42, icon: '🍃' },
     { id: 'B', name: 'Level B', place: 'Treetops', blurb: 'Two and three digit columns', hue: 6, icon: '🌺' },
     { id: 'C', name: 'Level C', place: 'Open Sky', blurb: 'Times tables & sharing', hue: 205, icon: '☀️' },
   ]
@@ -104,40 +122,39 @@
   // Kumon-ish: the number gets tighter as the facts get more familiar, and
   // loosens again whenever a genuinely new idea (carrying, borrowing) arrives.
   KM.STAGES = [
-    // ---- Level 3A: sums to 10 ----
+    // ---- Level 3A: adding 1, 2 and 3 ----
     { id: '3A-1', level: '3A', name: 'Add 1', detail: 'Add 1 to numbers up to 9', target: 3.0, gen: addFixed([1], 1, 9) },
     { id: '3A-2', level: '3A', name: 'Add 2', detail: 'Add 2 to numbers up to 8', target: 3.0, gen: addFixed([2], 1, 8) },
     { id: '3A-3', level: '3A', name: 'Add 3', detail: 'Add 3 to numbers up to 7', target: 3.0, gen: addFixed([3], 1, 7) },
     { id: '3A-4', level: '3A', name: 'Add 1, 2 or 3', detail: 'Mixed, sums to 10', target: 3.0, gen: addFixed([1, 2, 3], 1, 7) },
-    { id: '3A-5', level: '3A', name: 'Add 4 or 5', detail: 'Sums to 10', target: 3.2, gen: addFixed([4, 5], 1, 5) },
-    { id: '3A-6', level: '3A', name: 'Friends of 10', detail: 'Pairs that make exactly 10', target: 3.0, gen: function () { var a = ri(1, 9); return add(a, 10 - a) } },
-    { id: '3A-7', level: '3A', name: 'Add 6 to 10', detail: 'Adding the big ones to small numbers', target: 3.4, gen: addFixed([6, 7, 8, 9, 10], 0, 4) },
-    { id: '3A-8', level: '3A', name: 'All sums to 10', detail: 'Everything from the Forest Floor, mixed', target: 3.0, gen: addRange(0, 9, 0, 9, function (p) { return p.answer <= 10 }) },
+    { id: '3A-5', level: '3A', name: 'Add 1, 2, 3 to teens', detail: 'Numbers 10 to 18', target: 3.2, gen: addFixed([1, 2, 3], 10, 18) },
+    { id: '3A-6', level: '3A', name: 'Forest Floor mixed', detail: 'Adding 1, 2 and 3 to anything up to 18', target: 3.2, gen: addFixed([1, 2, 3], 1, 18) },
 
-    // ---- Level 2A: adding to 20 ----
-    { id: '2A-1', level: '2A', name: 'Add 1, 2, 3 to teens', detail: 'Numbers 10 to 18', target: 3.2, gen: addFixed([1, 2, 3], 10, 18) },
-    { id: '2A-2', level: '2A', name: 'Doubles', detail: '1+1 all the way to 10+10', target: 3.0, gen: function () { var a = ri(1, 10); return add(a, a) } },
-    { id: '2A-3', level: '2A', name: 'Near doubles', detail: 'One more than a double', target: 3.4, gen: function () { var a = ri(1, 9); return add(a, a + 1) } },
-    { id: '2A-4', level: '2A', name: 'Over the ten', detail: 'Sums like 8 + 5 that hop past 10', target: 3.8, gen: addRange(4, 9, 3, 9, function (p) { return p.answer > 10 && p.answer <= 18 }) },
-    { id: '2A-5', level: '2A', name: 'Add 4, 5, 6 to teens', detail: 'Numbers 10 to 15', target: 3.6, gen: addFixed([4, 5, 6], 10, 15) },
-    { id: '2A-6', level: '2A', name: 'Add 7, 8, 9 to teens', detail: 'Numbers 10 to 13', target: 3.8, gen: addFixed([7, 8, 9], 10, 13) },
-    { id: '2A-7', level: '2A', name: 'All sums to 20', detail: 'Everything from the Understory, mixed', target: 3.4, gen: addRange(1, 19, 1, 10, function (p) { return p.answer <= 20 }) },
+    // ---- Level 2A: adding up to 10 ----
+    { id: '2A-1', level: '2A', name: 'Add 4 or 5', detail: 'Sums up to 10', target: 3.2, gen: addFixed([4, 5], 1, 5) },
+    { id: '2A-2', level: '2A', name: 'Friends of 10', detail: 'Pairs that make exactly 10', target: 3.0, gen: function () { var a = ri(1, 9); return add(a, 10 - a) } },
+    { id: '2A-3', level: '2A', name: 'Add 6 or 7', detail: 'Sums up to 10', target: 3.4, gen: addFixed([6, 7], 0, 4) },
+    { id: '2A-4', level: '2A', name: 'Add 8, 9 or 10', detail: 'Sums up to 10', target: 3.4, gen: addFixed([8, 9, 10], 0, 2) },
+    { id: '2A-5', level: '2A', name: 'Doubles', detail: '1+1 up to 5+5', target: 3.0, gen: function () { var a = ri(1, 5); return add(a, a) } },
+    { id: '2A-6', level: '2A', name: 'All sums to 10', detail: 'Everything from the Understory, mixed', target: 3.0, gen: addRange(0, 9, 0, 9, function (p) { return p.answer <= 10 }) },
 
-    // ---- Level A: her neighbourhood ----
-    { id: 'A-1', level: 'A', name: 'Add 1, 2, 3 to twenties', detail: 'Numbers 20 to 39', target: 3.4, gen: addFixed([1, 2, 3], 20, 39) },
-    { id: 'A-2', level: 'A', name: 'Add 4, 5, 6', detail: 'Numbers 20 to 39', target: 3.6, gen: addFixed([4, 5, 6], 20, 39) },
-    { id: 'A-3', level: 'A', name: 'Add 7, 8, 9', detail: 'Numbers 20 to 49, hopping the ten', target: 4.0, gen: addFixed([7, 8, 9], 20, 49, crossesTen) },
-    { id: 'A-4', level: 'A', name: 'Add 10', detail: 'Add 10 to numbers over 24', target: 3.0, gen: addFixed([10], 25, 79) },
-    { id: 'A-5', level: 'A', name: 'Add 11', detail: 'Add 11 to numbers over 24', target: 3.6, gen: addFixed([11], 25, 79) },
-    { id: 'A-6', level: 'A', name: 'Add 12, 13, 14', detail: 'Numbers over 24', target: 4.2, gen: addFixed([12, 13, 14], 25, 79) },
-    { id: 'A-7', level: 'A', name: 'Add 15 to 18', detail: 'Numbers 20 to 69', target: 4.6, gen: addFixed([15, 16, 17, 18], 20, 69) },
-    { id: 'A-8', level: 'A', name: 'Add anything to 18', detail: 'Mixed, numbers up to 89', target: 4.4, gen: addRange(11, 89, 2, 18) },
-    { id: 'A-9', level: 'A', name: 'Take away 1, 2, 3', detail: 'From numbers up to 30', target: 3.4, gen: subRange(4, 30, 1, 3, positive) },
-    { id: 'A-10', level: 'A', name: 'Take away 4, 5, 6', detail: 'From numbers up to 30', target: 3.8, gen: subRange(7, 30, 4, 6, positive) },
-    { id: 'A-11', level: 'A', name: 'Back over the ten', detail: 'Like 15 - 8', target: 4.2, gen: subRange(11, 20, 4, 9, borrows) },
-    { id: 'A-12', level: 'A', name: 'Take away to 9', detail: 'Mixed, from numbers up to 20', target: 3.8, gen: subRange(10, 20, 1, 9, positive) },
-    { id: 'A-13', level: 'A', name: 'Take away from big numbers', detail: 'From numbers over 24', target: 4.2, gen: subRange(25, 89, 1, 9, positive) },
-    { id: 'A-14', level: 'A', name: 'Canopy mixed', detail: 'Adding and taking away together', target: 4.2, gen: function () { return KM.rng() < 0.5 ? addRange(11, 89, 2, 18)() : subRange(20, 89, 2, 18, positive)() } },
+    // ---- Level A: horizontal addition by sum ceiling, then taking away ----
+    // The ceilings (12, 15, 18, 20, 24, 28) follow how the Kumon addition
+    // sections are bounded. Her branch is "sums up to 24".
+    { id: 'A-1', level: 'A', name: 'Sums up to 12', detail: 'Adding a small number, total no more than 12', target: 3.4, gen: sumBand(8, 12, 1, 9, 2) },
+    { id: 'A-2', level: 'A', name: 'Sums up to 15', detail: 'Adding a small number, total no more than 15', target: 3.6, gen: sumBand(11, 15, 1, 9, 4) },
+    { id: 'A-3', level: 'A', name: 'Sums up to 18', detail: 'Adding a small number, total no more than 18', target: 3.8, gen: sumBand(14, 18, 1, 9, 7) },
+    { id: 'A-4', level: 'A', name: 'Sums up to 20', detail: 'Adding a small number, total no more than 20', target: 3.8, gen: sumBand(17, 20, 1, 9, 9) },
+    { id: 'A-5', level: 'A', name: 'Sums up to 24', detail: 'Adding a small number to numbers in the twenties', target: 4.0, gen: sumBand(20, 24, 1, 9, 11) },
+    { id: 'A-6', level: 'A', name: 'Sums up to 28', detail: 'Adding a small number, total no more than 28', target: 4.0, gen: sumBand(24, 28, 1, 9, 15) },
+    { id: 'A-7', level: 'A', name: 'Addition summary', detail: 'Every sum up to 28, mixed', target: 3.8, gen: sumBand(10, 28, 1, 9, 1) },
+    { id: 'A-8', level: 'A', name: 'Add 10', detail: 'Add 10 to numbers over 24', target: 3.0, gen: addFixed([10], 25, 79) },
+    { id: 'A-9', level: 'A', name: 'Add 11', detail: 'Add 11 to numbers over 24', target: 3.6, gen: addFixed([11], 25, 79) },
+    { id: 'A-10', level: 'A', name: 'Take away 1, 2, 3', detail: 'From numbers up to 30', target: 3.4, gen: subRange(4, 30, 1, 3, positive) },
+    { id: 'A-11', level: 'A', name: 'Take away 4, 5, 6', detail: 'From numbers up to 30', target: 3.8, gen: subRange(7, 30, 4, 6, positive) },
+    { id: 'A-12', level: 'A', name: 'Take away 7, 8, 9', detail: 'From numbers up to 30', target: 4.0, gen: subRange(10, 30, 7, 9, positive) },
+    { id: 'A-13', level: 'A', name: 'Back over the ten', detail: 'Like 15 - 8', target: 4.2, gen: subRange(11, 20, 4, 9, borrows) },
+    { id: 'A-14', level: 'A', name: 'Canopy mixed', detail: 'Adding and taking away together', target: 4.2, gen: function () { return KM.rng() < 0.5 ? sumBand(10, 28, 1, 9, 1)() : subRange(10, 30, 1, 9, positive)() } },
 
     // ---- Level B: columns ----
     { id: 'B-1', level: 'B', name: '2-digit + 1-digit', detail: 'No carrying yet', target: 4.0, gen: addRange(11, 89, 1, 8, noCross) },
@@ -164,8 +181,8 @@
     { id: 'C-10', level: 'C', name: 'Open Sky mixed', detail: 'Times and sharing together', target: 4.6, gen: function () { return KM.rng() < 0.5 ? mul(ri(2, 12), ri(2, 12)) : div(ri(2, 12), ri(2, 9)) } },
   ]
 
-  // Where a brand new profile starts. Chosen to match "adding 11 to numbers
-  // over 24" — change it in the Grown-ups screen any time.
+  // Where a brand new profile starts: Level A, the "sums up to 24" section.
+  // Change it in the Grown-ups screen any time.
   KM.DEFAULT_STAGE = 'A-5'
 
   KM.SIGNS = { '+': '+', '-': '−', '*': '×', '/': '÷' }

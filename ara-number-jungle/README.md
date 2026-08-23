@@ -41,24 +41,42 @@ the wifi off. To host it permanently, drop the folder on any static host
 
 ## Where she starts
 
-The default starting branch is **Level A · Add 11 — "add 11 to numbers over
-24"**, which is where you said she is. Everything below it is unlocked for
-confidence sets, everything above is locked until she gets there.
+The default starting branch is **Level A · Sums up to 24** — adding a small
+number to numbers in the twenties, total no more than 24. Everything below it
+is unlocked for confidence sets, everything above is locked until she gets
+there.
 
 If that is off by a branch or two, change it in **Grown-ups → Where she is**;
 the picker lists the whole ladder. Nothing else needs adjusting — targets and
 mastery follow the branch she is on.
 
+### How faithful is this to Kumon?
+
+The *shape* is Kumon's: narrow steps, ten-problem sets, and moving up only
+when she is both accurate and quick. The *step boundaries* in Level A follow
+Kumon's published organising principle for early addition — sections bounded
+by the ceiling the sum may reach (12, 15, 18, 20, 24, 28) rather than by which
+number is being added — with 2A as adding up to 10 and A running horizontal
+addition before subtraction.
+
+It is **not** a transcription of Kumon's worksheet-by-worksheet table, which
+is not public. If her record book says something specific, the ladder should
+be bent to match it: the branches live in one array in `js/curriculum.js`, and
+each is four fields and a generator.
+
+Two extra branches, **Add 10** and **Add 11** (to numbers over 24), sit after
+the addition summary as a bridge toward two-digit work.
+
 ## The ladder
 
-47 branches across five levels. Each has its own problem generator, so a
+46 branches across five levels. Each has its own problem generator, so a
 branch can only ever produce the kind of question it describes.
 
 | Level | Place | Covers | Branches |
 | --- | --- | --- | --- |
-| 3A | Forest Floor | Sums up to 10, friends of 10 | 8 |
-| 2A | Understory | Doubles, bridging ten, sums to 20 | 7 |
-| A | The Canopy | Adding to two-digit numbers, taking away | 14 |
+| 3A | Forest Floor | Adding 1, 2 and 3 | 6 |
+| 2A | Understory | Adding up to 10, friends of 10, doubles | 6 |
+| A | The Canopy | Sums to 12, 15, 18, 20, 24, 28; +10 and +11; taking away to 9 | 14 |
 | B | Treetops | Carrying, borrowing, three digits | 10 |
 | C | Open Sky | Times tables, 2-digit × 1-digit, sharing | 10 |
 
@@ -75,6 +93,18 @@ branch can only ever produce the kind of question it describes.
 Timing counts thinking time only — from a problem appearing to the right
 answer, wrong goes included. The confetti between problems is not charged to
 her.
+
+## Answering
+
+She types the answer on the numpad and taps the big green **✓**, which starts
+pulsing as soon as what she has typed is as long as the answer needs to be.
+The extra tap buys her the ability to notice a fat-fingered digit and rub it
+out with ⌫ before it counts — a typo should not become a wrong answer, a
+broken streak and a bogus entry in "facts to watch".
+
+If she would rather race, **Grown-ups → Check the answer without tapping ✓**
+submits automatically the moment the answer is full length. Faster, fewer
+taps, no undo.
 
 ## Getting it wrong
 
@@ -129,17 +159,19 @@ erases her progress, so if you move devices, do it deliberately.
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 293 checks: every generator, mastery, badges, storage
-node tests/smoke.mjs      # 35 checks: drives the real UI in headless Chromium
+node tests/selftest.mjs   # 287 checks: every generator, mastery, badges, storage
+node tests/smoke.mjs      # 40 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
 
-`selftest.mjs` runs each of the 47 generators 300 times and checks the
+`selftest.mjs` runs each of the 46 generators 300 times and checks the
 arithmetic is sound *and* that each branch only produces what its description
-promises (Add 11 really is `b === 11` and `a > 24`). `smoke.mjs` plays a whole
-set with real taps, gets one deliberately wrong, and checks both iPad
-orientations for overflow. Pass `--shots <dir>` to save screenshots.
+promises — that "sums up to 24" never exceeds 24, that Level 2A never passes
+10, that Level 3A only ever adds 1, 2 or 3. `smoke.mjs` plays a whole set with
+real taps, types a digit and backspaces it, gets one deliberately wrong,
+checks auto-check mode, and checks both iPad orientations for overflow. Pass
+`--shots <dir>` to save screenshots.
 
 ## Files
 
@@ -166,6 +198,8 @@ tests/                  the two test scripts
 - **Add a branch:** one entry in `js/curriculum.js` — id, level, name, detail,
   target seconds, and a `gen()` returning `{a, b, op, answer}`. It appears on
   the map automatically. Add an invariant for it in `tests/selftest.mjs`.
+  `sumBand(lo, hi, ...)` builds a "sums up to N" branch by picking the total
+  first and splitting it.
 - **Retune difficulty:** the `target` on each branch is the seconds-per-problem
   she has to beat. Lower is stricter.
 - **Add a badge:** one entry in `js/badges.js` with a `test(profile, setResult)`.

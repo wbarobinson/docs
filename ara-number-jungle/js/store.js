@@ -12,7 +12,16 @@
   var KM = (root.KM = root.KM || {})
   var KEY = 'aranumberjungle.v1'
 
-  var DEFAULT_SETTINGS = { sound: true, motion: true, timer: true, setSize: 10, autoNext: true }
+  // autoCheck off by default: she should be able to backspace a fat-fingered
+// digit before it is graded. Turn it on for pure speed runs.
+var DEFAULT_SETTINGS = {
+  sound: true,
+  motion: true,
+  timer: true,
+  setSize: 10,
+  autoNext: true,
+  autoCheck: false,
+}
 
   function today() {
     var d = new Date()

@@ -332,6 +332,9 @@
     html += sw('s-motion', 'Confetti and wiggles', p.settings.motion)
     html += sw('s-timer', 'Show the timer while she plays', p.settings.timer)
     html += sw('s-autonext', 'Jump straight to the next problem', p.settings.autoNext)
+    html += sw('s-autocheck', 'Check the answer without tapping ✓', p.settings.autoCheck)
+    html +=
+      '<p class="tiny muted" style="margin:-2px 0 6px 74px">Faster, but a mistyped digit is marked wrong straight away.</p>'
     html += '<div class="row" style="margin-top:8px"><span class="grow">Problems in a set</span><select id="s-size">'
     ;[5, 10, 20].forEach(function (n) {
       html += '<option value="' + n + '"' + (p.settings.setSize === n ? ' selected' : '') + '>' + n + '</option>'

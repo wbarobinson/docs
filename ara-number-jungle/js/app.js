@@ -140,6 +140,9 @@
       case 's-autonext':
         saveSetting('autoNext', t.checked)
         return
+      case 's-autocheck':
+        saveSetting('autoCheck', t.checked)
+        return
       case 's-size':
         saveSetting('setSize', parseInt(t.value, 10) || 10)
         return

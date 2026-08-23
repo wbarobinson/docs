@@ -17,6 +17,8 @@
   var revealed = false
   var ticker = null
 
+  var doc = root.document
+
   function el(id) {
     return KM.ui.el(id)
   }
@@ -82,10 +84,13 @@
       KM.ui.esc(typed) +
       '</span>'
     el('hint').innerHTML = revealed
-      ? 'It\'s <b>' + prob.answer + '</b> — type it in 🪶'
+      ? 'It\'s <b>' + prob.answer + '</b> — type it in, then tap ✓ 🪶'
       : prob.revision
         ? '<span class="muted tiny">You\'ve met this one before</span>'
-        : ''
+        : // A reminder for the first couple of problems, then out of the way.
+          s.i < 2 && !KM.store.profile().settings.autoCheck
+          ? '<span class="muted tiny">Type it, then tap ✓</span>'
+          : ''
   }
 
   function drawSlot(state) {
@@ -93,6 +98,16 @@
     if (!slot) return
     slot.textContent = typed
     slot.className = 'slot' + (typed ? '' : ' empty') + (state ? ' ' + state : '')
+    drawGo()
+  }
+
+  // The ✓ pulses once the answer is as long as it needs to be, so she knows
+  // the app is waiting on her, not the other way round.
+  function drawGo() {
+    var go = doc.querySelector('.key.act')
+    if (!go || !s) return
+    var ready = !locked && typed.length > 0 && typed.length >= KM.engine.expectedDigits(s)
+    go.classList.toggle('ready', ready)
   }
 
   // ---- input ----
@@ -113,19 +128,32 @@
     }
     if (k === 'go') {
       if (typed) check()
+      else nudge()
       return
     }
     if (!/^\d$/.test(k)) return
 
     var want = KM.engine.expectedDigits(s)
-    // Never let her type more digits than the answer could have; the extra
-    // press would silently eat the digit she meant to start with.
-    if (typed.length >= want) typed = ''
+    // Cap at the answer's length rather than wrapping around: an extra press
+    // is a slip, and ⌫ is right there. Wrapping would silently eat the digit
+    // she actually meant.
+    if (typed.length >= want) {
+      nudge()
+      return
+    }
     typed += k
     KM.audio.tap()
     KM.juice.buzz(8)
     drawSlot()
-    if (typed.length >= want) root.setTimeout(check, 90)
+    if (KM.store.profile().settings.autoCheck && typed.length >= want) root.setTimeout(check, 90)
+  }
+
+  // She pressed a key that cannot do anything useful right now.
+  function nudge() {
+    KM.audio.back()
+    var go = doc.querySelector('.key.act')
+    KM.juice.shake(go)
+    if (!typed) el('hint').innerHTML = '<span class="muted">Type your answer, then tap ✓</span>'
   }
 
   function check() {
@@ -158,6 +186,7 @@
     revealed = false
     locked = true
     drawSlot('right')
+    drawGo()
     KM.juice.pop(el('slot'))
     KM.audio.correct(res.combo)
     KM.juice.flash('good')

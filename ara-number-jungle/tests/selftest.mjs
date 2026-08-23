@@ -66,23 +66,30 @@ function eq(a, b, what) {
     'every stage has a generator, a target and labels',
   )
   ok(!!KM.stage(KM.DEFAULT_STAGE), 'the default starting stage exists')
-  eq(KM.stage(KM.DEFAULT_STAGE).detail, 'Add 11 to numbers over 24', 'default stage is "add 11 to numbers over 24"')
+  eq(KM.stage(KM.DEFAULT_STAGE).name, 'Sums up to 24', 'the default branch is the "sums up to 24" section')
   eq(KM.nextStage(KM.STAGES[KM.STAGES.length - 1].id), null, 'the last stage has no next')
 }
 
 // --- 2. every generator, a few hundred times each ----------------------
 const INVARIANTS = {
   '3A-1': (p) => p.b === 1 && p.a <= 9,
-  '3A-6': (p) => p.answer === 10,
-  '3A-8': (p) => p.answer <= 10,
-  '2A-2': (p) => p.a === p.b,
-  '2A-4': (p) => p.answer > 10 && p.answer <= 18,
-  '2A-7': (p) => p.answer <= 20,
-  'A-3': (p) => p.b >= 7 && p.b <= 9 && Math.floor(p.answer / 10) > Math.floor(p.a / 10),
-  'A-4': (p) => p.b === 10 && p.a > 24,
-  'A-5': (p) => p.b === 11 && p.a > 24,
-  'A-6': (p) => p.b >= 12 && p.b <= 14 && p.a > 24,
-  'A-13': (p) => p.op === '-' && p.a > 24 && p.answer >= 0,
+  '3A-4': (p) => p.b <= 3 && p.answer <= 10,
+  '3A-5': (p) => p.a >= 10 && p.a <= 18 && p.b <= 3,
+  '2A-1': (p) => (p.b === 4 || p.b === 5) && p.answer <= 10,
+  '2A-2': (p) => p.answer === 10,
+  '2A-5': (p) => p.a === p.b && p.answer <= 10,
+  '2A-6': (p) => p.answer <= 10,
+  // The sum ceilings are the whole point of Level A — check every one.
+  'A-1': (p) => p.answer <= 12 && p.answer >= 8,
+  'A-2': (p) => p.answer <= 15 && p.answer >= 11,
+  'A-3': (p) => p.answer <= 18 && p.answer >= 14,
+  'A-4': (p) => p.answer <= 20 && p.answer >= 17,
+  'A-5': (p) => p.answer <= 24 && p.answer >= 20 && p.b <= 9 && p.a >= 11,
+  'A-6': (p) => p.answer <= 28 && p.answer >= 24 && p.b <= 9,
+  'A-7': (p) => p.answer <= 28,
+  'A-8': (p) => p.b === 10 && p.a > 24,
+  'A-9': (p) => p.b === 11 && p.a > 24,
+  'A-12': (p) => p.op === '-' && p.b >= 7 && p.b <= 9 && p.answer >= 0,
   'B-1': (p) => Math.floor(p.answer / 10) === Math.floor(p.a / 10),
   'B-2': (p) => Math.floor(p.answer / 10) > Math.floor(p.a / 10),
   'B-6': (p) => p.a % 10 >= p.b % 10,
@@ -130,17 +137,17 @@ for (const stage of KM.STAGES) {
   eq(set.problems.length, 10, 'a set is the size you asked for')
   eq(set.stageId, 'A-5', 'a set knows its stage')
   ok(
-    set.problems.every((x) => x && x.b === 11),
-    'a fresh set is all current-stage work when there is no revision yet',
+    set.problems.every((x) => x && x.answer >= 20 && x.answer <= 24),
+    'a fresh set is all current-branch work when there is no revision yet',
   )
   eq(KM.engine.buildSet(p, 'A-5', 5).problems.length, 5, 'short sets work')
   eq(KM.engine.buildSet(p, 'A-5', 20).problems.length, 20, 'long sets work')
 
   // Plant some sore facts and check they get pulled back in, but never first
   // or last.
-  p.facts['53+11'] = { n: 6, wrong: 4, ms: 9000, lastMs: 9000, lastAt: Date.now() }
-  p.facts['48+11'] = { n: 5, wrong: 3, ms: 8000, lastMs: 8000, lastAt: Date.now() }
-  p.facts['37+11'] = { n: 4, wrong: 2, ms: 7000, lastMs: 7000, lastAt: Date.now() }
+  p.facts['18+6'] = { n: 6, wrong: 4, ms: 9000, lastMs: 9000, lastAt: Date.now() }
+  p.facts['17+7'] = { n: 5, wrong: 3, ms: 8000, lastMs: 8000, lastAt: Date.now() }
+  p.facts['15+9'] = { n: 4, wrong: 2, ms: 7000, lastMs: 7000, lastAt: Date.now() }
   let sawRevision = 0
   for (let i = 0; i < 40; i++) {
     const s2 = KM.engine.buildSet(p, 'A-5', 10)
@@ -150,9 +157,9 @@ for (const stage of KM.STAGES) {
     ok(!idx.includes(0) && !idx.includes(9), 'revision is never the first or last problem')
   }
   ok(sawRevision > 0, 'sore facts actually come back round')
-  delete p.facts['53+11']
-  delete p.facts['48+11']
-  delete p.facts['37+11']
+  delete p.facts['18+6']
+  delete p.facts['17+7']
+  delete p.facts['15+9']
 }
 
 // --- 4. parsing facts -------------------------------------------------
@@ -194,7 +201,7 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
 
 {
   const p = KM.store.profile()
-  eq(p.stageId, 'A-5', 'a new profile starts on "add 11"')
+  eq(p.stageId, 'A-5', 'a new profile starts on "sums up to 24"')
   eq(p.name, 'Ara', 'a new profile is Ara by default')
 
   const r1 = playSet(p, 'A-5', { msEach: 2000 })
@@ -217,7 +224,7 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   playSet(p, 'A-5', { msEach: 2000 })
   const r3 = playSet(p, 'A-5', { msEach: 2000 })
   eq(r3.mastered, true, 'three quick accurate sets in a row masters the stage')
-  eq(r3.nextStageId, 'A-6', 'mastery moves her to the next stage')
+  eq(r3.nextStageId, 'A-6', 'mastery moves her to the next branch')
   eq(p.stageId, 'A-6', 'the profile follows her up')
   eq(p.unlockedTo, 'A-6', 'the map unlocks the new stage')
   ok(KM.store.stageRecord(p, 'A-5').mastered, 'the mastered stage is marked')
@@ -236,21 +243,29 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   eq(scrappy.run, 0, 'a scrappy set resets the run')
 }
 
+// --- 6b. the answer is submitted deliberately by default ---------------
+{
+  const fresh = KM.store.newProfile('Settings', '🦜')
+  eq(fresh.settings.autoCheck, false, 'auto-check is off by default, so a typo can be backspaced')
+  eq(fresh.settings.autoNext, true, 'moving to the next problem is automatic')
+  eq(fresh.settings.setSize, 10, 'a set is ten problems by default')
+}
+
 // --- 7. the fact tracker ---------------------------------------------
 {
   const p = KM.store.profile()
   const before = KM.store.trickyFacts(p, 20).length
-  const prob = { a: 63, b: 11, op: '+', answer: 74 }
+  const prob = { a: 27, b: 8, op: '-', answer: 19 }
   for (let i = 0; i < 4; i++) KM.store.recordProblem(p, prob, 9000, false)
   const tricky = KM.store.trickyFacts(p, 20)
   ok(tricky.length >= before, 'a repeatedly-wrong fact shows up as tricky')
-  ok(tricky[0].key === '63+11', 'the worst fact sorts to the top')
-  eq(p.facts['63+11'].n, 4, 'attempts are counted')
-  eq(p.facts['63+11'].wrong, 4, 'wrong answers are counted')
+  ok(tricky[0].key === '27-8', 'the worst fact sorts to the top')
+  eq(p.facts['27-8'].n, 4, 'attempts are counted')
+  eq(p.facts['27-8'].wrong, 4, 'wrong answers are counted')
 
   // Getting it right and quick a few times should pull it back down.
   for (let i = 0; i < 6; i++) KM.store.recordProblem(p, prob, 1200, true)
-  ok(p.facts['63+11'].ms < 4000, 'the rolling time comes down as she gets quicker')
+  ok(p.facts['27-8'].ms < 4000, 'the rolling time comes down as she gets quicker')
 }
 
 // --- 8. badges --------------------------------------------------------

@@ -179,7 +179,11 @@ try {
   ok(errors.length === 0, 'the page loads with no console errors: ' + errors.join(' | '))
   eq(await cdp.eval('typeof KM.play.begin'), 'function', 'all the scripts loaded')
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'home', 'it opens on the home screen')
-  eq(await cdp.eval("document.getElementById('home-stage').textContent"), 'Add 11', 'home shows her current stage')
+  eq(
+    await cdp.eval("document.getElementById('home-stage').textContent"),
+    'Sums up to 24',
+    'home shows her current branch',
+  )
   eq(
     await cdp.eval("document.getElementById('home-name').textContent"),
     'Ara',
@@ -208,10 +212,20 @@ try {
           : prob.op === '×'
             ? prob.a * prob.b
             : prob.a / prob.b
-    // Type it the way she would, one key at a time.
-    if (process.env.DEBUG_SMOKE)
-      console.log(n, 'problem', prob.a, prob.op, prob.b, '=', answer, 'i=', await cdp.eval('KM.play.stageId() && document.querySelectorAll("#dots i.done,#dots i.miss").length'))
+    // Type it the way she would, one key at a time, then tap ✓.
     for (const ch of String(answer)) await cdp.click(`.key[data-k="${ch}"]`)
+    if (n === 0) {
+      ok(
+        (await cdp.eval("document.querySelector('.key.act').className")).includes('ready'),
+        'the ✓ lights up once the answer is full length',
+      )
+      eq(
+        await cdp.eval("document.getElementById('slot').textContent"),
+        String(answer),
+        'nothing is submitted until she taps ✓',
+      )
+    }
+    await cdp.click('.key[data-k="go"]')
     if (n === 0) {
       await sleep(120)
       const slot = await cdp.eval("document.getElementById('slot').className")
@@ -254,7 +268,21 @@ try {
   // waiting for another digit, which is correct behaviour.
   const wrongAnswer = String(right % 10 === 0 ? right + 1 : right - 1)
   eq(wrongAnswer.length, String(right).length, 'the deliberately wrong answer is the same length as the right one')
+
+  // A typo is recoverable now: type a junk digit, rub it out, carry on.
+  await cdp.click('.key[data-k="9"]')
+  await cdp.click('.key[data-k="9"]')
+  await cdp.click('.key[data-k="del"]')
+  await cdp.click('.key[data-k="del"]')
+  eq(await cdp.eval("document.getElementById('slot').textContent"), '', 'backspace clears a mistyped answer')
+  eq(
+    await cdp.eval("JSON.parse(localStorage.getItem('aranumberjungle.v1')).profiles[0].totals.problems"),
+    10,
+    'a mistyped-then-corrected digit is never graded',
+  )
+
   for (const ch of wrongAnswer) await cdp.click(`.key[data-k="${ch}"]`)
+  await cdp.click('.key[data-k="go"]')
   await sleep(160)
   ok(
     (await cdp.eval("document.getElementById('hint').textContent")).length > 0,
@@ -266,6 +294,7 @@ try {
 
   // Second wrong go should reveal the answer to copy in.
   for (const ch of wrongAnswer) await cdp.click(`.key[data-k="${ch}"]`)
+  await cdp.click('.key[data-k="go"]')
   await sleep(200)
   ok(
     (await cdp.eval("document.getElementById('hint').textContent")).indexOf('type it in') > -1,
@@ -279,6 +308,28 @@ try {
     (await cdp.eval("JSON.parse(localStorage.getItem('aranumberjungle.v1')).profiles.find(p=>p.id===JSON.parse(localStorage.getItem('aranumberjungle.v1')).activeId).totals.sets")),
     1,
     'quitting half way does not record a set',
+  )
+
+  // --- auto-check, for whoever wants the extra speed ---
+  await cdp.eval(
+    `(() => { const p = KM.store.profile(); p.settings.autoCheck = true; KM.store.save(); })()`,
+  )
+  await cdp.click('.screen.active #btn-play')
+  await sleep(400)
+  const auto = await cdp.eval(
+    `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+      const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+  )
+  for (const ch of String(auto.a + auto.b)) await cdp.click(`.key[data-k="${ch}"]`)
+  await sleep(300)
+  ok(
+    (await cdp.eval("document.getElementById('slot').className")).includes('right'),
+    'with auto-check on, a full-length answer submits itself',
+  )
+  await cdp.click('.screen.active #btn-quit')
+  await sleep(300)
+  await cdp.eval(
+    `(() => { const p = KM.store.profile(); p.settings.autoCheck = false; KM.store.save(); })()`,
   )
 
   // --- the other screens all render ---
