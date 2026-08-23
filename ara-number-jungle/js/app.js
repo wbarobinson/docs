@@ -59,6 +59,17 @@
 
       // Anything carrying data-stage starts that exact branch: map chips, and
       // the next-set button on the results screen.
+      // Any child can swap to their own profile from the "Who's playing" screen.
+      var who = btn.getAttribute('data-profile')
+      if (who) {
+        KM.store.setActive(who)
+        applySettings()
+        KM.audio.cheer()
+        KM.ui.show('home')
+        KM.juice.confetti(30)
+        return
+      }
+
       var stageId = btn.getAttribute('data-stage')
       if (stageId) {
         lastStage = stageId
@@ -85,11 +96,19 @@
         case 'btn-quit':
           KM.play.quit()
           return
-        case 'g-add':
-          KM.store.addProfile('New explorer', pickAvatar())
-          KM.ui.renderGrown()
-          KM.ui.toast('Added — pick a name below')
-          return
+        case 'who-add':
+        case 'g-add': {
+          var made = KM.store.addProfile('New explorer', pickAvatar(), 'jungle')
+          applySettings()
+          if (btn.id === 'who-add') {
+            KM.ui.show('grown')
+            KM.ui.toast('Added — give them a name and a world')
+          } else {
+            KM.ui.renderGrown()
+            KM.ui.toast('Added — pick a name below')
+          }
+          return made && undefined
+        }
         case 'g-rename': {
           var name = (doc.getElementById('g-name').value || '').trim().slice(0, 18)
           if (name) {
@@ -191,6 +210,18 @@
       case 's-size':
         saveSetting('setSize', parseInt(t.value, 10) || 10)
         return
+      case 'g-theme': {
+        var p = KM.store.profile()
+        p.theme = t.value
+        var th = KM.theme(t.value)
+        // Keep the avatar in step unless a grown-up has picked their own.
+        if (p.avatar === '🦜' || p.avatar === '🦖') p.avatar = th.mascot
+        KM.store.save()
+        KM.ui.applyTheme()
+        KM.ui.renderGrown()
+        KM.audio.cheer()
+        return
+      }
     }
   }
 

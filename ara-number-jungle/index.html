@@ -24,9 +24,10 @@
       <!-- ================= HOME ================= -->
       <section class="screen" id="home">
         <header class="row spread">
-          <button class="pill" data-go="grown" id="whoami">
+          <button class="pill" data-go="who" id="whoami">
             <span class="avatar" id="home-avatar">🦜</span>
             <span id="home-name">Ara</span>
+            <span class="tiny muted">swap</span>
           </button>
           <div class="row" style="gap: 8px">
             <span class="pill" id="home-streak" title="Days in a row">🔥 0</span>
@@ -52,10 +53,21 @@
             ⚠️ This page can't save progress — open it from a link, not a file
           </p>
           <div class="row centre wrap">
-            <button class="btn small ghost" data-go="map">🗺️ Jungle map</button>
+            <button class="btn small ghost" data-go="map" id="btn-map">🗺️ Jungle map</button>
             <button class="btn small ghost" data-go="badges">🏅 Badges</button>
             <button class="btn small ghost" data-go="grown">👨‍👩‍👧 Grown-ups</button>
           </div>
+        </div>
+      </section>
+
+      <!-- ================= WHO'S PLAYING ================= -->
+      <section class="screen" id="who">
+        <header class="row spread">
+          <h1>Who's playing?</h1>
+          <button class="btn small ghost" data-go="home">Back</button>
+        </header>
+        <div class="scroll">
+          <div class="whogrid" id="who-body"></div>
         </div>
       </section>
 

@@ -47,11 +47,12 @@ var DEFAULT_SETTINGS = {
     return 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)
   }
 
-  function newProfile(name, avatar) {
+  function newProfile(name, avatar, theme) {
     return {
       id: uid(),
       name: name || 'Ara',
       avatar: avatar || '🦜',
+      theme: theme || KM.DEFAULT_THEME,
       createdAt: Date.now(),
       settings: Object.assign({}, DEFAULT_SETTINGS),
       stageId: KM.DEFAULT_STAGE,
@@ -96,8 +97,9 @@ var DEFAULT_SETTINGS = {
   }
 
   function fresh() {
-    var p = newProfile('Ara', '🦜')
-    return { version: 1, activeId: p.id, profiles: [p] }
+    var ara = newProfile('Ara', '🦜', 'jungle')
+    var jon = newProfile('Jon', '🦖', 'dino')
+    return { version: 1, activeId: ara.id, profiles: [ara, jon] }
   }
 
   function load() {
@@ -111,6 +113,16 @@ var DEFAULT_SETTINGS = {
       state = looksValid(bak) ? bak : fresh()
       if (looksValid(bak)) state.restoredFromBackup = true
     }
+    // Installs that predate Jon get him added once, without touching anyone
+    // else's progress.
+    if (!state.seededJon) {
+      state.seededJon = true
+      var hasJon = state.profiles.some(function (x) {
+        return x.theme === 'dino' || x.name === 'Jon'
+      })
+      if (!hasJon) state.profiles.push(newProfile('Jon', '🦖', 'dino'))
+    }
+
     // Fill in anything a newer version of the app expects.
     state.profiles.forEach(function (p) {
       p.settings = Object.assign({}, DEFAULT_SETTINGS, p.settings || {})
@@ -122,6 +134,7 @@ var DEFAULT_SETTINGS = {
         { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0, bestCombo: 0 },
         p.totals || {},
       )
+      if (!p.theme) p.theme = KM.DEFAULT_THEME
       // One-off migration for profiles created when the timer was on by default.
       if (!p.settingsVersion) {
         p.settings.timer = false
@@ -387,6 +400,9 @@ var DEFAULT_SETTINGS = {
     load: load,
     save: save,
     profile: profile,
+    theme: function () {
+      return KM.theme(profile().theme)
+    },
     profiles: function () {
       return load().profiles
     },
@@ -394,8 +410,8 @@ var DEFAULT_SETTINGS = {
       load().activeId = id
       save()
     },
-    addProfile: function (name, avatar) {
-      var p = newProfile(name, avatar)
+    addProfile: function (name, avatar, theme) {
+      var p = newProfile(name, avatar, theme)
       load().profiles.push(p)
       load().activeId = p.id
       save()
@@ -406,7 +422,7 @@ var DEFAULT_SETTINGS = {
       s.profiles = s.profiles.filter(function (p) {
         return p.id !== id
       })
-      if (!s.profiles.length) s.profiles.push(newProfile('Ara', '🦜'))
+      if (!s.profiles.length) s.profiles.push(newProfile('Ara', '🦜', 'jungle'))
       if (s.activeId === id) s.activeId = s.profiles[0].id
       save()
     },

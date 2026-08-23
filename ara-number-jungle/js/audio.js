@@ -176,6 +176,46 @@
       lfo.stop(t + 0.32)
     },
 
+    // Low, rough and short — a roar for the dinosaur world, the counterpart to
+    // the macaw's squawk.
+    roar: function () {
+      var c = ac()
+      if (!c || !enabled) return
+      var t = c.currentTime
+      var o = c.createOscillator()
+      var sub = c.createOscillator()
+      var g = c.createGain()
+      var lp = c.createBiquadFilter()
+      o.type = 'sawtooth'
+      o.frequency.setValueAtTime(150, t)
+      o.frequency.exponentialRampToValueAtTime(90, t + 0.18)
+      o.frequency.exponentialRampToValueAtTime(60, t + 0.5)
+      sub.type = 'square'
+      sub.frequency.setValueAtTime(74, t)
+      sub.frequency.exponentialRampToValueAtTime(45, t + 0.5)
+      lp.type = 'lowpass'
+      lp.frequency.setValueAtTime(1200, t)
+      lp.frequency.exponentialRampToValueAtTime(300, t + 0.5)
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.22, t + 0.06)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55)
+      o.connect(lp)
+      sub.connect(lp)
+      lp.connect(g).connect(master)
+      o.start(t)
+      sub.start(t)
+      o.stop(t + 0.6)
+      sub.stop(t + 0.6)
+      noise(0, 0.5, 0.05, 500)
+    },
+
+    // Whatever noise this child's world makes when something goes well.
+    cheer: function () {
+      var t = KM.store && KM.store.theme ? KM.store.theme() : null
+      if (t && t.cheer === 'roar') api.roar()
+      else api.squawk()
+    },
+
     swoosh: function () {
       note(700, 0, 0.18, { type: 'sine', vol: 0.1, slideTo: 1600 })
       noise(0, 0.18, 0.05, 1800)

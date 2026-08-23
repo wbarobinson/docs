@@ -68,7 +68,8 @@ body {
    tinted by --hue so each rainforest layer feels like a different place. */
 /* Foliage and sunshine, drawn by the emoji font rather than by me. */
 body::after {
-  content: '🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺';
+  /* Set per child by the theme: jungle leaves, or ferns and volcanoes. */
+  content: var(--decor, '🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺');
   position: fixed;
   left: 0;
   right: 0;
@@ -741,6 +742,50 @@ h2 {
 }
 .reqs li b {
   font-variant-numeric: tabular-nums;
+}
+
+.whogrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 0;
+}
+.whocard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--card);
+  box-shadow: 0 6px 0 var(--card-edge), 0 12px 22px rgb(36 48 74 / 14%);
+  padding: 20px 14px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+.whocard:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--card-edge);
+}
+.whocard .face {
+  font-size: clamp(48px, 11vh, 92px);
+  line-height: 1.1;
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 18%));
+}
+.whocard .nm {
+  font-size: clamp(19px, 2.6vw, 26px);
+  font-weight: 800;
+}
+.whocard.active {
+  background: hsl(var(--hue) 92% 94%);
+  outline: 4px solid hsl(var(--hue) 85% 55%);
+  outline-offset: 2px;
+}
+.whocard.add .face {
+  opacity: 0.5;
 }
 
 .starlabels {

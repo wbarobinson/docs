@@ -8,7 +8,7 @@
 ;(function (root) {
   var KM = (root.KM = root.KM || {})
 
-  var PRAISE = ['Nice!', 'Yes!', 'Boom!', 'Bravo!', 'Sharp!', 'Lovely!', 'Zoom!', 'Ace!', 'Squawk!']
+  var PRAISE = ['Nice!', 'Yes!', 'Boom!', 'Bravo!', 'Sharp!', 'Lovely!', 'Zoom!', 'Ace!']
   var BIG_PRAISE = ['Amazing!', 'On fire!', 'Wow!', 'Unstoppable!', 'Superstar!']
 
   var s = null // the live session
@@ -220,10 +220,9 @@
     KM.juice.buzz(14)
     KM.juice.burst(el('slot'), { n: res.combo >= 5 ? 30 : 18, speed: res.combo >= 5 ? 11 : 8 })
     if (res.firstTry) {
-      var word =
-        res.combo >= 5
-          ? BIG_PRAISE[Math.floor(KM.rng() * BIG_PRAISE.length)]
-          : PRAISE[Math.floor(KM.rng() * PRAISE.length)]
+      // The child's own world gets a say in what "well done" sounds like.
+      var words = res.combo >= 5 ? BIG_PRAISE : PRAISE.concat(KM.store.theme().praise)
+      var word = words[Math.floor(KM.rng() * words.length)]
       KM.juice.float(word, el('slot'), res.quick ? 'gold' : '')
     }
     drawDots()
@@ -231,7 +230,7 @@
     if (res.quick && res.firstTry) KM.juice.float('⚡', el('dots'), 'gold')
     if (res.combo === 5 || res.combo === 10 || res.combo === 20) {
       KM.juice.confetti(40)
-      KM.audio.squawk()
+      KM.audio.cheer()
       KM.ui.toast(res.combo + ' in a row! 🔥')
     }
     el('hint').innerHTML = ''
@@ -261,7 +260,7 @@
     stop()
     if (res.mastered) {
       KM.audio.levelUp()
-      KM.audio.squawk()
+      KM.audio.cheer()
       KM.juice.confetti(120)
       KM.juice.rain(50)
     }

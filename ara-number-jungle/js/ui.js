@@ -32,15 +32,38 @@
 
   var current = 'home'
 
+  // The level's hue, as this child's world colours it.
   function theme(levelId) {
-    var lv = KM.level(levelId)
-    if (lv) doc.documentElement.style.setProperty('--hue', lv.hue)
+    var place = KM.place(levelId, KM.store.profile().theme)
+    if (place) doc.documentElement.style.setProperty('--hue', place.hue)
+  }
+
+  // Everything that changes when you swap child: mascot, decoration, the
+  // words on the buttons. Called on every screen change, so a swap is instant.
+  function applyTheme() {
+    var t = KM.store.theme()
+    var p = KM.store.profile()
+    doc.documentElement.style.setProperty('--decor', JSON.stringify(t.decor))
+    var mascot = el('mascot')
+    if (mascot) mascot.textContent = t.mascot
+    var mapTitle = doc.querySelector('#map h1')
+    if (mapTitle) mapTitle.textContent = t.mapTitle
+    var mapBtn = el('btn-map')
+    if (mapBtn) mapBtn.textContent = t.mapTitle
+    var resume = el('btn-resume')
+    if (resume) resume.firstChild.nodeValue = 'Carry on ' + t.token + ' '
+    var play = el('btn-play')
+    if (play) play.textContent = "Let's go! " + t.mascot
+    el('home-avatar').textContent = p.avatar
+    el('home-name').textContent = p.name
   }
 
   function show(name) {
     var screens = doc.querySelectorAll('.screen')
     for (var i = 0; i < screens.length; i++) screens[i].classList.toggle('active', screens[i].id === name)
     current = name
+    applyTheme()
+    if (name === 'who') renderWho()
     if (name === 'home') renderHome()
     if (name === 'map') renderMap()
     if (name === 'badges') renderBadges()
@@ -64,7 +87,7 @@
   function renderHome() {
     var p = KM.store.profile()
     var stage = KM.stage(p.stageId) || KM.stage(KM.DEFAULT_STAGE)
-    var lv = KM.level(stage.level)
+    var lv = KM.place(stage.level, p.theme)
     var rec = KM.store.stageRecord(p, stage.id)
     theme(stage.level)
 
@@ -91,11 +114,47 @@
     var beads = ''
     for (var i = 0; i < 3; i++) beads += '<i class="' + (i < rec.run ? 'on' : '') + '"></i>'
     el('home-run').innerHTML = beads
+    var unit = KM.store.theme().unit
     el('home-runlabel').textContent = rec.mastered
-      ? 'Branch already mastered — free flying!'
+      ? 'This ' + unit + ' is already passed — free choice!'
       : rec.run === 0
-        ? 'Three quick, accurate sets in a row to fly up a branch'
-        : rec.run + ' of 3 — ' + (3 - rec.run) + ' more to fly up!'
+        ? 'Three quick, accurate sets in a row to move up a ' + unit
+        : rec.run + ' of 3 — ' + (3 - rec.run) + ' more to move up!'
+  }
+
+  // ---------- who's playing ----------
+
+  function renderWho() {
+    var active = KM.store.profile()
+    var html = KM.store
+      .profiles()
+      .map(function (x) {
+        var t = KM.theme(x.theme)
+        var stage = KM.stage(x.stageId) || KM.stage(KM.DEFAULT_STAGE)
+        return (
+          '<button class="whocard' +
+          (x.id === active.id ? ' active' : '') +
+          '" data-profile="' +
+          x.id +
+          '" style="--hue:' +
+          KM.place(stage.level, x.theme).hue +
+          '"><span class="face">' +
+          x.avatar +
+          '</span><span class="nm">' +
+          esc(x.name) +
+          '</span><span class="tiny muted">' +
+          esc(t.name) +
+          '</span><span class="tiny muted">' +
+          esc(stage.name) +
+          ' · ⭐ ' +
+          x.totals.stars +
+          '</span></button>'
+        )
+      })
+      .join('')
+    html +=
+      '<button class="whocard add" id="who-add"><span class="face">➕</span><span class="nm">Add someone</span></button>'
+    el('who-body').innerHTML = html
   }
 
   // ---------- map ----------
@@ -105,7 +164,8 @@
     var unlockedIdx = KM.stageIndex(p.unlockedTo)
     var html = ''
 
-    KM.LEVELS.forEach(function (lv) {
+    KM.LEVELS.forEach(function (level) {
+      var lv = KM.place(level.id, p.theme)
       var prog = KM.store.levelProgress(p, lv.id)
       html +=
         '<div class="level"><h2 style="color:hsl(' +
@@ -218,6 +278,21 @@
     })
     html += '</select>'
     html += '<button class="btn small ghost" id="g-add">+ Add child</button>'
+    html += '<select id="g-theme">'
+    Object.keys(KM.THEMES).forEach(function (key) {
+      var t = KM.THEMES[key]
+      html +=
+        '<option value="' +
+        key +
+        '"' +
+        (p.theme === key ? ' selected' : '') +
+        '>' +
+        t.mascot +
+        ' ' +
+        esc(t.name) +
+        '</option>'
+    })
+    html += '</select>'
     html += '<input type="text" id="g-name" value="' + esc(p.name) + '" style="width:150px" />'
     html += '<button class="btn small ghost" id="g-rename">Save name</button>'
     html += '</div></div>'
@@ -264,7 +339,8 @@
       stage.target +
       's a problem)</span></p>'
     html += '<div class="row wrap"><select id="g-stage">'
-    KM.LEVELS.forEach(function (lv) {
+    KM.LEVELS.forEach(function (level) {
+      var lv = KM.place(level.id, p.theme)
       html += '<optgroup label="' + lv.name + ' — ' + esc(lv.place) + '">'
       KM.stagesOfLevel(lv.id).forEach(function (s) {
         html +=
@@ -368,6 +444,9 @@
       (KM.store.canStore()
         ? ''
         : '<p class="tiny" style="margin:10px 0 0;color:var(--bad-dark)"><b>Careful:</b> this browser is refusing to save anything, so nothing done here will survive a reload. Open the app from a link rather than a file, and not in a private window.</p>') +
+      (inPreview()
+        ? '<p class="tiny" style="margin:10px 0 0;color:var(--bad-dark)"><b>This is a preview copy.</b> Progress is stored against this exact page, so republishing the preview can clear it. Copy the backup above, then use the hosted copy at its own web address for practice that sticks.</p>'
+        : '') +
       '</div>'
 
     // How it works + reset
@@ -384,6 +463,16 @@
       '</div><p class="tiny muted" style="margin:8px 0 0">Everything lives in this browser only — nothing is uploaded anywhere.</p></div>'
 
     el('grown-body').innerHTML = html + '</div>'
+  }
+
+  // Running inside someone else's page (the artifact preview) rather than at
+  // its own address. Storage there belongs to the preview, not to us.
+  function inPreview() {
+    try {
+      return root.self !== root.top
+    } catch (e) {
+      return true // cross-origin parent: definitely embedded
+    }
   }
 
   function stat(v, label, extra) {
@@ -406,7 +495,7 @@
       return (
         '<h2>🏆 ' +
         esc(stage.name) +
-        ' passed!</h2><p style="margin:0">Three good sets in a row — you have flown up to <b>' +
+        ' passed!</h2><p style="margin:0">Three good sets in a row — you have moved up to <b>' +
         esc(next ? next.name : 'the top of the jungle') +
         '</b>' +
         (next ? ': ' + esc(next.detail) : '') +
@@ -441,9 +530,10 @@
           res.run +
           ' of 3. ' +
           (needed === 1 ? 'One more' : needed + ' more') +
-          ' and you fly up to <b>' +
-          esc(nextStage ? nextStage.name : 'the next branch') +
-          '</b> 🪶'
+          ' and you move up to <b>' +
+          esc(nextStage ? nextStage.name : 'the next one') +
+          '</b> ' +
+          KM.store.theme().token
         : 'This one did not count, so the run starts again at three. ' +
           (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
       '</p>'
@@ -468,7 +558,7 @@
   // 🔒 still to come.
   function levelLadder(stage, currentId) {
     var p = KM.store.profile()
-    var lv = KM.level(stage.level)
+    var lv = KM.place(stage.level, p.theme)
     var unlockedIdx = KM.stageIndex(p.unlockedTo)
     var rows = KM.stagesOfLevel(stage.level)
       .map(function (st) {
@@ -553,7 +643,7 @@
   function renderResult(res) {
     var stage = KM.stage(res.stageId)
     el('res-title').textContent = res.mastered
-      ? 'You flew up a branch! 🪶'
+      ? 'You moved up a ' + KM.store.theme().unit + '! ' + KM.store.theme().token
       : res.stars === 3
         ? 'Three stars! 🌟'
         : res.accuracy === 1
@@ -667,11 +757,11 @@
             KM.juice.pop(banner)
             KM.juice.burst(banner, { n: 26, speed: 9, color: '#2c7be5' })
           }
-          KM.audio.squawk()
+          KM.audio.cheer()
         }
         if (res.badges && res.badges.length) {
           KM.audio.badge()
-          KM.audio.squawk()
+          KM.audio.cheer()
           KM.juice.confetti(70)
         }
         return
@@ -686,6 +776,8 @@
 
   KM.ui = {
     el: el,
+    applyTheme: applyTheme,
+    renderWho: renderWho,
     esc: esc,
     show: show,
     screen: function () {

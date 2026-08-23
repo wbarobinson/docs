@@ -575,6 +575,72 @@ try {
     'a half-written save falls back to the backup copy',
   )
 
+  // --- two children, two worlds ---------------------------------------
+  await cdp.eval("KM.ui.show('home')")
+  await sleep(200)
+  await cdp.click('#whoami')
+  await sleep(350)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'who', 'tapping her name opens the picker')
+  eq(
+    await cdp.eval("[...document.querySelectorAll('.whocard[data-profile]')].map(x => x.querySelector('.nm').textContent).join(',')"),
+    'Ara,Jon',
+    'both children are offered',
+  )
+  await cdp.shot('11-who')
+
+  const jonId = await cdp.eval(
+    "[...document.querySelectorAll('.whocard[data-profile]')].find(x => x.textContent.includes('Jon')).dataset.profile",
+  )
+  await cdp.click(`.whocard[data-profile="${jonId}"]`)
+  await sleep(500)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'home', 'picking a child goes to their home')
+  eq(await cdp.eval("document.getElementById('home-name').textContent"), 'Jon', 'it is Jon playing now')
+  eq(await cdp.eval("document.getElementById('mascot').textContent"), '🦖', 'with a dinosaur, not a macaw')
+  ok(
+    (await cdp.eval("getComputedStyle(document.body, '::after').content")).includes('🦕'),
+    'and dinosaur scenery',
+  )
+  ok(
+    (await cdp.eval("document.getElementById('home-level').textContent")).includes('Great Plains'),
+    'his levels are named for his world',
+  )
+  eq(await cdp.eval("KM.store.profile().totals.sets"), 0, 'Jon starts with a clean sheet of his own')
+  await cdp.shot('12-dino-home')
+
+  // His progress is his, and hers is untouched.
+  await cdp.click('.screen.active #btn-play')
+  await sleep(400)
+  for (let n = 0; n < 3; n++) {
+    const prob = await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+        const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+    )
+    for (const ch of String(prob.a + prob.b)) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(600)
+  }
+  await cdp.click('.screen.active #btn-quit')
+  await sleep(300)
+  const both = await cdp.eval(`(() => {
+    const raw = JSON.parse(localStorage.getItem('aranumberjungle.v1'))
+    return raw.profiles.map((p) => p.name + ':' + Object.keys(p.facts).length).join(',')
+  })()`)
+  ok(/Ara:[1-9]/.test(both) && /Jon:[1-9]/.test(both), 'both children have their own recorded facts (' + both + ')')
+
+  await cdp.click('#whoami')
+  await sleep(300)
+  const araId = await cdp.eval(
+    "[...document.querySelectorAll('.whocard[data-profile]')].find(x => x.textContent.includes('Ara')).dataset.profile",
+  )
+  await cdp.click(`.whocard[data-profile="${araId}"]`)
+  await sleep(450)
+  eq(await cdp.eval("document.getElementById('mascot').textContent"), '🦜', 'swapping back brings the macaw back')
+  ok(
+    (await cdp.eval("getComputedStyle(document.body, '::after').content")).includes('🌴'),
+    'and the jungle scenery',
+  )
+  ok((await cdp.eval('KM.store.profile().totals.problems')) > 0, "Ara's progress is exactly where she left it")
+
   // --- the other screens all render ---
   for (const [screen, needle] of [
     ['map', 'Forest Floor'],

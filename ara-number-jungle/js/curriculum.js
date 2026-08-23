@@ -118,6 +118,67 @@
     { id: 'C', name: 'Level C', place: 'Open Sky', blurb: 'Times tables & sharing', hue: 205, icon: '☀️' },
   ]
 
+  // Each child gets their own world. The maths ladder underneath is identical;
+  // only the names, the mascot, the decoration and the noises change.
+  KM.THEMES = {
+    jungle: {
+      id: 'jungle',
+      name: 'Number Jungle',
+      mascot: '🦜',
+      token: '🪶',
+      mapTitle: '🗺️ Jungle map',
+      decor: '🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺🌴🌿🍃🌺',
+      cheer: 'squawk',
+      unit: 'branch',
+      praise: ['Squawk!', 'Nice!', 'Yes!', 'Bravo!', 'Lovely!'],
+      places: {
+        '3A': { place: 'Forest Floor', icon: '🌿', hue: 110 },
+        '2A': { place: 'Understory', icon: '🌴', hue: 162 },
+        A: { place: 'The Canopy', icon: '🍃', hue: 42 },
+        B: { place: 'Treetops', icon: '🌺', hue: 6 },
+        C: { place: 'Open Sky', icon: '☀️', hue: 205 },
+      },
+    },
+    dino: {
+      id: 'dino',
+      name: 'Dino Valley',
+      mascot: '🦖',
+      token: '🦴',
+      mapTitle: '🗺️ Valley map',
+      decor: '🦕🌿🦴🌋🥚🌴🦖🌿🦕🌋🦴🌴🥚🌿🦖🌋🦕🌿🦴🌴',
+      cheer: 'roar',
+      unit: 'ridge',
+      praise: ['Roar!', 'Stomp!', 'Yes!', 'Mighty!', 'Huge!'],
+      places: {
+        '3A': { place: 'Fern Beds', icon: '🌿', hue: 96 },
+        '2A': { place: 'Mud Swamp', icon: '🐊', hue: 150 },
+        A: { place: 'Great Plains', icon: '🦕', hue: 34 },
+        B: { place: 'Volcano Slopes', icon: '🌋', hue: 12 },
+        C: { place: 'Comet Sky', icon: '☄️', hue: 262 },
+      },
+    },
+  }
+
+  KM.DEFAULT_THEME = 'jungle'
+
+  KM.theme = function (id) {
+    return KM.THEMES[id] || KM.THEMES[KM.DEFAULT_THEME]
+  }
+
+  // A level as this child sees it: the same maths, their world's name for it.
+  KM.place = function (levelId, themeId) {
+    var lv = KM.level(levelId) || {}
+    var t = KM.theme(themeId).places[levelId]
+    return {
+      id: levelId,
+      name: lv.name,
+      blurb: lv.blurb,
+      place: t ? t.place : lv.place,
+      icon: t ? t.icon : lv.icon,
+      hue: t ? t.hue : lv.hue,
+    }
+  }
+
   // target = seconds per problem she should beat to count a set as "quick".
   // Kumon-ish: the number gets tighter as the facts get more familiar, and
   // loosens again whenever a genuinely new idea (carrying, borrowing) arrives.

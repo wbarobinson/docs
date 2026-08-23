@@ -1,4 +1,4 @@
-# Ara's Number Jungle 🦜
+# Ara's Number Jungle 🦜 / Jon's Dino Valley 🦖
 
 A numpad maths game for Ara, built for an iPad with no stylus. It is Kumon in
 shape — a long ladder of narrow steps, ten-problem sets, and you only move up
@@ -7,6 +7,24 @@ worksheet to fill in.
 
 Ara means macaw, so she is a scarlet macaw climbing the rainforest: Forest
 Floor → Understory → Canopy → Treetops → Open Sky.
+
+## Two children, two worlds
+
+Tap the name in the top-left corner and the **Who's playing?** screen appears —
+big cards, no menus, any child can swap themselves. Each child has their own
+progress, badges, streaks, settings and starting branch, plus their own world:
+
+| | Ara | Jon |
+| --- | --- | --- |
+| Mascot | 🦜 macaw | 🦖 dinosaur |
+| Levels | Forest Floor → Understory → The Canopy → Treetops → Open Sky | Fern Beds → Mud Swamp → Great Plains → Volcano Slopes → Comet Sky |
+| Scenery | palms and hibiscus | ferns, bones and volcanoes |
+| Noise | a squawk | a roar |
+| Moving up | a branch | a ridge |
+
+The maths ladder underneath is identical — only names, colours, scenery and
+noises differ. Add more children in **Grown-ups**, where you can also switch
+anyone's world.
 
 ## Running it
 
@@ -21,6 +39,21 @@ python3 -m http.server 8000
 
 Opening `index.html` directly works too, but a served page gets you offline
 support and saved progress (Safari blocks storage on `file://`).
+
+### Host it somewhere permanent (recommended)
+
+Progress is stored by the browser against the exact web address the app is
+served from. A preview URL that changes when the page is republished takes the
+progress with it. **Give it one permanent address and this stops happening.**
+
+The folder is a static site with no build step, so:
+
+- **Netlify:** drag this folder onto <https://app.netlify.com/drop>. That is the
+  whole deployment. `netlify.toml` is already here.
+- **Vercel:** `npx vercel --prod` from this folder. `vercel.json` is already here.
+
+Then bookmark that address on the iPad and add it to the home screen. Nothing
+about the app changes when you redeploy — same address, same stored progress.
 
 ### One file, no server
 
@@ -202,16 +235,24 @@ landscape layouts, and a service worker so it runs with the wifi off.
 
 ## Data
 
-Everything lives in this browser's `localStorage` under
-`aranumberjungle.v1`. Nothing is uploaded anywhere, there are no accounts, no
-analytics, no network requests at all. Clearing Safari's data for the site
-erases her progress, so if you move devices, do it deliberately.
+Everything lives in this browser's `localStorage` under `aranumberjungle.v1`,
+keyed to the address the app is served from. Nothing is uploaded anywhere,
+there are no accounts, no analytics, no network requests at all.
+
+Two consequences worth knowing:
+
+- **A changing address means a fresh start.** Preview links that get republished
+  are the usual culprit. Host it at a permanent address (above) and this goes
+  away. The app notices when it is running inside a preview and says so in
+  Grown-ups.
+- **Moving devices is deliberate.** Copy the backup from Grown-ups and paste it
+  into the Restore box on the new device.
 
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 338 checks: generators, mastery, stars, badges, storage
-node tests/smoke.mjs      # 80 checks: drives the real UI in headless Chromium
+node tests/selftest.mjs   # 357 checks: generators, mastery, stars, badges, storage
+node tests/smoke.mjs      # 92 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```

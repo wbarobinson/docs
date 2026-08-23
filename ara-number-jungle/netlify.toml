@@ -1,0 +1,21 @@
+# Static site: nothing to build, the folder IS the site.
+# Drag this folder onto https://app.netlify.com/drop, or point a Netlify site
+# at this directory. The stable URL is the whole point — progress lives in the
+# browser keyed to the origin, so a URL that never changes means practice
+# history that never disappears.
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+
+# The app shell can be cached hard; the service worker must not be, or a new
+# version never arrives.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

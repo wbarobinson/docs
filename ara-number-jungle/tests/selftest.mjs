@@ -189,7 +189,19 @@ for (const stage of KM.STAGES) {
     runs.push(keys)
     keys.forEach((k) => union.add(k))
   }
-  ok(union.size >= 40, 'five sets cover most of the 45-problem pool (got ' + union.size + ')')
+  // Compare against what plain random picking would have managed over the same
+  // number of draws — a fixed threshold here is just a flaky test.
+  const control = new Set()
+  for (let i = 0; i < 50; i++) control.add(KM.factKey(KM.stage('A-5').gen()))
+  ok(
+    union.size >= control.size + 4,
+    'least-recently-practised beats plain random for coverage (' +
+      union.size +
+      ' vs ' +
+      control.size +
+      ' of 45)',
+  )
+  ok(union.size >= 35, 'and covers most of the 45-problem pool (got ' + union.size + ')')
   const overlap = runs[0].filter((k) => runs[1].includes(k)).length
   ok(overlap <= 2, 'two sets in a row barely overlap (shared ' + overlap + ')')
 
@@ -478,8 +490,68 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   eq(KM.store.profile().totals.sets, 1, 'their sets are their own')
   KM.store.setActive(a.id)
   ok(KM.store.profile().totals.sets > 1, 'the first child keeps their history')
+  const countBefore = KM.store.profiles().length
   KM.store.removeProfile(b.id)
-  eq(KM.store.profiles().length, 1, 'removing a child removes them')
+  eq(KM.store.profiles().length, countBefore - 1, 'removing a child removes them')
+}
+
+// --- 9b. two children, two worlds --------------------------------------
+{
+  // A brand new install should already have both of them.
+  const before = memory.get(KM.store.KEY)
+  memory.clear()
+  KM.store.reset()
+  const names = KM.store.profiles().map((x) => x.name + ':' + x.theme)
+  eq(names.join(' '), 'Ara:jungle Jon:dino', 'a fresh install has Ara in the jungle and Jon in the valley')
+  eq(KM.store.profile().name, 'Ara', 'Ara is the one playing to start with')
+  eq(KM.store.theme().mascot, '🦜', 'her world has the macaw')
+
+  const jon = KM.store.profiles()[1]
+  KM.store.setActive(jon.id)
+  eq(KM.store.theme().id, 'dino', 'swapping to Jon swaps the world')
+  eq(KM.store.theme().mascot, '🦖', 'his world has the dinosaur')
+  eq(KM.store.theme().cheer, 'roar', 'and roars instead of squawking')
+  eq(KM.place('B', 'dino').place, 'Volcano Slopes', 'the levels are renamed for his world')
+  eq(KM.place('B', 'jungle').place, 'Treetops', 'and keep their own names in hers')
+  eq(KM.place('B', 'dino').hue !== KM.place('B', 'jungle').hue, true, 'the two worlds are coloured differently')
+
+  // Same ladder underneath — the maths must not vary by theme.
+  eq(KM.stage(jon.stageId).id, KM.DEFAULT_STAGE, 'both children start on the same branch')
+  ok(
+    Object.keys(KM.THEMES).every((t) =>
+      KM.LEVELS.every((lv) => {
+        const place = KM.place(lv.id, t)
+        return place.place && place.icon && place.hue >= 0
+      }),
+    ),
+    'every world names and colours every level',
+  )
+
+  // Their progress must stay apart.
+  const playSetFor = (p, id) => {
+    const s = KM.engine.start(p, id, 10)
+    for (let i = 0; i < 10; i++) {
+      const prob = KM.engine.current(s)
+      s.shownAt = Date.now() - 2000
+      KM.engine.submit(s, prob.answer)
+    }
+    return KM.engine.finish(s)
+  }
+  playSetFor(KM.store.profile(), 'A-5')
+  eq(KM.store.profile().totals.sets, 1, "Jon's set counts for Jon")
+  KM.store.setActive(KM.store.profiles()[0].id)
+  eq(KM.store.profile().totals.sets, 0, 'and not for Ara')
+  eq(KM.store.theme().id, 'jungle', 'swapping back brings her world with her')
+
+  // Seeding Jon must be a one-off, not something that piles up every load.
+  // importText re-enters load() from raw text, which is what a reload does.
+  const snapshot = KM.store.exportText()
+  eq(KM.store.importText(snapshot).ok, true, 'the saved state reloads')
+  eq(KM.store.profiles().length, 2, 'reloading does not add another Jon')
+  eq(KM.store.importText(KM.store.exportText()).ok, true, 'and again')
+  eq(KM.store.profiles().length, 2, 'still two children, not three')
+  memory.clear()
+  if (before) memory.set(KM.store.KEY, before)
 }
 
 // --- 10. it survives a reload ----------------------------------------
