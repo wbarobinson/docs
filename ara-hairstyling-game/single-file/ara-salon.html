@@ -1,0 +1,1820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ara's Salon">
+<meta name="theme-color" content="#ffd9ec">
+<title>Ara's Hair Salon</title>
+<style>
+/* Ara's Hair Salon - candy shop styling, built for fingers on an iPad. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #ffd9ec;
+  font-family: "Baloo 2", "Trebuchet MS", "Avenir Next", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  color: #6b3350;
+}
+
+#salon {
+  position: fixed;
+  inset: 0;
+  display: block;
+  touch-action: none;
+}
+
+/* ---------- top bar ---------- */
+
+#topbar {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#topbar > * { pointer-events: auto; }
+#topbar .spacer { flex: 1; pointer-events: none; }
+
+.round {
+  width: 62px;
+  height: 62px;
+  border: none;
+  border-radius: 50%;
+  font-size: 30px;
+  line-height: 1;
+  background: #fff6fb;
+  color: inherit;
+  box-shadow: 0 4px 0 #e79cc4, 0 8px 18px rgba(160, 60, 110, 0.22);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.round:active { transform: translateY(3px); box-shadow: 0 1px 0 #e79cc4; }
+
+#request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 52vw;
+  padding: 10px 16px;
+  border-radius: 24px;
+  background: #fff6fb;
+  box-shadow: 0 4px 0 #e79cc4;
+  font-size: 19px;
+}
+
+#request .who { font-weight: 700; margin-right: 2px; }
+
+#request .wish {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: #ffe3f1;
+  transition: background 0.2s, color 0.2s;
+}
+
+#request .wish.done {
+  background: #b6ecd0;
+  color: #1f6b48;
+  text-decoration: line-through;
+}
+
+/* ---------- tool dock ---------- */
+
+#dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  width: max-content;
+  border-radius: 30px;
+  background: rgba(255, 246, 251, 0.94);
+  box-shadow: 0 6px 0 #e79cc4, 0 12px 26px rgba(160, 60, 110, 0.25);
+  max-width: calc(100vw - 20px);
+}
+
+#dock button {
+  width: 78px;
+  height: 78px;
+  border: none;
+  border-radius: 22px;
+  background: #ffe3f1;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+#dock button span { font-size: 32px; line-height: 1; }
+#dock button em { font-style: normal; font-size: 13px; font-weight: 700; }
+#dock button.on { background: #ff8fc4; color: #fff; box-shadow: inset 0 0 0 4px #ffd0e6; }
+#dock button:active { transform: translateY(2px); }
+#dock button.cta { background: #7ad3c0; color: #10504a; }
+
+/* ---------- tray ---------- */
+
+#tray {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  bottom: calc(max(10px, env(safe-area-inset-bottom)) + 108px);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 12px;
+  border-radius: 26px;
+  background: rgba(255, 246, 251, 0.96);
+  box-shadow: 0 6px 0 #e79cc4, 0 12px 26px rgba(160, 60, 110, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+}
+
+#tray.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.tray-page { display: none; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: min(900px, calc(100vw - 60px)); }
+.tray-page.show { display: flex; }
+
+.swatch {
+  width: 58px;
+  height: 58px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 3px 0 rgba(160, 60, 110, 0.3);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.swatch.on { border-color: #6b3350; transform: scale(1.1); }
+
+.chip {
+  min-width: 62px;
+  height: 62px;
+  border: none;
+  border-radius: 18px;
+  background: #ffe3f1;
+  color: inherit;
+  font-size: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.chip.labeled { min-width: 78px; height: 74px; padding: 0 6px; }
+.chip.labeled em { font-style: normal; font-size: 13px; font-weight: 700; }
+.chip.tall { height: 92px; }
+.chip.on { background: #ff8fc4; color: #fff; }
+.chip .face {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: block;
+  border: 3px solid #fff;
+}
+
+/* ---------- overlays ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(110, 40, 80, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 10;
+}
+
+.overlay.show { display: flex; }
+
+.card {
+  background: #fff6fb;
+  border-radius: 32px;
+  padding: 22px;
+  max-width: min(560px, 92vw);
+  max-height: 92vh;
+  overflow: auto;
+  text-align: center;
+  box-shadow: 0 14px 40px rgba(120, 30, 80, 0.35);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.card h2 { margin: 4px 0 12px; font-size: 26px; }
+.card img { max-width: 100%; border-radius: 18px; display: block; margin: 0 auto; }
+.stars { font-size: 40px; letter-spacing: 4px; margin-bottom: 8px; }
+.hint { font-size: 15px; opacity: 0.75; margin: 10px 4px; }
+.empty { padding: 30px; opacity: 0.7; }
+
+.row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.row button {
+  border: none;
+  border-radius: 20px;
+  padding: 14px 20px;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  background: #ffe3f1;
+  color: inherit;
+  box-shadow: 0 4px 0 #e79cc4;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.row button.primary { background: #ff8fc4; color: #fff; }
+.row button:active { transform: translateY(3px); box-shadow: none; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.grid img { width: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  top: 96px;
+  transform: translate(-50%, -12px);
+  padding: 12px 22px;
+  border-radius: 22px;
+  background: #6b3350;
+  color: #fff6fb;
+  font-size: 18px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 20;
+}
+
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Narrow / portrait: shrink the furniture so the model keeps the room */
+@media (max-width: 820px) {
+  #dock button { width: 62px; height: 62px; }
+  #dock button span { font-size: 26px; }
+  #dock button em { font-size: 11px; }
+  #request { font-size: 16px; max-width: 46vw; }
+  .round { width: 52px; height: 52px; font-size: 24px; }
+}
+
+</style>
+</head>
+<body>
+<canvas id="salon"></canvas>
+
+<header id="topbar">
+  <button id="btn-clients" class="round" aria-label="Choose a client">🔔</button>
+  <div id="request" aria-live="polite"></div>
+  <div class="spacer"></div>
+  <button id="btn-undo" class="round" aria-label="Undo">↩️</button>
+  <button id="btn-wash" class="round" aria-label="Wash it out and start over">🚿</button>
+  <button id="btn-book" class="round" aria-label="Sticker book">📔</button>
+  <button id="btn-sound" class="round" aria-label="Sound on or off">🔊</button>
+</header>
+
+<div id="tray">
+  <div id="tray-dye" class="tray-page"></div>
+  <div id="tray-accessory" class="tray-page"></div>
+  <div id="tray-style" class="tray-page"></div>
+</div>
+
+<nav id="dock">
+  <button data-tool="brush"><span>💆</span><em>Brush</em></button>
+  <button data-tool="scissors"><span>✂️</span><em>Cut</em></button>
+  <button data-tool="dye"><span>🎨</span><em>Color</em></button>
+  <button data-tool="curl"><span>🌀</span><em>Curl</em></button>
+  <button data-tool="straight"><span>💧</span><em>Straight</em></button>
+  <button data-tool="dryer"><span>💨</span><em>Dryer</em></button>
+  <button data-tool="sparkle"><span>✨</span><em>Sparkle</em></button>
+  <button data-tool="accessory"><span>🎀</span><em>Bows</em></button>
+  <button data-tool="style"><span>💇</span><em>Styles</em></button>
+  <button id="btn-photo" class="cta"><span>📸</span><em>Done!</em></button>
+</nav>
+
+<div id="toast"></div>
+
+<div id="photo-view" class="overlay">
+  <div class="card">
+    <div id="photo-stars" class="stars"></div>
+    <img id="photo-img" alt="The hairstyle you just made">
+    <p class="hint">Hold your finger on the photo to save it to your iPad.</p>
+    <div class="row">
+      <button id="photo-again">Keep styling</button>
+      <button id="photo-save" class="primary">Save it</button>
+      <button id="photo-next" class="primary">Next client</button>
+    </div>
+  </div>
+</div>
+
+<div id="book-view" class="overlay">
+  <div class="card">
+    <h2>Your sticker book 📔</h2>
+    <div id="book-grid" class="grid"></div>
+    <div class="row">
+      <button id="book-clear">Empty the book</button>
+      <button id="book-close" class="primary">Back to the salon</button>
+    </div>
+  </div>
+</div>
+
+<div id="client-view" class="overlay">
+  <div class="card">
+    <h2>Who is next? 🔔</h2>
+    <p class="hint">Picking someone new gives them fresh hair and a new wish.</p>
+    <div id="client-grid" class="chips"></div>
+    <div class="row">
+      <button id="client-close" class="primary">Never mind</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Ara's Hair Salon - hair simulation.
+   A strand is a chain of points solved with Verlet integration.
+   Everything is in a fixed 1000x750 "virtual" space; game.js scales it to the screen. */
+(function (global) {
+  'use strict';
+
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+  var rand = function (a, b) { return a + Math.random() * (b - a); };
+
+  var HEAD = { cx: 500, cy: 300, rx: 112, ry: 132 };
+  var SHOULDER_Y = HEAD.cy + HEAD.ry + 76;
+
+  var SEGS = 16;      // segments in a full-length strand
+  var SEG_LEN = 19;   // virtual px per segment
+  var GRAVITY = 0.5;
+  var DAMP = 0.9;
+  var ITER = 3;
+
+  /* ---------- strands ---------- */
+
+  function makeStrand(angle, layer, color, depth) {
+    var nx = Math.sin(angle), ny = -Math.cos(angle);
+    var spread = layer === 'back' ? 1.02 : 0.94;
+    var rx = HEAD.cx + nx * HEAD.rx * spread;
+    var ry = HEAD.cy + ny * HEAD.ry * spread;
+
+    var s = {
+      angle: angle,
+      layer: layer,
+      depth: depth,             // 0..1, shades the strand so layers read apart
+      n: SEGS,                  // current length in segments (scissors lower this)
+      maxN: SEGS,
+      segLen: SEG_LEN,
+      curl: 0,
+      frizz: rand(0.35, 0.75),
+      shine: 0.35,
+      phase: rand(0, Math.PI * 2),
+      width: layer === 'back' ? rand(10, 13.5) : rand(7, 10),
+      pts: [],
+      fz: [],
+      cols: [],
+      braidSide: 0
+    };
+
+    for (var i = 0; i <= SEGS; i++) { s.fz.push(rand(-1, 1)); }
+    for (var c = 0; c < SEGS; c++) { s.cols.push(color); }
+
+    var px = rx, py = ry;
+    var dx = nx * 0.7, dy = ny * 0.2 + 0.85;
+    var dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
+    s.pts.push({ x: px, y: py, ox: px, oy: py });
+    for (var j = 1; j <= SEGS; j++) {
+      px += dx * SEG_LEN; py += dy * SEG_LEN;
+      dx *= 0.82; dy = dy * 0.82 + 0.35;
+      var l2 = Math.hypot(dx, dy); dx /= l2; dy /= l2;
+      s.pts.push({ x: px, y: py, ox: px, oy: py });
+    }
+    return s;
+  }
+
+  function createHair(color) {
+    var strands = [];
+    var backCount = 64, frontCount = 52;
+    var i, t, a;
+    for (i = 0; i < backCount; i++) {
+      t = i / (backCount - 1);
+      a = lerp(-1.62, 1.62, t);
+      strands.push(makeStrand(a, 'back', color, 0.55 + Math.abs(t - 0.5) * 0.5));
+    }
+    for (i = 0; i < frontCount; i++) {
+      t = i / (frontCount - 1);
+      a = lerp(-1.5, 1.5, t);
+      strands.push(makeStrand(a, 'front', color, 0.05 + Math.abs(t - 0.5) * 0.35));
+    }
+    return strands;
+  }
+
+  var SHOULDER_HALF = 235;
+
+  /* Where the shoulder holds hair up at a given x. Past the shoulder there is
+     nothing to rest on, so the hair keeps falling. */
+  function shoulderAt(x) {
+    var dx = Math.abs(x - HEAD.cx);
+    if (dx > SHOULDER_HALF) { return 1e6; }
+    var t = dx / SHOULDER_HALF;
+    return SHOULDER_Y + t * t * 115;
+  }
+
+  /* ---------- physics ---------- */
+
+  function pushOutOfHead(p, pad) {
+    var dx = (p.x - HEAD.cx) / (HEAD.rx + pad);
+    var dy = (p.y - HEAD.cy) / (HEAD.ry + pad);
+    var d = Math.hypot(dx, dy);
+    if (d < 1 && d > 0.0001) {
+      var k = 1 / d;
+      p.x = HEAD.cx + dx * k * (HEAD.rx + pad);
+      p.y = HEAD.cy + dy * k * (HEAD.ry + pad);
+    }
+  }
+
+  function step(state) {
+    var strands = state.strands;
+    var stiff = 0.07 + state.volume * 0.1;
+
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      var pts = s.pts;
+      var n = s.n;
+
+      for (var i = 1; i <= n; i++) {
+        var p = pts[i];
+        var vx = (p.x - p.ox) * DAMP;
+        var vy = (p.y - p.oy) * DAMP;
+        p.ox = p.x; p.oy = p.y;
+        p.x += vx;
+        p.y += vy + GRAVITY * (1 - state.volume * 0.35);
+      }
+
+      for (var it = 0; it < ITER; it++) {
+        for (var c = 1; c <= n; c++) {
+          var a = pts[c - 1], b = pts[c];
+          var dx = b.x - a.x, dy = b.y - a.y;
+          var d = Math.hypot(dx, dy) || 0.0001;
+          var diff = (d - s.segLen) / d;
+          var mA = c === 1 ? 0 : 0.5;   // root is pinned
+          var mB = c === 1 ? 1 : 0.5;
+          a.x += dx * diff * mA; a.y += dy * diff * mA;
+          b.x -= dx * diff * mB; b.y -= dy * diff * mB;
+        }
+
+        for (var k = 2; k <= n; k++) {
+          var q0 = pts[k - 2], q1 = pts[k - 1], q2 = pts[k];
+          var tx = q1.x + (q1.x - q0.x), ty = q1.y + (q1.y - q0.y);
+          q2.x += (tx - q2.x) * stiff;
+          q2.y += (ty - q2.y) * stiff;
+        }
+
+        var pad = s.layer === 'back' ? 2 : 6;
+        for (var h = 1; h <= n; h++) { pushOutOfHead(pts[h], pad); }
+      }
+
+      if (state.style && state.style !== 'down') { applyStyle(s, state); }
+
+      for (var g = 1; g <= n; g++) {
+        var pg = pts[g];
+        var sy = shoulderAt(pg.x);
+        if (pg.y > sy) {
+          var over = pg.y - sy;
+          pg.y = sy + over * 0.4;
+          pg.ox = lerp(pg.ox, pg.x, 0.5);    // friction so it settles instead of sliding
+          pg.x += (pg.x - HEAD.cx) * 0.0016 * Math.min(over, 26);
+        }
+      }
+    }
+  }
+
+  /* ---------- styles ---------- */
+
+  var STYLE_HOLD = 0.3;
+
+  function gatherPoint(style, s) {
+    switch (style) {
+      case 'ponytail': return { x: HEAD.cx, y: HEAD.cy - 6, k: 5 };
+      case 'highpony': return { x: HEAD.cx, y: HEAD.cy - HEAD.ry * 0.72, k: 4 };
+      case 'bun': return { x: HEAD.cx, y: HEAD.cy - HEAD.ry * 0.66, k: 4 };
+      case 'braid': return { x: HEAD.cx, y: HEAD.cy + 24, k: 6 };
+      case 'pigtails':
+        return { x: HEAD.cx + (s.angle < 0 ? -1 : 1) * (HEAD.rx + 16), y: HEAD.cy - 24, k: 5 };
+      case 'halfup':
+        return Math.abs(s.angle) < 0.85 ? { x: HEAD.cx, y: HEAD.cy - 34, k: 5 } : null;
+      default: return null;
+    }
+  }
+
+  function tailTarget(style, G, i, s, time) {
+    var d = i * SEG_LEN;
+    if (style === 'bun') {
+      var turns = d / 34;
+      var r = 20 + Math.min(14, d * 0.05);
+      return { x: G.x + Math.cos(turns + s.phase) * r, y: G.y + Math.sin(turns + s.phase) * r * 0.8 };
+    }
+    var sway = Math.sin(time * 0.0012 + s.phase) * Math.min(10, d * 0.05);
+    if (style === 'pigtails') {
+      var out = (G.x < HEAD.cx ? -1 : 1);
+      return { x: G.x + out * Math.min(30, d * 0.22) + sway, y: G.y + d * 0.95 };
+    }
+    return { x: G.x + sway, y: G.y + d };
+  }
+
+  function applyStyle(s, state) {
+    var G = gatherPoint(state.style, s);
+    if (!G) { s.braidSide = 0; return; }
+    var hold = STYLE_HOLD;
+    var i, t, tx, ty, p;
+
+    for (i = 1; i <= Math.min(G.k, s.n); i++) {
+      t = i / G.k;
+      p = s.pts[i];
+      tx = lerp(p.x, G.x, t);
+      ty = lerp(p.y, G.y, t);
+      p.x += (tx - p.x) * hold * t;
+      p.y += (ty - p.y) * hold * t;
+    }
+    for (i = G.k + 1; i <= s.n; i++) {
+      var tgt = tailTarget(state.style, G, i - G.k, s, state.time);
+      p = s.pts[i];
+      p.x += (tgt.x - p.x) * hold;
+      p.y += (tgt.y - p.y) * hold;
+    }
+    s.braidSide = state.style === 'braid' ? (s.angle < -0.5 ? -1 : s.angle > 0.5 ? 1 : 0) : 0;
+  }
+
+  /* ---------- display points (curl, frizz, braid) ---------- */
+
+  function displayPoints(s, time, out) {
+    var n = s.n;
+    for (var i = 0; i <= n; i++) {
+      var p = s.pts[i];
+      var ox = 0, oy = 0;
+      if (i > 0) {
+        var q = s.pts[i - 1];
+        var tx = p.x - q.x, ty = p.y - q.y;
+        var l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+        var ramp = Math.min(1, i / 2.5);
+        var amp = s.curl * 14 * ramp;
+        var w = Math.sin(i * 1.2 + s.phase);
+        ox += -ty * amp * w; oy += tx * amp * w;
+        if (s.braidSide !== undefined && s.braidSide !== 0 && i > 6) {
+          var bw = Math.sin(i * 0.9 + (s.braidSide > 0 ? 0 : Math.PI)) * 9;
+          ox += -ty * bw; oy += tx * bw;
+        }
+        var fz = s.fz[i] * s.frizz * (1 - s.shine) * 4 * ramp;
+        ox += -ty * fz; oy += tx * fz;
+      }
+      var o = out[i] || (out[i] = { x: 0, y: 0 });
+      o.x = p.x + ox; o.y = p.y + oy;
+    }
+    out.length = n + 1;
+    return out;
+  }
+
+  /* ---------- tools ---------- */
+
+  function eachNearPoint(strands, x, y, r, fn) {
+    var r2 = r * r;
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      for (var i = 1; i <= s.n; i++) {
+        var p = s.pts[i];
+        var dx = p.x - x, dy = p.y - y;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < r2) { fn(s, i, p, 1 - Math.sqrt(d2) / r); }
+      }
+    }
+  }
+
+  function brush(state, x, y, dx, dy, r) {
+    eachNearPoint(state.strands, x, y, r, function (s, i, p, f) {
+      var tip = Math.min(1, i / 4);
+      p.x += dx * f * 0.85 * tip;
+      p.y += dy * f * 0.85 * tip;
+      s.shine = clamp(s.shine + 0.02 * f, 0, 1);
+      s.frizz = clamp(s.frizz - 0.035 * f, 0, 1);
+    });
+  }
+
+  function cut(state, x, y, r) {
+    var cutAny = false;
+    var strands = state.strands;
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      for (var i = 2; i <= s.n; i++) {
+        var p = s.pts[i];
+        if (Math.hypot(p.x - x, p.y - y) < r) {
+          if (i - 1 < s.n) {
+            state.clippings.push({
+              x: p.x, y: p.y, vx: rand(-1, 1), vy: rand(-1, 0.4),
+              col: s.cols[i - 1], life: 1, rot: rand(0, 6.28)
+            });
+            s.n = i - 1;
+            cutAny = true;
+          }
+          break;
+        }
+      }
+    }
+    return cutAny;
+  }
+
+  function dye(state, x, y, r, color) {
+    var painted = false;
+    eachNearPoint(state.strands, x, y, r, function (s, i, p, f) {
+      if (i >= 1 && i <= s.n) { s.cols[i - 1] = color; painted = true; }
+      if (i < s.n) { s.cols[i] = color; }
+    });
+    return painted;
+  }
+
+  function curl(state, x, y, r, amount) {
+    eachNearPoint(state.strands, x, y, r, function (s, i, p, f) {
+      s.curl = clamp(s.curl + amount * f, 0, 1);
+    });
+  }
+
+  function blow(state, x, y, r, dx, dy) {
+    eachNearPoint(state.strands, x, y, r * 1.4, function (s, i, p, f) {
+      var tip = Math.min(1, i / 3);
+      p.x += dx * f * 0.5 * tip;
+      p.y += (dy * 0.5 - 1.5) * f * tip;
+      s.frizz = clamp(s.frizz + 0.01 * f, 0, 1);
+    });
+  }
+
+  function nearestSegment(strands, x, y, maxD) {
+    var best = null, bestD = maxD;
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      for (var i = 1; i <= s.n; i++) {
+        var p = s.pts[i];
+        var d = Math.hypot(p.x - x, p.y - y);
+        if (d < bestD) { bestD = d; best = { strand: s, index: i, dist: d }; }
+      }
+    }
+    return best;
+  }
+
+  function resetHair(state, color) {
+    state.strands = createHair(color);
+    state.style = 'down';
+    state.clippings.length = 0;
+    state.sparkles.length = 0;
+    state.accessories.length = 0;
+  }
+
+  /* ---------- measurements, used to score a client's request ---------- */
+
+  function measure(state) {
+    var s, i, n = 0, curlSum = 0, lenSum = 0;
+    var hues = {};
+    for (i = 0; i < state.strands.length; i++) {
+      s = state.strands[i];
+      n++;
+      curlSum += s.curl;
+      lenSum += s.n / s.maxN;
+      for (var c = 0; c < s.n; c++) {
+        hues[s.cols[c]] = (hues[s.cols[c]] || 0) + 1;
+      }
+    }
+    var top = null, topN = 0;
+    for (var k in hues) { if (hues[k] > topN) { topN = hues[k]; top = k; } }
+    return {
+      curl: n ? curlSum / n : 0,
+      length: n ? lenSum / n : 0,
+      mainColor: top,
+      style: state.style
+    };
+  }
+
+  global.Hair = {
+    HEAD: HEAD, SHOULDER_Y: SHOULDER_Y, SHOULDER_HALF: SHOULDER_HALF, shoulderAt: shoulderAt, SEGS: SEGS, SEG_LEN: SEG_LEN,
+    createHair: createHair, step: step, displayPoints: displayPoints,
+    brush: brush, cut: cut, dye: dye, curl: curl, blow: blow,
+    nearestSegment: nearestSegment, resetHair: resetHair, measure: measure,
+    clamp: clamp, lerp: lerp, rand: rand
+  };
+})(window);
+
+/* Ara's Hair Salon - the clients who come in, and the looks they ask for. */
+(function (global) {
+  'use strict';
+
+  var COLORS = [
+    { name: 'bubblegum', css: '#ff7ab8' },
+    { name: 'cotton candy', css: '#ffb3d9' },
+    { name: 'lavender', css: '#b98cf5' },
+    { name: 'ocean', css: '#4bc4e8' },
+    { name: 'mint', css: '#5fdcb0' },
+    { name: 'sunshine', css: '#ffd23f' },
+    { name: 'tangerine', css: '#ff9147' },
+    { name: 'cherry', css: '#f0473f' },
+    { name: 'berry', css: '#8e3bb0' },
+    { name: 'midnight', css: '#2f2b45' },
+    { name: 'chocolate', css: '#5c3823' },
+    { name: 'caramel', css: '#a4692f' },
+    { name: 'honey', css: '#d9a441' },
+    { name: 'strawberry', css: '#c4522c' },
+    { name: 'silver', css: '#c9cede' },
+    { name: 'snow', css: '#f2eee6' }
+  ];
+
+  var ACCESSORIES = [
+    '🎀', '🌸', '👑', '⭐', '🦋', '💎', '🌈', '🌼', '🍓', '🐚', '🍀', '❤️'
+  ];
+
+  var STYLES = [
+    { id: 'down', label: 'Down', icon: '💇' },
+    { id: 'ponytail', label: 'Ponytail', icon: '🐴' },
+    { id: 'highpony', label: 'High pony', icon: '⬆️' },
+    { id: 'pigtails', label: 'Pigtails', icon: '👧' },
+    { id: 'bun', label: 'Bun', icon: '🧁' },
+    { id: 'braid', label: 'Braid', icon: '🪢' },
+    { id: 'halfup', label: 'Half up', icon: '🎗️' }
+  ];
+
+  var CLIENTS = [
+    { name: 'Poppy', skin: '#f6cfae', skin2: '#e3b191', hair: '#5c3823', eye: '#4a6b3a', shirt: '#ff8fb1', blush: '#ff9aa8' },
+    { name: 'Nia', skin: '#8a5a3b', skin2: '#764930', hair: '#2f2b45', eye: '#3b2a1e', shirt: '#7ad3c0', blush: '#c4726a' },
+    { name: 'Mei', skin: '#f0d3b4', skin2: '#dcb593', hair: '#2f2b45', eye: '#3a2b22', shirt: '#b98cf5', blush: '#ef9a9a' },
+    { name: 'Isla', skin: '#fbe0cd', skin2: '#eec3a8', hair: '#d9a441', eye: '#4d7fa8', shirt: '#ffd23f', blush: '#ffa0a8' },
+    { name: 'Zuri', skin: '#6d4429', skin2: '#5a3720', hair: '#3a2418', eye: '#3b2a1e', shirt: '#4bc4e8', blush: '#b8655c' },
+    { name: 'Ava', skin: '#e8b78f', skin2: '#d29e76', hair: '#a4692f', eye: '#5c8a5c', shirt: '#5fdcb0', blush: '#e08a86' }
+  ];
+
+  /* A request is 1-3 wishes. Every wish is easy to see and easy to grant. */
+  function makeRequest(rnd) {
+    var pick = function (arr) { return arr[Math.floor(rnd() * arr.length)]; };
+    var wishes = [];
+    var color = pick(COLORS);
+    wishes.push({ kind: 'color', value: color.css, label: color.name + ' hair', icon: '🎨' });
+
+    var roll = rnd();
+    if (roll < 0.45) {
+      wishes.push({ kind: 'curl', value: 0.6, label: 'curly', icon: '🌀' });
+    } else if (roll < 0.7) {
+      wishes.push({ kind: 'straight', value: 0.2, label: 'nice and straight', icon: '💧' });
+    }
+
+    if (rnd() < 0.6) {
+      var st = STYLES[1 + Math.floor(rnd() * (STYLES.length - 1))];
+      wishes.push({ kind: 'style', value: st.id, label: 'a ' + st.label.toLowerCase(), icon: st.icon });
+    }
+    if (rnd() < 0.6) {
+      var acc = pick(ACCESSORIES);
+      wishes.push({ kind: 'accessory', value: acc, label: 'a ' + acc, icon: acc });
+    }
+    if (rnd() < 0.3) {
+      wishes.push({ kind: 'short', value: 0.6, label: 'a trim', icon: '✂️' });
+    }
+    return wishes.slice(0, 3);
+  }
+
+  /* Scoring is kind on purpose: three stars is the floor, five is very reachable. */
+  function score(wishes, m, accessories) {
+    var got = 0;
+    for (var i = 0; i < wishes.length; i++) {
+      var w = wishes[i];
+      if (w.kind === 'color' && m.mainColor === w.value) { got++; }
+      else if (w.kind === 'curl' && m.curl >= 0.35) { got++; }
+      else if (w.kind === 'straight' && m.curl <= 0.25) { got++; }
+      else if (w.kind === 'style' && m.style === w.value) { got++; }
+      else if (w.kind === 'short' && m.length <= 0.8) { got++; }
+      else if (w.kind === 'accessory') {
+        for (var a = 0; a < accessories.length; a++) {
+          if (accessories[a].emoji === w.value) { got++; break; }
+        }
+      }
+    }
+    var ratio = wishes.length ? got / wishes.length : 1;
+    return { stars: Math.max(3, Math.round(3 + ratio * 2)), got: got, total: wishes.length };
+  }
+
+  global.Salon = {
+    COLORS: COLORS, ACCESSORIES: ACCESSORIES, STYLES: STYLES, CLIENTS: CLIENTS,
+    makeRequest: makeRequest, score: score
+  };
+})(window);
+
+/* Ara's Hair Salon - tiny WebAudio noises. No files, everything is synthesised.
+   iPad only allows audio to start inside a touch, so unlock() runs on first tap. */
+(function (global) {
+  'use strict';
+
+  var ctx = null;
+  var muted = false;
+  try { muted = localStorage.getItem('ara.muted') === '1'; } catch (e) { /* private mode */ }
+
+  function unlock() {
+    if (ctx) { if (ctx.state === 'suspended') { ctx.resume(); } return; }
+    var AC = global.AudioContext || global.webkitAudioContext;
+    if (!AC) { return; }
+    ctx = new AC();
+    if (ctx.state === 'suspended') { ctx.resume(); }
+  }
+
+  function env(node, t, attack, decay, peak) {
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    node.connect(g);
+    g.connect(ctx.destination);
+    return g;
+  }
+
+  function tone(freq, t, dur, type, peak) {
+    var o = ctx.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    env(o, t, 0.01, dur, peak || 0.13);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+    return o;
+  }
+
+  function noise(t, dur, freq, peak) {
+    var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) { data[i] = (Math.random() * 2 - 1) * (1 - i / len); }
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.setValueAtTime(freq, t);
+    src.connect(f);
+    env(f, t, 0.005, dur, peak || 0.1);
+    src.start(t);
+    return src;
+  }
+
+  var last = {};
+  function throttled(name, ms) {
+    var now = (global.performance || Date).now();
+    if (last[name] && now - last[name] < ms) { return false; }
+    last[name] = now;
+    return true;
+  }
+
+  var SFX = {
+    snip: function (t) { noise(t, 0.05, 3800, 0.12); tone(2100, t + 0.01, 0.04, 'square', 0.05); },
+    brush: function (t) { noise(t, 0.12, 900, 0.035); },
+    spray: function (t) { noise(t, 0.22, 2200, 0.06); },
+    dryer: function (t) { noise(t, 0.18, 700, 0.05); },
+    pop: function (t) { tone(520, t, 0.1, 'sine', 0.14); tone(780, t + 0.04, 0.1, 'sine', 0.09); },
+    sparkle: function (t) {
+      [1320, 1760, 2200].forEach(function (f, i) { tone(f, t + i * 0.055, 0.16, 'triangle', 0.07); });
+    },
+    shutter: function (t) { noise(t, 0.04, 1500, 0.16); noise(t + 0.07, 0.05, 900, 0.1); },
+    cheer: function (t) {
+      [523, 659, 784, 1047].forEach(function (f, i) { tone(f, t + i * 0.09, 0.28, 'triangle', 0.11); });
+    }
+  };
+
+  function play(name, minGap) {
+    if (muted || !SFX[name]) { return; }
+    unlock();
+    if (!ctx) { return; }
+    if (minGap && !throttled(name, minGap)) { return; }
+    try { SFX[name](ctx.currentTime); } catch (e) { /* audio is a nice-to-have */ }
+  }
+
+  global.Sound = {
+    play: play,
+    unlock: unlock,
+    isMuted: function () { return muted; },
+    toggle: function () {
+      muted = !muted;
+      try { localStorage.setItem('ara.muted', muted ? '1' : '0'); } catch (e) { /* ignore */ }
+      if (!muted) { play('pop'); }
+      return muted;
+    }
+  };
+})(window);
+
+/* Ara's Hair Salon - drawing, touch handling and the salon loop. */
+(function (global) {
+  'use strict';
+
+  var H = global.Hair, S = global.Salon, Snd = global.Sound;
+  var VW = 1000, VH = 750;
+  var HEAD = H.HEAD;
+  var clamp = H.clamp, lerp = H.lerp, rand = H.rand;
+
+  var EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+  var canvas, ctx, dpr = 1, scale = 1, offX = 0, offY = 0, cssW = 0, cssH = 0;
+
+  var TOOLS = {
+    brush:    { radius: 58, label: 'Brush' },
+    scissors: { radius: 26, label: 'Cut' },
+    dye:      { radius: 44, label: 'Color' },
+    curl:     { radius: 52, label: 'Curl' },
+    straight: { radius: 52, label: 'Straight' },
+    dryer:    { radius: 84, label: 'Dryer' },
+    sparkle:  { radius: 42, label: 'Sparkle' },
+    accessory:{ radius: 30, label: 'Bows' },
+    style:    { radius: 0,  label: 'Styles' }
+  };
+
+  var state = {
+    strands: [], style: 'down', accessories: [], sparkles: [], clippings: [],
+    confetti: [], volume: 0, time: 0, frame: 0,
+    client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
+    tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
+    pointer: { x: 500, y: 300, active: false },
+    undo: []
+  };
+
+  var pointers = new Map();
+  var dispBuf = [];
+
+  /* ---------- setup ---------- */
+
+  function resize() {
+    cssW = global.innerWidth;
+    cssH = global.innerHeight;
+    dpr = Math.min(global.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    scale = Math.min(cssW / VW, cssH / VH);
+    offX = (cssW - VW * scale) / 2;
+    offY = (cssH - VH * scale) / 2;
+  }
+
+  function toVirtual(clientX, clientY) {
+    return { x: (clientX - offX) / scale, y: (clientY - offY) / scale };
+  }
+
+  /* ---------- clients ---------- */
+
+  function newClient(which) {
+    var c = which || S.CLIENTS[Math.floor(Math.random() * S.CLIENTS.length)];
+    state.client = c;
+    state.wishes = S.makeRequest(Math.random);
+    H.resetHair(state, c.hair);
+    state.confetti.length = 0;
+    state.undo.length = 0;
+    state.happy = 0.6;
+    UI.renderRequest();
+    Snd.play('pop');
+  }
+
+  /* ---------- undo ---------- */
+
+  function snapshot() {
+    var snap = { n: [], cols: [], curl: [], style: state.style, acc: JSON.stringify(state.accessories) };
+    for (var i = 0; i < state.strands.length; i++) {
+      var s = state.strands[i];
+      snap.n.push(s.n);
+      snap.cols.push(s.cols.slice());
+      snap.curl.push(s.curl);
+    }
+    state.undo.push(snap);
+    if (state.undo.length > 20) { state.undo.shift(); }
+  }
+
+  function undo() {
+    var snap = state.undo.pop();
+    if (!snap) { return false; }
+    for (var i = 0; i < state.strands.length; i++) {
+      var s = state.strands[i];
+      s.n = snap.n[i];
+      s.cols = snap.cols[i].slice();
+      s.curl = snap.curl[i];
+    }
+    state.style = snap.style;
+    state.accessories = JSON.parse(snap.acc);
+    Snd.play('pop');
+    return true;
+  }
+
+  /* ---------- tools ---------- */
+
+  function applyTool(p, dx, dy, isDown) {
+    var t = state.tool;
+    var r = TOOLS[t].radius;
+    if (t === 'brush') {
+      H.brush(state, p.x, p.y, dx, dy, r);
+      if (Math.hypot(dx, dy) > 2) { Snd.play('brush', 140); }
+    } else if (t === 'scissors') {
+      if (H.cut(state, p.x, p.y, r)) { Snd.play('snip', 60); }
+    } else if (t === 'dye') {
+      if (H.dye(state, p.x, p.y, r, state.color)) { Snd.play('spray', 220); }
+    } else if (t === 'curl') {
+      H.curl(state, p.x, p.y, r, 0.05);
+      Snd.play('spray', 300);
+    } else if (t === 'straight') {
+      H.curl(state, p.x, p.y, r, -0.06);
+      H.brush(state, p.x, p.y, dx * 0.5, dy * 0.5, r);
+      Snd.play('brush', 200);
+    } else if (t === 'dryer') {
+      H.blow(state, p.x, p.y, r, dx, dy);
+      state.volume = Math.min(1, state.volume + 0.03);
+      Snd.play('dryer', 180);
+    } else if (t === 'sparkle') {
+      addSparkle(p.x, p.y);
+    } else if (t === 'accessory' && isDown) {
+      placeAccessory(p.x, p.y);
+    }
+  }
+
+  function addSparkle(x, y) {
+    var hit = H.nearestSegment(state.strands, x, y, 40);
+    if (!hit) { return; }
+    if (state.sparkles.length > 90) { state.sparkles.shift(); }
+    state.sparkles.push({
+      strand: hit.strand, index: hit.index,
+      dx: rand(-6, 6), dy: rand(-6, 6),
+      size: rand(13, 22), phase: rand(0, 6.28)
+    });
+    Snd.play('sparkle', 260);
+  }
+
+  function placeAccessory(x, y) {
+    var hit = H.nearestSegment(state.strands, x, y, 90);
+    if (!hit) { return; }
+    var p = hit.strand.pts[hit.index];
+    state.accessories.push({
+      emoji: state.accessory,
+      si: state.strands.indexOf(hit.strand),
+      index: hit.index,
+      dx: x - p.x, dy: y - p.y,
+      size: 54, rot: rand(-0.18, 0.18)
+    });
+    Snd.play('pop');
+  }
+
+  function accessoryPos(a) {
+    var s = state.strands[a.si];
+    if (!s) { return null; }
+    var i = Math.min(a.index, s.n);
+    var p = s.pts[i];
+    return { x: p.x + a.dx, y: p.y + a.dy };
+  }
+
+  /* ---------- input ---------- */
+
+  function bindInput() {
+    var opts = { passive: false };
+
+    canvas.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      Snd.unlock();
+      var p = toVirtual(e.clientX, e.clientY);
+      pointers.set(e.pointerId, { x: p.x, y: p.y });
+      state.pointer.x = p.x; state.pointer.y = p.y; state.pointer.active = true;
+      if (pointers.size === 1) { snapshot(); }
+      applyTool(p, 0, 0, true);
+      if (canvas.setPointerCapture) { canvas.setPointerCapture(e.pointerId); }
+      UI.closeTray();
+    }, opts);
+
+    canvas.addEventListener('pointermove', function (e) {
+      var prev = pointers.get(e.pointerId);
+      var p = toVirtual(e.clientX, e.clientY);
+      state.pointer.x = p.x; state.pointer.y = p.y;
+      if (!prev) { return; }
+      e.preventDefault();
+      applyTool(p, p.x - prev.x, p.y - prev.y, false);
+      prev.x = p.x; prev.y = p.y;
+    }, opts);
+
+    function end(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) { state.pointer.active = false; }
+    }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('pointerleave', end);
+
+    /* iPad: stop pinch-zoom and double-tap-zoom from fighting the game */
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (n) {
+      document.addEventListener(n, function (e) { e.preventDefault(); }, opts);
+    });
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length > 1) { e.preventDefault(); }
+    }, opts);
+  }
+
+  /* ---------- drawing: the model ---------- */
+
+  function drawBackdrop() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var g = ctx.createLinearGradient(0, 0, 0, cssH);
+    g.addColorStop(0, '#ffe9f4');
+    g.addColorStop(0.55, '#ffd9ec');
+    g.addColorStop(1, '#f7c9e4');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offX, dpr * offY);
+
+    /* mirror behind the chair */
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#fff6fb';
+    roundRect(VW / 2 - 250, 40, 500, 470, 250);
+    ctx.fill();
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = '#ffb3d9';
+    ctx.stroke();
+    ctx.restore();
+
+    /* floor */
+    ctx.fillStyle = '#f3b9dd';
+    ctx.fillRect(-1000, 604, 3000, VH + 400);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (var i = -10; i < 30; i++) {
+      ctx.fillRect(-1000 + i * 120, 604, 60, VH + 400);
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBody() {
+    var c = state.client;
+    var topY = H.SHOULDER_Y;
+    var midY = topY + 165;
+
+    /* neck runs behind the shoulders so there is never a gap */
+    ctx.fillStyle = c.skin2;
+    roundRect(HEAD.cx - 38, HEAD.cy + HEAD.ry - 66, 76, (topY + 50) - (HEAD.cy + HEAD.ry - 66), 30);
+    ctx.fill();
+
+    ctx.fillStyle = c.shirt;
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx, midY, H.SHOULDER_HALF, midY - topY, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(HEAD.cx - H.SHOULDER_HALF, midY, H.SHOULDER_HALF * 2, 3000);
+
+    /* collar */
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx, topY + 6, 64, 34, 0, 0, Math.PI);
+    ctx.fill();
+  }
+
+  function drawHead() {
+    var c = state.client;
+
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx - HEAD.rx + 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
+    ctx.ellipse(HEAD.cx + HEAD.rx - 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx, HEAD.ry, 0, 0, 6.2832);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx - 34, HEAD.cy - 24, 34, 42, -0.3, 0, 6.2832);
+    ctx.fill();
+  }
+
+  function drawFace() {
+    var c = state.client;
+    var lookX = clamp((state.pointer.x - HEAD.cx) / 340, -1, 1) * 5;
+    var lookY = clamp((state.pointer.y - HEAD.cy) / 340, -1, 1) * 4;
+    var open = state.blink > 0 ? 0.12 : 1;
+    var eyes = [[HEAD.cx - 40, HEAD.cy + 14], [HEAD.cx + 40, HEAD.cy + 14]];
+
+    ctx.save();
+    ctx.fillStyle = c.blush;
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.ellipse(HEAD.cx - 68, HEAD.cy + 46, 22, 13, 0, 0, 6.2832);
+    ctx.ellipse(HEAD.cx + 68, HEAD.cy + 46, 22, 13, 0, 0, 6.2832);
+    ctx.fill();
+    ctx.restore();
+
+    eyes.forEach(function (e) {
+      ctx.fillStyle = '#fffdf9';
+      ctx.beginPath();
+      ctx.ellipse(e[0], e[1], 21, 20 * open, 0, 0, 6.2832);
+      ctx.fill();
+
+      ctx.fillStyle = c.eye;
+      ctx.beginPath();
+      ctx.ellipse(e[0] + lookX, e[1] + lookY, 12, 13 * open, 0, 0, 6.2832);
+      ctx.fill();
+
+      ctx.fillStyle = '#20161a';
+      ctx.beginPath();
+      ctx.ellipse(e[0] + lookX, e[1] + lookY, 6, 7 * open, 0, 0, 6.2832);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(e[0] + lookX - 5, e[1] + lookY - 6 * open, 4, 4 * open, 0, 0, 6.2832);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(60,40,45,0.6)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(e[0], e[1] - 4, 21, Math.PI * 1.25, Math.PI * 1.75);
+      ctx.stroke();
+    });
+
+    /* brows */
+    ctx.strokeStyle = 'rgba(90,60,50,0.7)';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    [-1, 1].forEach(function (side) {
+      ctx.beginPath();
+      ctx.arc(HEAD.cx + side * 40, HEAD.cy - 20, 25, Math.PI * 1.22, Math.PI * 1.78);
+      ctx.stroke();
+    });
+
+    /* nose */
+    ctx.strokeStyle = 'rgba(150,100,85,0.55)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(HEAD.cx - 4, HEAD.cy + 46);
+    ctx.quadraticCurveTo(HEAD.cx + 5, HEAD.cy + 54, HEAD.cx - 3, HEAD.cy + 58);
+    ctx.stroke();
+
+    /* mouth - widens as the client gets what she asked for */
+    var smile = 0.35 + state.happy * 0.65;
+    ctx.strokeStyle = '#c4535e';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(HEAD.cx - 24, HEAD.cy + 76);
+    ctx.quadraticCurveTo(HEAD.cx, HEAD.cy + 76 + 26 * smile, HEAD.cx + 24, HEAD.cy + 76);
+    ctx.stroke();
+    if (smile > 0.75) {
+      ctx.fillStyle = '#e98c9a';
+      ctx.beginPath();
+      ctx.moveTo(HEAD.cx - 22, HEAD.cy + 77);
+      ctx.quadraticCurveTo(HEAD.cx, HEAD.cy + 77 + 24 * smile, HEAD.cx + 22, HEAD.cy + 77);
+      ctx.fill();
+    }
+  }
+
+  function drawScalp() {
+    /* a cap made of little wedges, each tinted by its own strand's root colour,
+       so dyeing the roots actually shows */
+    var strands = state.strands;
+    for (var i = 0; i < strands.length; i++) {
+      var s = strands[i];
+      if (s.layer !== 'front') { continue; }
+      var a = s.angle, d = 0.075;
+      ctx.fillStyle = s.cols[0];
+      ctx.beginPath();
+      ctx.moveTo(HEAD.cx + Math.sin(a - d) * HEAD.rx, HEAD.cy - Math.cos(a - d) * HEAD.ry);
+      ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx, HEAD.cy - Math.cos(a + d) * HEAD.ry);
+      ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx * 0.55, HEAD.cy - Math.cos(a + d) * HEAD.ry * 0.55 + 10);
+      ctx.lineTo(HEAD.cx + Math.sin(a - d) * HEAD.rx * 0.55, HEAD.cy - Math.cos(a - d) * HEAD.ry * 0.55 + 10);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  /* ---------- drawing: hair ---------- */
+
+  function strokeRun(dp, from, to, color, width, alpha) {
+    if (to <= from) { return; }
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(dp[from].x, dp[from].y);
+    for (var i = from + 1; i < to; i++) {
+      var a = dp[i], b = dp[i + 1] || dp[i];
+      ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+    }
+    ctx.lineTo(dp[to].x, dp[to].y);
+    ctx.stroke();
+  }
+
+  function drawStrand(s) {
+    if (s.n < 1) { return; }
+    var dp = H.displayPoints(s, state.time, dispBuf);
+    var shade = 0.75 + (1 - s.depth) * 0.25;
+    var run = 0;
+    for (var i = 1; i <= s.n; i++) {
+      if (i === s.n || s.cols[i] !== s.cols[run]) {
+        var w = lerp(s.width, s.width * 0.42, run / s.n);
+        strokeRun(dp, run, i, s.cols[run] || s.cols[0], w, shade);
+        run = i;
+      }
+    }
+
+    /* shine ribbon near the roots */
+    if (s.shine > 0.45 && s.n > 3) {
+      ctx.globalAlpha = (s.shine - 0.45) * 0.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = s.width * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(dp[1].x, dp[1].y);
+      for (var k = 2; k <= Math.min(s.n, 5); k++) { ctx.lineTo(dp[k].x, dp[k].y); }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHair(layer) {
+    for (var i = 0; i < state.strands.length; i++) {
+      if (state.strands[i].layer === layer) { drawStrand(state.strands[i]); }
+    }
+  }
+
+  /* ---------- drawing: extras ---------- */
+
+  function drawAccessories() {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < state.accessories.length; i++) {
+      var a = state.accessories[i];
+      var p = accessoryPos(a);
+      if (!p) { continue; }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(a.rot);
+      ctx.font = a.size + 'px ' + EMOJI_FONT;
+      ctx.fillText(a.emoji, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  function drawSparkles() {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < state.sparkles.length; i++) {
+      var sp = state.sparkles[i];
+      var s = sp.strand;
+      var idx = Math.min(sp.index, s.n);
+      if (idx < 1) { continue; }
+      var p = s.pts[idx];
+      var tw = 0.55 + 0.45 * Math.sin(state.time * 0.005 + sp.phase);
+      ctx.globalAlpha = tw;
+      ctx.font = sp.size + 'px ' + EMOJI_FONT;
+      ctx.fillText('✨', p.x + sp.dx, p.y + sp.dy);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawClippings() {
+    for (var i = state.clippings.length - 1; i >= 0; i--) {
+      var c = state.clippings[i];
+      c.vy += 0.45;
+      c.x += c.vx; c.y += c.vy;
+      c.rot += 0.08;
+      c.life -= 0.012;
+      if (c.life <= 0 || c.y > VH + 60) { state.clippings.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, c.life);
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.strokeStyle = c.col;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-11, 0);
+      ctx.quadraticCurveTo(0, 6, 11, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawConfetti() {
+    for (var i = state.confetti.length - 1; i >= 0; i--) {
+      var c = state.confetti[i];
+      c.vy += 0.16;
+      c.x += c.vx; c.y += c.vy; c.rot += c.spin;
+      c.life -= 0.008;
+      if (c.life <= 0 || c.y > VH + 40) { state.confetti.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, c.life));
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.fillStyle = c.col;
+      ctx.fillRect(-7, -4, 14, 8);
+      ctx.restore();
+    }
+  }
+
+  function burstConfetti() {
+    for (var i = 0; i < 90; i++) {
+      state.confetti.push({
+        x: rand(120, VW - 120), y: rand(-160, -10),
+        vx: rand(-2, 2), vy: rand(0, 3),
+        rot: rand(0, 6.28), spin: rand(-0.2, 0.2), life: 1.6,
+        col: S.COLORS[Math.floor(Math.random() * S.COLORS.length)].css
+      });
+    }
+  }
+
+  function drawCursor() {
+    if (!state.pointer.active || state.tool === 'style') { return; }
+    var r = TOOLS[state.tool].radius;
+    if (!r) { return; }
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = state.tool === 'dye' ? state.color : '#ffffff';
+    ctx.beginPath();
+    ctx.arc(state.pointer.x, state.pointer.y, r, 0, 6.2832);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ---------- loop ---------- */
+
+  function updateHappiness() {
+    var m = H.measure(state);
+    var r = S.score(state.wishes, m, state.accessories);
+    state.happy = state.wishes.length ? r.got / state.wishes.length : 1;
+    UI.markWishes(m);
+  }
+
+  function frame(t) {
+    state.time = t;
+    state.frame++;
+    state.volume *= 0.985;
+
+    if (--state.nextBlink <= 0) {
+      state.blink = 8;
+      state.nextBlink = 120 + Math.floor(Math.random() * 260);
+    }
+    if (state.blink > 0) { state.blink--; }
+    if (state.frame % 20 === 0) { updateHappiness(); }
+
+    H.step(state);
+
+    drawBackdrop();
+    drawHair('back');
+    drawBody();
+    drawHead();
+    drawFace();
+    drawScalp();
+    drawHair('front');
+    drawAccessories();
+    drawSparkles();
+    drawClippings();
+    drawConfetti();
+    drawCursor();
+
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- photo ---------- */
+
+  function takePhoto() {
+    var m = H.measure(state);
+    var res = S.score(state.wishes, m, state.accessories);
+    Snd.play('shutter');
+    setTimeout(function () { Snd.play('cheer'); }, 260);
+    burstConfetti();
+
+    var pw = 720, ph = 940;
+    var pc = document.createElement('canvas');
+    pc.width = pw; pc.height = ph;
+    var p = pc.getContext('2d');
+
+    p.fillStyle = '#fffdf7';
+    p.fillRect(0, 0, pw, ph);
+
+    /* the picture itself: the salon canvas, cropped around the model */
+    var cropW = 500, cropH = 540, cropX = HEAD.cx - cropW / 2, cropY = 110;
+    p.save();
+    p.beginPath();
+    p.rect(36, 36, pw - 72, 700);
+    p.clip();
+    p.translate(36, 36);
+    p.scale((pw - 72) / cropW, 700 / cropH);
+    p.translate(-cropX, -cropY);
+    p.drawImage(canvas, offX * dpr, offY * dpr, VW * scale * dpr, VH * scale * dpr, 0, 0, VW, VH);
+    p.restore();
+
+    p.strokeStyle = '#ffb3d9';
+    p.lineWidth = 8;
+    p.strokeRect(36, 36, pw - 72, 700);
+
+    p.fillStyle = '#c2417f';
+    p.textAlign = 'center';
+    p.font = 'bold 54px "Baloo 2", "Trebuchet MS", sans-serif';
+    p.fillText(state.client.name, pw / 2, 810);
+
+    p.font = '58px ' + EMOJI_FONT;
+    var stars = '';
+    for (var i = 0; i < res.stars; i++) { stars += '⭐'; }
+    p.fillText(stars, pw / 2, 880);
+
+    p.fillStyle = '#8a6b7d';
+    p.font = '28px "Trebuchet MS", sans-serif';
+    p.fillText("styled by Ara", pw / 2, 918);
+
+    var data = pc.toDataURL('image/jpeg', 0.8);
+    UI.showPhoto(data, res);
+    return data;
+  }
+
+  /* ---------- sticker book (saved photos) ---------- */
+
+  var Gallery = {
+    key: 'ara.gallery',
+    all: function () {
+      try { return JSON.parse(localStorage.getItem(this.key) || '[]'); }
+      catch (e) { return []; }
+    },
+    add: function (data) {
+      var list = this.all();
+      list.unshift(data);
+      while (list.length > 8) { list.pop(); }
+      try { localStorage.setItem(this.key, JSON.stringify(list)); }
+      catch (e) {
+        list = list.slice(0, 4);
+        try { localStorage.setItem(this.key, JSON.stringify(list)); } catch (e2) { /* full */ }
+      }
+      return list;
+    },
+    clear: function () {
+      try { localStorage.removeItem(this.key); } catch (e) { /* ignore */ }
+    }
+  };
+
+  /* ---------- UI ---------- */
+
+  var UI = {
+    init: function () {
+      var self = this;
+      this.tray = document.getElementById('tray');
+      this.request = document.getElementById('request');
+      this.photoView = document.getElementById('photo-view');
+      this.photoImg = document.getElementById('photo-img');
+      this.bookView = document.getElementById('book-view');
+      this.bookGrid = document.getElementById('book-grid');
+      this.clientView = document.getElementById('client-view');
+      this.clientGrid = document.getElementById('client-grid');
+
+      document.querySelectorAll('[data-tool]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          self.selectTool(btn.getAttribute('data-tool'));
+        });
+      });
+
+      document.getElementById('btn-undo').addEventListener('click', function () {
+        if (!undo()) { self.toast('Nothing to undo'); }
+      });
+      document.getElementById('btn-photo').addEventListener('click', takePhoto);
+      document.getElementById('btn-book').addEventListener('click', function () { self.showBook(); });
+      document.getElementById('btn-clients').addEventListener('click', function () { self.showClients(); });
+      document.getElementById('btn-wash').addEventListener('click', function () {
+        snapshot();
+        H.resetHair(state, state.client.hair);
+        Snd.play('spray');
+        self.toast('All washed out!');
+      });
+      var sound = document.getElementById('btn-sound');
+      sound.textContent = Snd.isMuted() ? '🔇' : '🔊';
+      sound.addEventListener('click', function () {
+        sound.textContent = Snd.toggle() ? '🔇' : '🔊';
+      });
+
+      document.getElementById('photo-again').addEventListener('click', function () {
+        self.photoView.classList.remove('show');
+      });
+      document.getElementById('photo-save').addEventListener('click', function () {
+        Gallery.add(self.photoImg.src);
+        Snd.play('sparkle');
+        self.toast('Saved to your sticker book!');
+        self.photoView.classList.remove('show');
+      });
+      document.getElementById('photo-next').addEventListener('click', function () {
+        Gallery.add(self.photoImg.src);
+        self.photoView.classList.remove('show');
+        newClient();
+      });
+      document.getElementById('book-close').addEventListener('click', function () {
+        self.bookView.classList.remove('show');
+      });
+      document.getElementById('book-clear').addEventListener('click', function () {
+        Gallery.clear();
+        self.showBook();
+      });
+      document.getElementById('client-close').addEventListener('click', function () {
+        self.clientView.classList.remove('show');
+      });
+
+      this.buildTrays();
+      this.selectTool('brush');
+    },
+
+    buildTrays: function () {
+      var self = this;
+      var colors = document.getElementById('tray-dye');
+      S.COLORS.forEach(function (c) {
+        var b = document.createElement('button');
+        b.className = 'swatch';
+        b.style.background = c.css;
+        b.title = c.name;
+        b.setAttribute('aria-label', c.name);
+        b.addEventListener('click', function () {
+          state.color = c.css;
+          colors.querySelectorAll('.swatch').forEach(function (o) { o.classList.remove('on'); });
+          b.classList.add('on');
+          Snd.play('pop');
+        });
+        colors.appendChild(b);
+      });
+      colors.firstChild.classList.add('on');
+
+      var accs = document.getElementById('tray-accessory');
+      S.ACCESSORIES.forEach(function (e) {
+        var b = document.createElement('button');
+        b.className = 'chip';
+        b.textContent = e;
+        b.addEventListener('click', function () {
+          state.accessory = e;
+          accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
+          b.classList.add('on');
+          Snd.play('pop');
+        });
+        accs.appendChild(b);
+      });
+      accs.firstChild.classList.add('on');
+      var clearAcc = document.createElement('button');
+      clearAcc.className = 'chip wide';
+      clearAcc.textContent = '🗑️';
+      clearAcc.addEventListener('click', function () {
+        snapshot();
+        state.accessories.length = 0;
+        Snd.play('pop');
+      });
+      accs.appendChild(clearAcc);
+
+      var styles = document.getElementById('tray-style');
+      S.STYLES.forEach(function (st) {
+        var b = document.createElement('button');
+        b.className = 'chip labeled';
+        b.innerHTML = '<span>' + st.icon + '</span><em>' + st.label + '</em>';
+        b.addEventListener('click', function () {
+          snapshot();
+          state.style = st.id;
+          styles.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
+          b.classList.add('on');
+          Snd.play('sparkle');
+        });
+        styles.appendChild(b);
+      });
+      styles.firstChild.classList.add('on');
+
+      S.CLIENTS.forEach(function (c) {
+        var b = document.createElement('button');
+        b.className = 'chip labeled tall';
+        b.innerHTML = '<span class="face" style="background:' + c.skin + '"></span><em>' + c.name + '</em>';
+        b.addEventListener('click', function () {
+          self.clientView.classList.remove('show');
+          newClient(c);
+        });
+        self.clientGrid.appendChild(b);
+      });
+    },
+
+    selectTool: function (tool) {
+      state.tool = tool;
+      document.querySelectorAll('[data-tool]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-tool') === tool);
+      });
+      var trays = ['dye', 'accessory', 'style'];
+      var open = trays.indexOf(tool) >= 0;
+      this.tray.classList.toggle('show', open);
+      trays.forEach(function (t) {
+        document.getElementById('tray-' + t).classList.toggle('show', t === tool);
+      });
+      Snd.play('pop');
+    },
+
+    closeTray: function () { /* keep the tray open while styling - it is handy */ },
+
+    renderRequest: function () {
+      var c = state.client;
+      var html = '<span class="who">' + c.name + ' wants</span>';
+      state.wishes.forEach(function (w, i) {
+        html += '<span class="wish" data-i="' + i + '">' + w.icon + ' ' + w.label + '</span>';
+      });
+      this.request.innerHTML = html;
+    },
+
+    markWishes: function (m) {
+      var nodes = this.request.querySelectorAll('.wish');
+      for (var i = 0; i < nodes.length; i++) {
+        var w = state.wishes[i];
+        if (!w) { continue; }
+        var done = false;
+        if (w.kind === 'color') { done = m.mainColor === w.value; }
+        else if (w.kind === 'curl') { done = m.curl >= 0.35; }
+        else if (w.kind === 'straight') { done = m.curl <= 0.25; }
+        else if (w.kind === 'style') { done = m.style === w.value; }
+        else if (w.kind === 'short') { done = m.length <= 0.8; }
+        else if (w.kind === 'accessory') {
+          done = state.accessories.some(function (a) { return a.emoji === w.value; });
+        }
+        nodes[i].classList.toggle('done', done);
+      }
+    },
+
+    showPhoto: function (data, res) {
+      this.photoImg.src = data;
+      document.getElementById('photo-stars').textContent =
+        new Array(res.stars + 1).join('⭐');
+      this.photoView.classList.add('show');
+    },
+
+    showBook: function () {
+      var list = Gallery.all();
+      this.bookGrid.innerHTML = list.length
+        ? ''
+        : '<p class="empty">No photos yet. Style someone, then tap 📸!</p>';
+      list.forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        this.bookGrid.appendChild(img);
+      }, this);
+      this.bookView.classList.add('show');
+    },
+
+    showClients: function () {
+      this.clientView.classList.add('show');
+    },
+
+    toast: function (msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(function () { t.classList.remove('show'); }, 1600);
+    }
+  };
+
+  /* ---------- boot ---------- */
+
+  function start() {
+    canvas = document.getElementById('salon');
+    ctx = canvas.getContext('2d');
+    resize();
+    global.addEventListener('resize', resize);
+    global.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
+    UI.init();
+    bindInput();
+    newClient(S.CLIENTS[0]);
+    requestAnimationFrame(frame);
+  }
+
+  global.Game = { start: start, state: state, takePhoto: takePhoto, newClient: newClient };
+})(window);
+
+window.Game.start();
+</script>
+</body>
+</html>

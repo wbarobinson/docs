@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ara's Hair Salon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ara's Salon">
+<meta name="theme-color" content="#ffd9ec">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="salon"></canvas>
+
+<header id="topbar">
+  <button id="btn-clients" class="round" aria-label="Choose a client">🔔</button>
+  <div id="request" aria-live="polite"></div>
+  <div class="spacer"></div>
+  <button id="btn-undo" class="round" aria-label="Undo">↩️</button>
+  <button id="btn-wash" class="round" aria-label="Wash it out and start over">🚿</button>
+  <button id="btn-book" class="round" aria-label="Sticker book">📔</button>
+  <button id="btn-sound" class="round" aria-label="Sound on or off">🔊</button>
+</header>
+
+<div id="tray">
+  <div id="tray-dye" class="tray-page"></div>
+  <div id="tray-accessory" class="tray-page"></div>
+  <div id="tray-style" class="tray-page"></div>
+</div>
+
+<nav id="dock">
+  <button data-tool="brush"><span>💆</span><em>Brush</em></button>
+  <button data-tool="scissors"><span>✂️</span><em>Cut</em></button>
+  <button data-tool="dye"><span>🎨</span><em>Color</em></button>
+  <button data-tool="curl"><span>🌀</span><em>Curl</em></button>
+  <button data-tool="straight"><span>💧</span><em>Straight</em></button>
+  <button data-tool="dryer"><span>💨</span><em>Dryer</em></button>
+  <button data-tool="sparkle"><span>✨</span><em>Sparkle</em></button>
+  <button data-tool="accessory"><span>🎀</span><em>Bows</em></button>
+  <button data-tool="style"><span>💇</span><em>Styles</em></button>
+  <button id="btn-photo" class="cta"><span>📸</span><em>Done!</em></button>
+</nav>
+
+<div id="toast"></div>
+
+<div id="photo-view" class="overlay">
+  <div class="card">
+    <div id="photo-stars" class="stars"></div>
+    <img id="photo-img" alt="The hairstyle you just made">
+    <p class="hint">Hold your finger on the photo to save it to your iPad.</p>
+    <div class="row">
+      <button id="photo-again">Keep styling</button>
+      <button id="photo-save" class="primary">Save it</button>
+      <button id="photo-next" class="primary">Next client</button>
+    </div>
+  </div>
+</div>
+
+<div id="book-view" class="overlay">
+  <div class="card">
+    <h2>Your sticker book 📔</h2>
+    <div id="book-grid" class="grid"></div>
+    <div class="row">
+      <button id="book-clear">Empty the book</button>
+      <button id="book-close" class="primary">Back to the salon</button>
+    </div>
+  </div>
+</div>
+
+<div id="client-view" class="overlay">
+  <div class="card">
+    <h2>Who is next? 🔔</h2>
+    <p class="hint">Picking someone new gives them fresh hair and a new wish.</p>
+    <div id="client-grid" class="chips"></div>
+    <div class="row">
+      <button id="client-close" class="primary">Never mind</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/hair.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+<script>
+window.Game.start();
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  navigator.serviceWorker.register('sw.js').catch(function () { /* offline mode is optional */ });
+}
+</script>
+</body>
+</html>
