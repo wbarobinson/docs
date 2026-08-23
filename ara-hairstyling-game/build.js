@@ -8,7 +8,7 @@ const path = require('path');
 const root = __dirname;
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
-const JS = ['js/hair.js', 'js/clients.js', 'js/audio.js', 'js/game.js'];
+const JS = ['js/hair.js', 'js/render.js', 'js/clients.js', 'js/audio.js', 'js/game.js'];
 const css = read('style.css');
 const js = JS.map(read).join('\n');
 const html = read('index.html');

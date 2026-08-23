@@ -308,3 +308,46 @@ html, body {
   #request { font-size: 16px; max-width: 46vw; }
   .round { width: 52px; height: 52px; font-size: 24px; }
 }
+
+/* ---------- placing a photo ---------- */
+
+#fitbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(10px, env(safe-area-inset-bottom));
+  display: none;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 20px);
+  padding: 12px 16px;
+  border-radius: 28px;
+  background: rgba(255, 246, 251, 0.96);
+  box-shadow: 0 6px 0 #e79cc4, 0 12px 26px rgba(160, 60, 110, 0.25);
+  font-size: 18px;
+  font-weight: 700;
+  z-index: 5;
+}
+
+body.fitting #fitbar { display: flex; }
+body.fitting #dock,
+body.fitting #tray,
+body.fitting #topbar { display: none; }
+
+#fitbar button {
+  min-width: 62px;
+  height: 56px;
+  border: none;
+  border-radius: 20px;
+  background: #ffe3f1;
+  color: inherit;
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 700;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+#fitbar button.primary { background: #ff8fc4; color: #fff; font-size: 19px; padding: 0 18px; }
+#fitbar button:active { transform: translateY(2px); }

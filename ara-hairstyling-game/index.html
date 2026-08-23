@@ -47,6 +47,15 @@
   <button id="btn-photo" class="cta"><span>📸</span><em>Done!</em></button>
 </nav>
 
+<input type="file" id="photo-input" accept="image/*" hidden>
+
+<div id="fitbar">
+  <span>Line her face up inside the circle</span>
+  <button id="fit-smaller" aria-label="Smaller">−</button>
+  <button id="fit-bigger" aria-label="Bigger">+</button>
+  <button id="fit-done" class="primary">Done</button>
+</div>
+
 <div id="toast"></div>
 
 <div id="photo-view" class="overlay">
@@ -79,12 +88,18 @@
     <p class="hint">Picking someone new gives them fresh hair and a new wish.</p>
     <div id="client-grid" class="chips"></div>
     <div class="row">
+      <button id="use-photo" class="primary">📷 Style a real photo</button>
+      <button id="use-cartoon">Back to drawn friends</button>
+    </div>
+    <p class="hint">Photos stay on this iPad. Nothing is sent anywhere.</p>
+    <div class="row">
       <button id="client-close" class="primary">Never mind</button>
     </div>
   </div>
 </div>
 
 <script src="js/hair.js"></script>
+<script src="js/render.js"></script>
 <script src="js/clients.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/game.js"></script>

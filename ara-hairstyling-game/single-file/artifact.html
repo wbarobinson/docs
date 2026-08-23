@@ -311,6 +311,49 @@ html, body {
   .round { width: 52px; height: 52px; font-size: 24px; }
 }
 
+/* ---------- placing a photo ---------- */
+
+#fitbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(10px, env(safe-area-inset-bottom));
+  display: none;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 20px);
+  padding: 12px 16px;
+  border-radius: 28px;
+  background: rgba(255, 246, 251, 0.96);
+  box-shadow: 0 6px 0 #e79cc4, 0 12px 26px rgba(160, 60, 110, 0.25);
+  font-size: 18px;
+  font-weight: 700;
+  z-index: 5;
+}
+
+body.fitting #fitbar { display: flex; }
+body.fitting #dock,
+body.fitting #tray,
+body.fitting #topbar { display: none; }
+
+#fitbar button {
+  min-width: 62px;
+  height: 56px;
+  border: none;
+  border-radius: 20px;
+  background: #ffe3f1;
+  color: inherit;
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 700;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+#fitbar button.primary { background: #ff8fc4; color: #fff; font-size: 19px; padding: 0 18px; }
+#fitbar button:active { transform: translateY(2px); }
+
 </style>
 
 <canvas id="salon"></canvas>
@@ -345,6 +388,15 @@ html, body {
   <button id="btn-photo" class="cta"><span>📸</span><em>Done!</em></button>
 </nav>
 
+<input type="file" id="photo-input" accept="image/*" hidden>
+
+<div id="fitbar">
+  <span>Line her face up inside the circle</span>
+  <button id="fit-smaller" aria-label="Smaller">−</button>
+  <button id="fit-bigger" aria-label="Bigger">+</button>
+  <button id="fit-done" class="primary">Done</button>
+</div>
+
 <div id="toast"></div>
 
 <div id="photo-view" class="overlay">
@@ -376,6 +428,11 @@ html, body {
     <h2>Who is next? 🔔</h2>
     <p class="hint">Picking someone new gives them fresh hair and a new wish.</p>
     <div id="client-grid" class="chips"></div>
+    <div class="row">
+      <button id="use-photo" class="primary">📷 Style a real photo</button>
+      <button id="use-cartoon">Back to drawn friends</button>
+    </div>
+    <p class="hint">Photos stay on this iPad. Nothing is sent anywhere.</p>
     <div class="row">
       <button id="client-close" class="primary">Never mind</button>
     </div>
@@ -421,7 +478,7 @@ html, body {
       frizz: rand(0.35, 0.75),
       shine: 0.35,
       phase: rand(0, Math.PI * 2),
-      width: layer === 'back' ? rand(10, 13.5) : rand(7, 10),
+      width: layer === 'back' ? rand(13, 17) : rand(9, 12.5),
       pts: [],
       fz: [],
       cols: [],
@@ -446,7 +503,7 @@ html, body {
 
   function createHair(color) {
     var strands = [];
-    var backCount = 64, frontCount = 52;
+    var backCount = 48, frontCount = 40;
     var i, t, a;
     for (i = 0; i < backCount; i++) {
       t = i / (backCount - 1);
@@ -522,7 +579,7 @@ html, body {
           q2.y += (ty - q2.y) * stiff;
         }
 
-        var pad = s.layer === 'back' ? 2 : 6;
+        var pad = s.layer === 'back' ? 2 : 3;
         for (var h = 1; h <= n; h++) { pushOutOfHead(pts[h], pad); }
       }
 
@@ -764,6 +821,192 @@ html, body {
   };
 })(window);
 
+/* Ara's Hair Salon - hair rendering.
+
+   The look does not come from drawing hair, it comes from rendering it the way
+   hair is actually rendered: every simulated strand stands in for a clump, and
+   is drawn as a fan of thin child hairs; each is lit by a single light with a
+   diffuse term, and gets the Kajiya-Kay anisotropic highlight that is the
+   reason hair reads as hair rather than as ribbon. */
+(function (global) {
+  'use strict';
+
+  var H = global.Hair;
+
+  function norm3(x, y, z) {
+    var l = Math.sqrt(x * x + y * y + z * z) || 1;
+    return [x / l, y / l, z / l];
+  }
+
+  /* one key light, from above and to her right as we look at her */
+  var LIGHT = norm3(-0.42, -0.74, 0.52);
+  var L2 = (function () {
+    var l = Math.hypot(LIGHT[0], LIGHT[1]) || 1;
+    return [LIGHT[0] / l, LIGHT[1] / l];
+  })();
+  var SPEC_POWER = 26;
+
+  /* Colour maths is the expensive part if done per segment per frame, so both
+     the hex parse and the shaded result are memoised into flat lookups. */
+  var rgbCache = Object.create(null);
+  var shadeCache = Object.create(null);
+
+  function hexRgb(hex) {
+    var hit = rgbCache[hex];
+    if (hit) { return hit; }
+    var h = hex.charAt(0) === '#' ? hex.slice(1) : hex;
+    if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+    var n = parseInt(h, 16);
+    hit = isNaN(n) ? [180, 140, 110] : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    rgbCache[hex] = hit;
+    return hit;
+  }
+
+  function shade(hex, mul) {
+    var b = Math.round(mul * 16);
+    if (b < 0) { b = 0; } else if (b > 32) { b = 32; }
+    var key = hex + b;
+    var hit = shadeCache[key];
+    if (hit) { return hit; }
+    var c = hexRgb(hex);
+    var m = b / 16;
+    hit = 'rgb(' + Math.min(255, Math.round(c[0] * m)) + ',' +
+                   Math.min(255, Math.round(c[1] * m)) + ',' +
+                   Math.min(255, Math.round(c[2] * m)) + ')';
+    shadeCache[key] = hit;
+    return hit;
+  }
+
+  /* scratch buffers, reused every strand so the loop allocates nothing */
+  var px = [], py = [], ox = [], oy = [];
+
+  function tangents(dp, n) {
+    for (var i = 0; i <= n; i++) {
+      var a = dp[i > 0 ? i - 1 : 0];
+      var b = dp[i < n ? i + 1 : n];
+      var tx = b.x - a.x, ty = b.y - a.y;
+      var l = Math.hypot(tx, ty) || 1;
+      px[i] = -ty / l;          // perpendicular, for fanning the child hairs
+      py[i] = tx / l;
+      ox[i] = tx / l;           // tangent, for the specular term
+      oy[i] = ty / l;
+    }
+  }
+
+  /* Kajiya-Kay: the highlight is strongest where the strand runs across the
+     light, which is what puts the band around the crown by itself. */
+  function specularAt(i) {
+    var d = ox[i] * L2[0] + oy[i] * L2[1];
+    var s = 1 - d * d;
+    if (s <= 0) { return 0; }
+    return Math.pow(Math.sqrt(s), SPEC_POWER);
+  }
+
+  function strokeRun(ctx, dp, from, to, off, color, width, alpha) {
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    var t0 = taper(from, dp.length - 1);
+    ctx.moveTo(dp[from].x + px[from] * off * t0, dp[from].y + py[from] * off * t0);
+    for (var i = from + 1; i < to; i++) {
+      var t = taper(i, dp.length - 1);
+      var t2 = taper(i + 1, dp.length - 1);
+      var ax = dp[i].x + px[i] * off * t, ay = dp[i].y + py[i] * off * t;
+      var b = dp[i + 1] || dp[i];
+      var bx = b.x + px[i + 1 < dp.length ? i + 1 : i] * off * t2;
+      var by = b.y + py[i + 1 < dp.length ? i + 1 : i] * off * t2;
+      ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
+    }
+    var tn = taper(to, dp.length - 1);
+    ctx.lineTo(dp[to].x + px[to] * off * tn, dp[to].y + py[to] * off * tn);
+    ctx.stroke();
+  }
+
+  /* child hairs converge at the scalp and spread toward the ends */
+  function taper(i, n) {
+    var t = n > 0 ? i / n : 0;
+    return 0.18 + 0.82 * t;
+  }
+
+  function lightAt(a) {
+    var n = norm3(Math.sin(a), -0.35, Math.cos(a));
+    var d = n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2];
+    if (d < 0) { d = 0; }
+    return 0.62 + 0.5 * d;
+  }
+
+  function lightOf(s) { return lightAt(s.angle); }
+
+  /* Draw one simulated strand as a clump of `children` thin hairs. */
+  function clump(ctx, s, dp, from, to, children, spread) {
+    var n = s.n;
+    tangents(dp, n);
+
+    var base = lightOf(s) * (0.84 + 0.16 * (1 - s.depth));
+    var i, c;
+
+    for (c = 0; c <= children; c++) {
+      var mid = children > 0 ? ((c / children) - 0.5) * 2 : 0;
+      var jit = s.fz[c % s.fz.length];
+      var off = c === 0 ? 0 : (mid + jit * 0.45) * spread;
+      /* thin hairs vary in tone, which is most of what stops it reading flat */
+      var mul = base * (c === 0 ? 1 : 0.9 + 0.2 * ((jit + 1) / 2));
+      var width = c === 0 ? 2.1 : 1.25;
+      var alpha = c === 0 ? 0.95 : 0.8;
+      var end = c === 0 ? to : Math.max(from + 1, to - (jit > 0.6 ? 1 : 0));
+
+      var run = from;
+      for (i = from + 1; i <= end; i++) {
+        if (i === end || s.cols[i] !== s.cols[run]) {
+          var col = s.cols[run] || s.cols[0];
+          /* roots sit in their own shadow */
+          var ao = run < 3 ? 0.88 + run * 0.04 : 1;
+          strokeRun(ctx, dp, run, i, off, shade(col, mul * ao), width, alpha);
+          run = i;
+        }
+      }
+    }
+
+    /* one specular pass per clump, over the segments where it actually peaks */
+    var face = Math.cos(s.angle);
+    if (to - from > 2 && face > 0) {
+      var best = 0, bestI = -1;
+      for (i = from + 1; i < to; i++) {
+        var sp = specularAt(i);
+        if (sp > best) { best = sp; bestI = i; }
+      }
+      if (bestI > 0 && best > 0.05) {
+        var strength = best * face * (0.45 + 0.55 * s.shine);
+        var lo = Math.max(from, bestI - 1);
+        var hi = Math.min(to, bestI + 1);
+        if (hi > lo) {
+          var tint = hexRgb(s.cols[Math.min(lo, s.cols.length - 1)] || s.cols[0]);
+          ctx.strokeStyle = 'rgb(' +
+            Math.min(255, Math.round(tint[0] * 0.35 + 255 * 0.65)) + ',' +
+            Math.min(255, Math.round(tint[1] * 0.35 + 255 * 0.65)) + ',' +
+            Math.min(255, Math.round(tint[2] * 0.35 + 255 * 0.65)) + ')';
+          ctx.globalAlpha = Math.min(0.5, strength * 0.75);
+          ctx.lineWidth = spread * 1.5 + 2;
+          ctx.beginPath();
+          ctx.moveTo(dp[lo].x, dp[lo].y);
+          for (i = lo + 1; i <= hi; i++) { ctx.lineTo(dp[i].x, dp[i].y); }
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  global.Render = {
+    clump: clump,
+    lightAt: lightAt,
+    shade: shade,
+    hexRgb: hexRgb,
+    LIGHT: LIGHT
+  };
+})(window);
+
 /* Ara's Hair Salon - the clients who come in, and the looks they ask for. */
 (function (global) {
   'use strict';
@@ -989,6 +1232,7 @@ html, body {
   var state = {
     strands: [], style: 'down', accessories: [], sparkles: [], clippings: [],
     confetti: [], volume: 0, time: 0, frame: 0, mirror: true, mainColor: null,
+    children: 3, photo: null, fitting: false,
     client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
     tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
     pointer: { x: 500, y: 300, active: false },
@@ -1015,6 +1259,86 @@ html, body {
 
   function toVirtual(clientX, clientY) {
     return { x: (clientX - offX) / scale, y: (clientY - offY) / scale };
+  }
+
+  /* ---------- a real photo as the model ---------- */
+
+  /* Everything here stays on the iPad. The photo is never uploaded anywhere. */
+
+  function rgbHex(r, gg, b) {
+    return '#' + ((1 << 24) + (r << 16) + (gg << 8) + b).toString(16).slice(1);
+  }
+
+  /* Average the middle of the photo to get a skin tone for the ears and neck,
+     so the join between the photo and the rest of her does not show. */
+  function sampleSkin(img) {
+    try {
+      var c = document.createElement('canvas');
+      c.width = 24; c.height = 24;
+      var x = c.getContext('2d');
+      x.drawImage(img, img.width * 0.3, img.height * 0.32, img.width * 0.4, img.height * 0.36,
+                  0, 0, 24, 24);
+      var d = x.getImageData(0, 0, 24, 24).data;
+      var r = 0, gsum = 0, b = 0, n = 0;
+      for (var i = 0; i < d.length; i += 4) { r += d[i]; gsum += d[i + 1]; b += d[i + 2]; n++; }
+      return rgbHex(Math.round(r / n), Math.round(gsum / n), Math.round(b / n));
+    } catch (e) {
+      return state.client ? state.client.skin : '#f0d3b4';
+    }
+  }
+
+  function usePhoto(source) {
+    var scale = Math.min(
+      (HEAD.rx * 2.6) / source.width,
+      (HEAD.ry * 2.6) / source.height
+    );
+    state.photo = {
+      img: source,
+      x: HEAD.cx,
+      y: HEAD.cy,
+      scale: scale,
+      skin: sampleSkin(source)
+    };
+    state.fitting = true;
+    UI.setFitting(true);
+    Snd.play('pop');
+  }
+
+  function loadPhotoFile(file) {
+    if (!file) { return; }
+    var url = URL.createObjectURL(file);
+    var done = function (source) { URL.revokeObjectURL(url); usePhoto(source); };
+    var fail = function () {
+      URL.revokeObjectURL(url);
+      UI.toast("That photo would not open. Try another one.");
+    };
+
+    /* createImageBitmap honours the photo's rotation flag, which iPad photos
+       nearly always carry; the <img> path is the fallback. */
+    if (global.createImageBitmap && global.fetch) {
+      fetch(url).then(function (r) { return r.blob(); })
+        .then(function (blob) {
+          return createImageBitmap(blob, { imageOrientation: 'from-image' });
+        })
+        .then(done).catch(function () {
+          var im = new Image();
+          im.onload = function () { done(im); };
+          im.onerror = fail;
+          im.src = url;
+        });
+    } else {
+      var im = new Image();
+      im.onload = function () { done(im); };
+      im.onerror = fail;
+      im.src = url;
+    }
+  }
+
+  function clearPhoto() {
+    state.photo = null;
+    state.fitting = false;
+    UI.setFitting(false);
+    Snd.play('pop');
   }
 
   /* ---------- clients ---------- */
@@ -1063,6 +1387,10 @@ html, body {
   /* ---------- tools ---------- */
 
   function applyTool(p, dx, dy, isDown) {
+    if (state.fitting) {
+      if (state.photo) { state.photo.x += dx; state.photo.y += dy; }
+      return;
+    }
     var t = state.tool;
     var r = TOOLS[t].radius;
     if (t === 'brush') {
@@ -1213,11 +1541,12 @@ html, body {
 
   function drawBody() {
     var c = state.client;
+    var neck = state.photo ? Render.shade(state.photo.skin, 0.88) : c.skin2;
     var topY = H.SHOULDER_Y;
     var midY = topY + 165;
 
     /* neck runs behind the shoulders so there is never a gap */
-    ctx.fillStyle = c.skin2;
+    ctx.fillStyle = neck;
     roundRect(HEAD.cx - 38, HEAD.cy + HEAD.ry - 66, 76, (topY + 50) - (HEAD.cy + HEAD.ry - 66), 30);
     ctx.fill();
 
@@ -1234,10 +1563,19 @@ html, body {
     ctx.fill();
   }
 
+  /* Blits the photo at its current placement. A clip must already be set. */
+  function paintPhoto() {
+    var p = state.photo;
+    if (!p) { return; }
+    var w = p.img.width * p.scale, h = p.img.height * p.scale;
+    ctx.drawImage(p.img, p.x - w / 2, p.y - h / 2, w, h);
+  }
+
   function drawHead() {
     var c = state.client;
+    var skin = state.photo ? state.photo.skin : c.skin;
 
-    ctx.fillStyle = c.skin;
+    ctx.fillStyle = skin;
     ctx.beginPath();
     ctx.ellipse(HEAD.cx - HEAD.rx + 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
     ctx.ellipse(HEAD.cx + HEAD.rx - 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
@@ -1247,6 +1585,27 @@ html, body {
     ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx, HEAD.ry, 0, 0, 6.2832);
     ctx.fill();
 
+    if (state.photo) {
+      var p = state.photo;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx, HEAD.ry, 0, 0, 6.2832);
+      ctx.clip();
+      paintPhoto();
+
+      /* feather the rim into the sampled skin so the photo has no hard cut */
+      var rgb = Render.hexRgb(p.skin);
+      ctx.translate(HEAD.cx, HEAD.cy);
+      ctx.scale(1, HEAD.ry / HEAD.rx);
+      var edge = ctx.createRadialGradient(0, 0, HEAD.rx * 0.74, 0, 0, HEAD.rx);
+      edge.addColorStop(0, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
+      edge.addColorStop(1, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',1)');
+      ctx.fillStyle = edge;
+      ctx.fillRect(-HEAD.rx, -HEAD.rx, HEAD.rx * 2, HEAD.rx * 2);
+      ctx.restore();
+      return;
+    }
+
     ctx.fillStyle = 'rgba(255,255,255,0.09)';
     ctx.beginPath();
     ctx.ellipse(HEAD.cx - 34, HEAD.cy - 24, 34, 42, -0.3, 0, 6.2832);
@@ -1254,6 +1613,7 @@ html, body {
   }
 
   function drawFace() {
+    if (state.photo) { return; }        // the photo already has a face
     var c = state.client;
     var lookX = clamp((state.pointer.x - HEAD.cx) / 340, -1, 1) * 5;
     var lookY = clamp((state.pointer.y - HEAD.cy) / 340, -1, 1) * 4;
@@ -1339,9 +1699,8 @@ html, body {
     var strands = state.strands;
     for (var i = 0; i < strands.length; i++) {
       var s = strands[i];
-      if (s.layer !== 'front') { continue; }
-      var a = s.angle, d = 0.075;
-      ctx.fillStyle = s.cols[0];
+      var a = s.angle, d = 0.13;
+      ctx.fillStyle = Render.shade(s.cols[0], Render.lightAt(a) * 0.94);
       ctx.beginPath();
       ctx.moveTo(HEAD.cx + Math.sin(a - d) * HEAD.rx, HEAD.cy - Math.cos(a - d) * HEAD.ry);
       ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx, HEAD.cy - Math.cos(a + d) * HEAD.ry);
@@ -1355,60 +1714,31 @@ html, body {
     /* Swept back, the cap would swallow the whole face, so give it a hairline:
        a forehead in skin, high in the middle and tucked in at the temples. */
     if (full) {
-      ctx.fillStyle = state.client.skin;
-      ctx.beginPath();
-      ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
-      ctx.fill();
+      if (state.photo) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
+        ctx.clip();
+        paintPhoto();
+        ctx.restore();
+      } else {
+        ctx.fillStyle = state.client.skin;
+        ctx.beginPath();
+        ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
+        ctx.fill();
+      }
     }
   }
 
   /* ---------- drawing: hair ---------- */
-
-  function strokeRun(dp, from, to, color, width, alpha) {
-    if (to <= from) { return; }
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = alpha;
-    ctx.lineWidth = width;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(dp[from].x, dp[from].y);
-    for (var i = from + 1; i < to; i++) {
-      var a = dp[i], b = dp[i + 1] || dp[i];
-      ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
-    }
-    ctx.lineTo(dp[to].x, dp[to].y);
-    ctx.stroke();
-  }
 
   function drawStrand(s, from, to) {
     if (s.n < 1) { return; }
     from = from || 0;
     to = (to === undefined || to > s.n) ? s.n : to;
     if (to <= from) { return; }
-
     var dp = H.displayPoints(s, state.time, dispBuf);
-    var shade = 0.75 + (1 - s.depth) * 0.25;
-    var run = from;
-    for (var i = from + 1; i <= to; i++) {
-      if (i === to || s.cols[i] !== s.cols[run]) {
-        var w = lerp(s.width, s.width * 0.42, run / s.n);
-        strokeRun(dp, run, i, s.cols[run] || s.cols[0], w, shade);
-        run = i;
-      }
-    }
-
-    /* shine ribbon near the roots */
-    if (from === 0 && s.shine > 0.45 && s.n > 3) {
-      ctx.globalAlpha = (s.shine - 0.45) * 0.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = s.width * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(dp[1].x, dp[1].y);
-      for (var k = 2; k <= Math.min(s.n, 5); k++) { ctx.lineTo(dp[k].x, dp[k].y); }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
+    Render.clump(ctx, s, dp, from, to, state.children, s.width * 1.02);
   }
 
   /* Where a strand's gathered tail begins, or -1 when this style keeps the
@@ -1535,7 +1865,15 @@ html, body {
     ctx.translate(-HEAD.cx, -(HEAD.cy + 95));
 
     drawBody();
-    ctx.fillStyle = state.mainColor || state.client.hair;
+    var base = state.mainColor || state.client.hair;
+    /* back view: no face, so nothing of the photo shows */
+    var lit = ctx.createRadialGradient(
+      HEAD.cx - HEAD.rx * 0.4, HEAD.cy - HEAD.ry * 0.45, HEAD.rx * 0.15,
+      HEAD.cx, HEAD.cy, HEAD.ry * 1.25);
+    lit.addColorStop(0, Render.shade(base, 1.18));
+    lit.addColorStop(0.55, Render.shade(base, 0.95));
+    lit.addColorStop(1, Render.shade(base, 0.6));
+    ctx.fillStyle = lit;
     ctx.beginPath();
     ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx + 4, HEAD.ry + 4, 0, 0, 6.2832);
     ctx.fill();
@@ -1553,6 +1891,8 @@ html, body {
     if (!mirrorCv) {
       mirrorCv = document.createElement('canvas');
       mirrorCtx = mirrorCv.getContext('2d');
+      mirrorCtx.lineCap = 'round';
+      mirrorCtx.lineJoin = 'round';
     }
     if (mirrorCv.width !== px) { mirrorCv.width = px; mirrorCv.height = px; }
 
@@ -1571,7 +1911,7 @@ html, body {
   function drawMirror() {
     if (!state.mirror) { return; }
     var m = MIRROR;
-    if (!mirrorCv || state.frame % 3 === 0) { updateMirrorCache(); }
+    if (!mirrorCv || state.frame % 6 === 0) { updateMirrorCache(); }
 
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#e07cb4';
@@ -1639,7 +1979,26 @@ html, body {
     UI.markWishes(m);
   }
 
+  var lastT = 0, avgDt = 16, workAvg = 8;
+
+  /* How many hairs per clump the device can afford. Frame interval alone
+     cannot tell a fast device from a vsync-capped one - both sit at 16.7ms -
+     so this watches how long the draw itself takes, and only spends more when
+     the frames are also actually landing. */
+  function adaptQuality(t, work) {
+    var dt = t - lastT;
+    lastT = t;
+    if (dt > 0 && dt < 400) { avgDt = avgDt * 0.9 + dt * 0.1; }
+    workAvg = workAvg * 0.9 + work * 0.1;
+    if (state.frame % 30 !== 0) { return; }
+    /* Draw work alone undercounts, because canvas work is rasterised after the
+       JS returns; a slow frame interval is the backstop that catches that. */
+    if ((workAvg > 11 || avgDt > 26) && state.children > 1) { state.children--; }
+    else if (workAvg < 6.5 && avgDt < 20 && state.children < 6) { state.children++; }
+  }
+
   function frame(t) {
+    var t0 = performance.now();
     state.time = t;
     state.frame++;
     state.volume *= 0.985;
@@ -1667,6 +2026,7 @@ html, body {
     drawConfetti();
     drawCursor();
 
+    adaptQuality(t, performance.now() - t0);
     requestAnimationFrame(frame);
   }
 
@@ -1816,6 +2176,33 @@ html, body {
         self.clientView.classList.remove('show');
       });
 
+      var input = document.getElementById('photo-input');
+      document.getElementById('use-photo').addEventListener('click', function () {
+        self.clientView.classList.remove('show');
+        input.click();
+      });
+      input.addEventListener('change', function () {
+        loadPhotoFile(input.files && input.files[0]);
+        input.value = '';            // so picking the same photo again still fires
+      });
+      document.getElementById('use-cartoon').addEventListener('click', function () {
+        self.clientView.classList.remove('show');
+        clearPhoto();
+      });
+
+      document.getElementById('fit-smaller').addEventListener('click', function () {
+        if (state.photo) { state.photo.scale *= 0.88; }
+      });
+      document.getElementById('fit-bigger').addEventListener('click', function () {
+        if (state.photo) { state.photo.scale /= 0.88; }
+      });
+      document.getElementById('fit-done').addEventListener('click', function () {
+        state.fitting = false;
+        self.setFitting(false);
+        Snd.play('sparkle');
+        self.toast('Now style her hair!');
+      });
+
       this.buildTrays();
       this.selectTool('brush');
     },
@@ -1905,6 +2292,10 @@ html, body {
       Snd.play('pop');
     },
 
+    setFitting: function (on) {
+      document.body.classList.toggle('fitting', !!on);
+    },
+
     closeTray: function () { /* keep the tray open while styling - it is handy */ },
 
     renderRequest: function () {
@@ -1981,6 +2372,8 @@ html, body {
   function start() {
     canvas = document.getElementById('salon');
     ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     resize();
     global.addEventListener('resize', resize);
     global.addEventListener('orientationchange', function () { setTimeout(resize, 120); });

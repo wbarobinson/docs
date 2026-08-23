@@ -36,7 +36,7 @@
       frizz: rand(0.35, 0.75),
       shine: 0.35,
       phase: rand(0, Math.PI * 2),
-      width: layer === 'back' ? rand(10, 13.5) : rand(7, 10),
+      width: layer === 'back' ? rand(13, 17) : rand(9, 12.5),
       pts: [],
       fz: [],
       cols: [],
@@ -61,7 +61,7 @@
 
   function createHair(color) {
     var strands = [];
-    var backCount = 64, frontCount = 52;
+    var backCount = 48, frontCount = 40;
     var i, t, a;
     for (i = 0; i < backCount; i++) {
       t = i / (backCount - 1);
@@ -137,7 +137,7 @@
           q2.y += (ty - q2.y) * stiff;
         }
 
-        var pad = s.layer === 'back' ? 2 : 6;
+        var pad = s.layer === 'back' ? 2 : 3;
         for (var h = 1; h <= n; h++) { pushOutOfHead(pts[h], pad); }
       }
 

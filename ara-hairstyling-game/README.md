@@ -29,6 +29,18 @@ npx http-server .      # then open the printed address on the iPad
 Served over http(s) it also registers a service worker, so after the first
 visit it keeps working offline.
 
+## Styling a real photo
+
+Tap 🔔 → **📷 Style a real photo**. On the iPad that offers the camera or the
+photo library, so Ara can style a photo of herself, of you, or of a doll. Line
+the face up inside the circle (drag to move, − and + to size), tap Done, and
+the hair is rendered around a real face.
+
+The photo never leaves the iPad. It is not uploaded, and the saved photos in
+the sticker book live in the browser's own storage on the device.
+
+Tap 🔔 → **Back to drawn friends** to go back to Poppy and the others.
+
 ## The tools
 
 | Tool | What it does |
@@ -55,14 +67,23 @@ Two fingers work at once for brushing and curling.
 
 ## How it works
 
-The hair is about 116 strands, each a chain of points run through a Verlet
-solver with distance constraints, bending stiffness, collision against the
-head, and a curved shoulder line the hair drapes over. Styles (ponytail, bun…)
+**Simulation.** About 88 guide strands, each a chain of points run through a
+Verlet solver with distance constraints, bending stiffness, collision against
+the head, and a curved shoulder line the hair drapes over. Styles (ponytail, bun…)
 pull the strands toward a gather point and a generated tail path; the gathered
 ones are drawn in the layer behind the head, and the mirror re-renders the same
 strands over the head instead of around it, cached and refreshed every third
 frame. Colour is
 stored per segment, which is why painting the ends works.
+
+**Rendering.** Each guide stands for a clump and is drawn as a fan of thin
+child hairs with their own tone, so the density comes from rendering rather
+than from simulating every hair. Each clump is lit by a single key light: a
+diffuse term from the scalp normal, an ambient-occlusion darkening at the
+roots, and the Kajiya-Kay anisotropic highlight, which is what puts the band
+of shine around the crown and is most of the reason hair reads as hair. The
+number of child hairs per clump is chosen at runtime from measured draw time
+and frame pacing, so a slower iPad renders fewer rather than stuttering.
 
 Everything is drawn to one canvas in a fixed 1000x750 space that is scaled to
 whatever screen it lands on, so landscape and portrait both work.
@@ -71,6 +92,7 @@ whatever screen it lands on, so landscape and portrait both work.
 index.html              the page
 style.css               the buttons and trays
 js/hair.js              strand physics, tools, styles
+js/render.js            hair shading: clumps, lighting, specular
 js/clients.js           clients, colours, accessories, the wish list
 js/audio.js             synthesised sound effects (no audio files)
 js/game.js              drawing, touch handling, photos, UI

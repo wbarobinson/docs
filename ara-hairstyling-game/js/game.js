@@ -26,6 +26,7 @@
   var state = {
     strands: [], style: 'down', accessories: [], sparkles: [], clippings: [],
     confetti: [], volume: 0, time: 0, frame: 0, mirror: true, mainColor: null,
+    children: 3, photo: null, fitting: false,
     client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
     tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
     pointer: { x: 500, y: 300, active: false },
@@ -52,6 +53,86 @@
 
   function toVirtual(clientX, clientY) {
     return { x: (clientX - offX) / scale, y: (clientY - offY) / scale };
+  }
+
+  /* ---------- a real photo as the model ---------- */
+
+  /* Everything here stays on the iPad. The photo is never uploaded anywhere. */
+
+  function rgbHex(r, gg, b) {
+    return '#' + ((1 << 24) + (r << 16) + (gg << 8) + b).toString(16).slice(1);
+  }
+
+  /* Average the middle of the photo to get a skin tone for the ears and neck,
+     so the join between the photo and the rest of her does not show. */
+  function sampleSkin(img) {
+    try {
+      var c = document.createElement('canvas');
+      c.width = 24; c.height = 24;
+      var x = c.getContext('2d');
+      x.drawImage(img, img.width * 0.3, img.height * 0.32, img.width * 0.4, img.height * 0.36,
+                  0, 0, 24, 24);
+      var d = x.getImageData(0, 0, 24, 24).data;
+      var r = 0, gsum = 0, b = 0, n = 0;
+      for (var i = 0; i < d.length; i += 4) { r += d[i]; gsum += d[i + 1]; b += d[i + 2]; n++; }
+      return rgbHex(Math.round(r / n), Math.round(gsum / n), Math.round(b / n));
+    } catch (e) {
+      return state.client ? state.client.skin : '#f0d3b4';
+    }
+  }
+
+  function usePhoto(source) {
+    var scale = Math.min(
+      (HEAD.rx * 2.6) / source.width,
+      (HEAD.ry * 2.6) / source.height
+    );
+    state.photo = {
+      img: source,
+      x: HEAD.cx,
+      y: HEAD.cy,
+      scale: scale,
+      skin: sampleSkin(source)
+    };
+    state.fitting = true;
+    UI.setFitting(true);
+    Snd.play('pop');
+  }
+
+  function loadPhotoFile(file) {
+    if (!file) { return; }
+    var url = URL.createObjectURL(file);
+    var done = function (source) { URL.revokeObjectURL(url); usePhoto(source); };
+    var fail = function () {
+      URL.revokeObjectURL(url);
+      UI.toast("That photo would not open. Try another one.");
+    };
+
+    /* createImageBitmap honours the photo's rotation flag, which iPad photos
+       nearly always carry; the <img> path is the fallback. */
+    if (global.createImageBitmap && global.fetch) {
+      fetch(url).then(function (r) { return r.blob(); })
+        .then(function (blob) {
+          return createImageBitmap(blob, { imageOrientation: 'from-image' });
+        })
+        .then(done).catch(function () {
+          var im = new Image();
+          im.onload = function () { done(im); };
+          im.onerror = fail;
+          im.src = url;
+        });
+    } else {
+      var im = new Image();
+      im.onload = function () { done(im); };
+      im.onerror = fail;
+      im.src = url;
+    }
+  }
+
+  function clearPhoto() {
+    state.photo = null;
+    state.fitting = false;
+    UI.setFitting(false);
+    Snd.play('pop');
   }
 
   /* ---------- clients ---------- */
@@ -100,6 +181,10 @@
   /* ---------- tools ---------- */
 
   function applyTool(p, dx, dy, isDown) {
+    if (state.fitting) {
+      if (state.photo) { state.photo.x += dx; state.photo.y += dy; }
+      return;
+    }
     var t = state.tool;
     var r = TOOLS[t].radius;
     if (t === 'brush') {
@@ -250,11 +335,12 @@
 
   function drawBody() {
     var c = state.client;
+    var neck = state.photo ? Render.shade(state.photo.skin, 0.88) : c.skin2;
     var topY = H.SHOULDER_Y;
     var midY = topY + 165;
 
     /* neck runs behind the shoulders so there is never a gap */
-    ctx.fillStyle = c.skin2;
+    ctx.fillStyle = neck;
     roundRect(HEAD.cx - 38, HEAD.cy + HEAD.ry - 66, 76, (topY + 50) - (HEAD.cy + HEAD.ry - 66), 30);
     ctx.fill();
 
@@ -271,10 +357,19 @@
     ctx.fill();
   }
 
+  /* Blits the photo at its current placement. A clip must already be set. */
+  function paintPhoto() {
+    var p = state.photo;
+    if (!p) { return; }
+    var w = p.img.width * p.scale, h = p.img.height * p.scale;
+    ctx.drawImage(p.img, p.x - w / 2, p.y - h / 2, w, h);
+  }
+
   function drawHead() {
     var c = state.client;
+    var skin = state.photo ? state.photo.skin : c.skin;
 
-    ctx.fillStyle = c.skin;
+    ctx.fillStyle = skin;
     ctx.beginPath();
     ctx.ellipse(HEAD.cx - HEAD.rx + 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
     ctx.ellipse(HEAD.cx + HEAD.rx - 6, HEAD.cy + 22, 17, 24, 0, 0, 6.2832);
@@ -284,6 +379,27 @@
     ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx, HEAD.ry, 0, 0, 6.2832);
     ctx.fill();
 
+    if (state.photo) {
+      var p = state.photo;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx, HEAD.ry, 0, 0, 6.2832);
+      ctx.clip();
+      paintPhoto();
+
+      /* feather the rim into the sampled skin so the photo has no hard cut */
+      var rgb = Render.hexRgb(p.skin);
+      ctx.translate(HEAD.cx, HEAD.cy);
+      ctx.scale(1, HEAD.ry / HEAD.rx);
+      var edge = ctx.createRadialGradient(0, 0, HEAD.rx * 0.74, 0, 0, HEAD.rx);
+      edge.addColorStop(0, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
+      edge.addColorStop(1, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',1)');
+      ctx.fillStyle = edge;
+      ctx.fillRect(-HEAD.rx, -HEAD.rx, HEAD.rx * 2, HEAD.rx * 2);
+      ctx.restore();
+      return;
+    }
+
     ctx.fillStyle = 'rgba(255,255,255,0.09)';
     ctx.beginPath();
     ctx.ellipse(HEAD.cx - 34, HEAD.cy - 24, 34, 42, -0.3, 0, 6.2832);
@@ -291,6 +407,7 @@
   }
 
   function drawFace() {
+    if (state.photo) { return; }        // the photo already has a face
     var c = state.client;
     var lookX = clamp((state.pointer.x - HEAD.cx) / 340, -1, 1) * 5;
     var lookY = clamp((state.pointer.y - HEAD.cy) / 340, -1, 1) * 4;
@@ -376,9 +493,8 @@
     var strands = state.strands;
     for (var i = 0; i < strands.length; i++) {
       var s = strands[i];
-      if (s.layer !== 'front') { continue; }
-      var a = s.angle, d = 0.075;
-      ctx.fillStyle = s.cols[0];
+      var a = s.angle, d = 0.13;
+      ctx.fillStyle = Render.shade(s.cols[0], Render.lightAt(a) * 0.94);
       ctx.beginPath();
       ctx.moveTo(HEAD.cx + Math.sin(a - d) * HEAD.rx, HEAD.cy - Math.cos(a - d) * HEAD.ry);
       ctx.lineTo(HEAD.cx + Math.sin(a + d) * HEAD.rx, HEAD.cy - Math.cos(a + d) * HEAD.ry);
@@ -392,60 +508,31 @@
     /* Swept back, the cap would swallow the whole face, so give it a hairline:
        a forehead in skin, high in the middle and tucked in at the temples. */
     if (full) {
-      ctx.fillStyle = state.client.skin;
-      ctx.beginPath();
-      ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
-      ctx.fill();
+      if (state.photo) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
+        ctx.clip();
+        paintPhoto();
+        ctx.restore();
+      } else {
+        ctx.fillStyle = state.client.skin;
+        ctx.beginPath();
+        ctx.ellipse(HEAD.cx, HEAD.cy + 4, 92, 70, 0, 0, 6.2832);
+        ctx.fill();
+      }
     }
   }
 
   /* ---------- drawing: hair ---------- */
-
-  function strokeRun(dp, from, to, color, width, alpha) {
-    if (to <= from) { return; }
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = alpha;
-    ctx.lineWidth = width;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(dp[from].x, dp[from].y);
-    for (var i = from + 1; i < to; i++) {
-      var a = dp[i], b = dp[i + 1] || dp[i];
-      ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
-    }
-    ctx.lineTo(dp[to].x, dp[to].y);
-    ctx.stroke();
-  }
 
   function drawStrand(s, from, to) {
     if (s.n < 1) { return; }
     from = from || 0;
     to = (to === undefined || to > s.n) ? s.n : to;
     if (to <= from) { return; }
-
     var dp = H.displayPoints(s, state.time, dispBuf);
-    var shade = 0.75 + (1 - s.depth) * 0.25;
-    var run = from;
-    for (var i = from + 1; i <= to; i++) {
-      if (i === to || s.cols[i] !== s.cols[run]) {
-        var w = lerp(s.width, s.width * 0.42, run / s.n);
-        strokeRun(dp, run, i, s.cols[run] || s.cols[0], w, shade);
-        run = i;
-      }
-    }
-
-    /* shine ribbon near the roots */
-    if (from === 0 && s.shine > 0.45 && s.n > 3) {
-      ctx.globalAlpha = (s.shine - 0.45) * 0.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = s.width * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(dp[1].x, dp[1].y);
-      for (var k = 2; k <= Math.min(s.n, 5); k++) { ctx.lineTo(dp[k].x, dp[k].y); }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
+    Render.clump(ctx, s, dp, from, to, state.children, s.width * 1.02);
   }
 
   /* Where a strand's gathered tail begins, or -1 when this style keeps the
@@ -572,7 +659,15 @@
     ctx.translate(-HEAD.cx, -(HEAD.cy + 95));
 
     drawBody();
-    ctx.fillStyle = state.mainColor || state.client.hair;
+    var base = state.mainColor || state.client.hair;
+    /* back view: no face, so nothing of the photo shows */
+    var lit = ctx.createRadialGradient(
+      HEAD.cx - HEAD.rx * 0.4, HEAD.cy - HEAD.ry * 0.45, HEAD.rx * 0.15,
+      HEAD.cx, HEAD.cy, HEAD.ry * 1.25);
+    lit.addColorStop(0, Render.shade(base, 1.18));
+    lit.addColorStop(0.55, Render.shade(base, 0.95));
+    lit.addColorStop(1, Render.shade(base, 0.6));
+    ctx.fillStyle = lit;
     ctx.beginPath();
     ctx.ellipse(HEAD.cx, HEAD.cy, HEAD.rx + 4, HEAD.ry + 4, 0, 0, 6.2832);
     ctx.fill();
@@ -590,6 +685,8 @@
     if (!mirrorCv) {
       mirrorCv = document.createElement('canvas');
       mirrorCtx = mirrorCv.getContext('2d');
+      mirrorCtx.lineCap = 'round';
+      mirrorCtx.lineJoin = 'round';
     }
     if (mirrorCv.width !== px) { mirrorCv.width = px; mirrorCv.height = px; }
 
@@ -608,7 +705,7 @@
   function drawMirror() {
     if (!state.mirror) { return; }
     var m = MIRROR;
-    if (!mirrorCv || state.frame % 3 === 0) { updateMirrorCache(); }
+    if (!mirrorCv || state.frame % 6 === 0) { updateMirrorCache(); }
 
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#e07cb4';
@@ -676,7 +773,26 @@
     UI.markWishes(m);
   }
 
+  var lastT = 0, avgDt = 16, workAvg = 8;
+
+  /* How many hairs per clump the device can afford. Frame interval alone
+     cannot tell a fast device from a vsync-capped one - both sit at 16.7ms -
+     so this watches how long the draw itself takes, and only spends more when
+     the frames are also actually landing. */
+  function adaptQuality(t, work) {
+    var dt = t - lastT;
+    lastT = t;
+    if (dt > 0 && dt < 400) { avgDt = avgDt * 0.9 + dt * 0.1; }
+    workAvg = workAvg * 0.9 + work * 0.1;
+    if (state.frame % 30 !== 0) { return; }
+    /* Draw work alone undercounts, because canvas work is rasterised after the
+       JS returns; a slow frame interval is the backstop that catches that. */
+    if ((workAvg > 11 || avgDt > 26) && state.children > 1) { state.children--; }
+    else if (workAvg < 6.5 && avgDt < 20 && state.children < 6) { state.children++; }
+  }
+
   function frame(t) {
+    var t0 = performance.now();
     state.time = t;
     state.frame++;
     state.volume *= 0.985;
@@ -704,6 +820,7 @@
     drawConfetti();
     drawCursor();
 
+    adaptQuality(t, performance.now() - t0);
     requestAnimationFrame(frame);
   }
 
@@ -853,6 +970,33 @@
         self.clientView.classList.remove('show');
       });
 
+      var input = document.getElementById('photo-input');
+      document.getElementById('use-photo').addEventListener('click', function () {
+        self.clientView.classList.remove('show');
+        input.click();
+      });
+      input.addEventListener('change', function () {
+        loadPhotoFile(input.files && input.files[0]);
+        input.value = '';            // so picking the same photo again still fires
+      });
+      document.getElementById('use-cartoon').addEventListener('click', function () {
+        self.clientView.classList.remove('show');
+        clearPhoto();
+      });
+
+      document.getElementById('fit-smaller').addEventListener('click', function () {
+        if (state.photo) { state.photo.scale *= 0.88; }
+      });
+      document.getElementById('fit-bigger').addEventListener('click', function () {
+        if (state.photo) { state.photo.scale /= 0.88; }
+      });
+      document.getElementById('fit-done').addEventListener('click', function () {
+        state.fitting = false;
+        self.setFitting(false);
+        Snd.play('sparkle');
+        self.toast('Now style her hair!');
+      });
+
       this.buildTrays();
       this.selectTool('brush');
     },
@@ -942,6 +1086,10 @@
       Snd.play('pop');
     },
 
+    setFitting: function (on) {
+      document.body.classList.toggle('fitting', !!on);
+    },
+
     closeTray: function () { /* keep the tray open while styling - it is handy */ },
 
     renderRequest: function () {
@@ -1018,6 +1166,8 @@
   function start() {
     canvas = document.getElementById('salon');
     ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     resize();
     global.addEventListener('resize', resize);
     global.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
