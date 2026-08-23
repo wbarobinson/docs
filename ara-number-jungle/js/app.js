@@ -211,7 +211,7 @@
     })
 
     // Offline: once she has opened it on wifi it keeps working without.
-    if ('serviceWorker' in root.navigator && root.location.protocol.indexOf('http') === 0) {
+    if (!root.KM_NO_SW && 'serviceWorker' in root.navigator && root.location.protocol.indexOf('http') === 0) {
       root.navigator.serviceWorker.register('sw.js').catch(function () {
         /* fine — the app just needs the network next time */
       })

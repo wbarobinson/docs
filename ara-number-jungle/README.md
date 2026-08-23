@@ -22,6 +22,18 @@ python3 -m http.server 8000
 Opening `index.html` directly works too, but a served page gets you offline
 support and saved progress (Safari blocks storage on `file://`).
 
+### One file, no server
+
+```sh
+node tools/bundle.mjs
+```
+
+builds `dist/ara-number-jungle.html` — the whole app (styles, scripts, icons,
+leaf art) inlined into a single 117kb file. AirDrop that to the iPad and open
+it from Files, or drop it on any host. `dist/ara-number-jungle.artifact.html`
+is the same thing without the document wrapper, for hosts that supply their
+own. Rebuild it after changing anything in `js/` or `css/`.
+
 **Put it on her home screen:** open it in Safari → Share → *Add to Home
 Screen*. It then launches full-screen with no browser chrome, and works with
 the wifi off. To host it permanently, drop the folder on any static host
@@ -119,6 +131,8 @@ erases her progress, so if you move devices, do it deliberately.
 ```sh
 node tests/selftest.mjs   # 293 checks: every generator, mastery, badges, storage
 node tests/smoke.mjs      # 35 checks: drives the real UI in headless Chromium
+
+SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
 
 `selftest.mjs` runs each of the 47 generators 300 times and checks the
@@ -142,6 +156,7 @@ js/ui.js                rendering each screen
 js/play.js              the play loop and input handling
 js/app.js               boot and event wiring
 sw.js                   offline cache
+tools/bundle.mjs        inlines everything into one file
 tests/                  the two test scripts
 ```
 

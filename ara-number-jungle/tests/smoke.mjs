@@ -162,7 +162,9 @@ try {
   await cdp.send('Page.enable')
   await cdp.send('Runtime.enable')
   await cdp.send('Log.enable')
-  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${PORT}/index.html` })
+  // SMOKE_PATH lets the same run verify a bundled single-file build.
+  const page = process.env.SMOKE_PATH || '/index.html'
+  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${PORT}${page}` })
   await sleep(1200)
 
   // --- it loads clean ---
