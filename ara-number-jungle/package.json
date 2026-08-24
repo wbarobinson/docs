@@ -1,0 +1,18 @@
+{
+  "name": "ara-number-jungle",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A numpad maths game for Ara and Jon.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/selftest.mjs && node tests/sync.mjs && node tests/smoke.mjs",
+    "build": "node tools/bundle.mjs",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

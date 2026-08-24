@@ -345,6 +345,8 @@
     res.badges = KM.awardBadges(p, res)
     KM.store.clearSession()
     KM.store.save()
+    // Push to the family account if there is one; failure is silent by design.
+    if (KM.sync) KM.sync.schedule()
     return res
   }
 

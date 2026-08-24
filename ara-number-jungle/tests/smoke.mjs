@@ -659,6 +659,36 @@ try {
     await sleep(250)
   }
 
+  // --- the family account degrades gracefully with no server -----------
+  // This test server has no /api endpoint, which is exactly the "offline or
+  // not deployed yet" case: it must never cost anyone their progress.
+  await cdp.click('.screen.active [data-go="grown"]')
+  await sleep(400)
+  ok(
+    (await cdp.eval("document.getElementById('grown-body').textContent")).includes('Family account'),
+    'Grown-ups offers a family account',
+  )
+  const problemsBefore = await cdp.eval('KM.store.profile().totals.problems')
+  await cdp.click('#g-newcode')
+  await sleep(900)
+  const codeShown = await cdp.eval(
+    "document.getElementById('g-code') ? document.getElementById('g-code').textContent : ''",
+  )
+  ok(/^[a-z]+-[a-z0-9]{10}$/.test(codeShown), 'a family code is created and shown (' + codeShown + ')')
+  eq(
+    await cdp.eval('KM.store.profile().totals.problems'),
+    problemsBefore,
+    'and a failed sync leaves local progress untouched',
+  )
+  ok(
+    (await cdp.eval('JSON.stringify(KM.sync.status())')).includes('lastError'),
+    'the failure is reported rather than hidden',
+  )
+  await cdp.shot('13-family-account')
+  await cdp.eval('KM.sync.leave()')
+  await cdp.click('.screen.active [data-go="home"]')
+  await sleep(300)
+
   // --- portrait iPad ---
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: 820,

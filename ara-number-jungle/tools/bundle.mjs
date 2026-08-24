@@ -28,7 +28,7 @@ const css = read('css/app.css')
 if (/url\(['"]?\.\./.test(css)) throw new Error('stylesheet still references an external file')
 
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1])
-if (scripts.length !== 9) throw new Error(`expected 9 script tags, found ${scripts.length}`)
+if (scripts.length !== 11) throw new Error(`expected 11 script tags, found ${scripts.length}`)
 
 const markup = html
   .slice(html.indexOf('<div id="app">'), html.indexOf('<!-- Plain scripts'))

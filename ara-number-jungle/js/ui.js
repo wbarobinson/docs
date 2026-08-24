@@ -449,6 +449,36 @@
         : '') +
       '</div>'
 
+    // Family account
+    var sync = KM.sync ? KM.sync.status() : { code: null }
+    html += '<div class="card"><h2>Family account</h2>'
+    if (sync.code) {
+      html +=
+        '<p class="tiny muted" style="margin:0 0 8px">Both children\'s progress is kept under this family code. Type it on another iPad, phone or laptop and it follows them there.</p>' +
+        '<div class="codebox" id="g-code">' +
+        esc(sync.code) +
+        '</div>' +
+        '<div class="row wrap" style="margin-top:10px">' +
+        '<button class="btn small" id="g-sync">Sync now</button>' +
+        '<button class="btn small ghost" id="g-copycode">Copy code</button>' +
+        '<button class="btn small ghost" id="g-leave">Stop syncing</button>' +
+        '</div>' +
+        '<p class="tiny muted" style="margin:8px 0 0">' +
+        (sync.lastSyncAt
+          ? 'Last synced ' + new Date(sync.lastSyncAt).toLocaleString()
+          : 'Not synced yet') +
+        (sync.lastError ? ' · <span style="color:var(--bad-dark)">' + esc(sync.lastError) + '</span>' : '') +
+        '</p>'
+    } else {
+      html +=
+        '<p class="tiny muted" style="margin:0 0 8px">Progress currently lives on this device only. A family code keeps both children\'s progress on the server, so it survives a new device, a cleared browser or a new web address. No email, no password — the code is the key, so keep it somewhere safe.</p>' +
+        '<div class="row wrap"><button class="btn small" id="g-newcode">Create a family code</button></div>' +
+        '<p class="tiny muted" style="margin:12px 0 6px"><b>Already have one?</b> Type it here to join and pull everything in.</p>' +
+        '<div class="row wrap"><input type="text" id="g-joincode" placeholder="fern-a7k2m9x4qp" style="width:230px" />' +
+        '<button class="btn small ghost" id="g-join">Join</button></div>'
+    }
+    html += '</div>'
+
     // How it works + reset
     html +=
       '<div class="card"><h2>How the levels work</h2><p class="tiny muted" style="margin:0">' +

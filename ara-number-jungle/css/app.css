@@ -1085,6 +1085,21 @@ table.data th {
 }
 
 /* The backup boxes are the one place text must be selectable. */
+.codebox {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: clamp(16px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f3f7ff;
+  border: 2px dashed #b9cdf0;
+  color: #1a3f7a;
+  word-break: break-all;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 textarea.backup {
   width: 100%;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;

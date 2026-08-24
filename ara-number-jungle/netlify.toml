@@ -5,7 +5,14 @@
 # history that never disappears.
 [build]
   publish = "."
-  command = ""
+  command = "npm install --omit=dev --no-audit --no-fund"
+  functions = "netlify/functions"
+
+# The family account lives behind /api.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
 [[headers]]
   for = "/*"

@@ -165,6 +165,51 @@
           }
           return
         }
+        case 'g-newcode':
+          KM.ui.toast('Creating…')
+          KM.sync.create().then(function (r) {
+            KM.ui.renderGrown()
+            KM.ui.toast(r.ok ? 'Family code created and saved' : 'Made the code, but the server did not answer')
+          })
+          return
+        case 'g-join': {
+          var typed = doc.getElementById('g-joincode').value
+          KM.ui.toast('Joining…')
+          KM.sync.join(typed).then(function (r) {
+            applySettings()
+            KM.ui.renderGrown()
+            KM.ui.toast(r.ok ? 'Joined — everything is now shared' : r.reason || 'Could not join')
+          })
+          return
+        }
+        case 'g-sync':
+          KM.ui.toast('Syncing…')
+          KM.sync.pull().then(function () {
+            return KM.sync.flush()
+          }).then(function (r) {
+            applySettings()
+            KM.ui.renderGrown()
+            KM.ui.toast(r.ok ? 'Synced' : r.reason || 'Sync failed')
+          })
+          return
+        case 'g-copycode': {
+          var codeText = KM.sync.code() || ''
+          if (root.navigator.clipboard) {
+            root.navigator.clipboard.writeText(codeText).then(function () {
+              KM.ui.toast('Code copied')
+            })
+          } else {
+            KM.ui.toast(codeText)
+          }
+          return
+        }
+        case 'g-leave':
+          if (root.confirm('Stop syncing on this device? Progress here is kept, but changes will no longer be shared.')) {
+            KM.sync.leave()
+            KM.ui.renderGrown()
+            KM.ui.toast('Stopped syncing')
+          }
+          return
         case 'g-remove':
           if (root.confirm('Remove ' + KM.store.profile().name + ' and all their progress?')) {
             KM.store.removeProfile(KM.store.profile().id)
@@ -288,11 +333,23 @@
     })
     root.addEventListener('pagehide', function () {
       KM.store.save()
+      if (KM.sync) KM.sync.flush()
     })
     root.addEventListener('touchstart', function once() {
       KM.audio.unlock()
       root.removeEventListener('touchstart', once)
     })
+
+    // A family account, if this device has joined one: fold in whatever the
+    // other devices have done since we last looked.
+    if (KM.sync && KM.sync.code()) {
+      KM.sync.pull().then(function (r) {
+        if (r.ok && !r.empty) {
+          applySettings()
+          KM.ui.show(KM.ui.screen())
+        }
+      })
+    }
 
     // Offline: once she has opened it on wifi it keeps working without.
     if (!root.KM_NO_SW && 'serviceWorker' in root.navigator && root.location.protocol.indexOf('http') === 0) {

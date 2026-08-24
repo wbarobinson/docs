@@ -40,6 +40,34 @@ python3 -m http.server 8000
 Opening `index.html` directly works too, but a served page gets you offline
 support and saved progress (Safari blocks storage on `file://`).
 
+### Family account (progress that follows them anywhere)
+
+One long random **family code** — no email, no password — keeps both children's
+progress on the server. Type the same code on another iPad, a phone or a laptop
+and everything follows them there, including a device whose browser has been
+wiped.
+
+Set it up in **Grown-ups → Family account**: *Create a family code*, then keep
+it somewhere safe (it is the only key). On the second device, type it into
+*Join*. Joining **adds** to what is already on that device rather than
+replacing it.
+
+How it holds up when two children practise on two devices at once:
+
+- Every finished set is written to an append-only log with its own id, and the
+  totals are derived from that log. Merging two devices takes the union of
+  their logs, so a set can never be counted twice or dropped.
+- Writes are compare-and-set. A device that was offline gets its copy back with
+  a conflict, merges, and pushes the union — nobody's evening of practice is
+  overwritten.
+- Mastered branches, badges and best times never go backwards through a merge.
+- If the server is unreachable the app carries on exactly as before, records
+  the error in Grown-ups, and syncs when it can. **Local storage is always the
+  source of truth; sync only ever adds.**
+
+Check the server side with `https://<your-site>/api/progress?health=1` — it
+reports whether durable storage is actually working.
+
 ### Host it somewhere permanent (recommended)
 
 Progress is stored by the browser against the exact web address the app is
@@ -48,9 +76,26 @@ progress with it. **Give it one permanent address and this stops happening.**
 
 The folder is a static site with no build step, so:
 
-- **Netlify:** drag this folder onto <https://app.netlify.com/drop>. That is the
-  whole deployment. `netlify.toml` is already here.
-- **Vercel:** `npx vercel --prod` from this folder. `vercel.json` is already here.
+- **Netlify, with the family account:**
+
+  ```sh
+  npm install
+  npx netlify deploy --prod
+  ```
+
+  `netlify.toml` sets the publish directory, the functions directory and the
+  `/api/*` redirect. Functions need their dependency installed, so this path
+  (or a Git-connected site, which runs `npm install` for you) is what gives you
+  sync.
+
+- **Netlify Drop** (drag the folder onto <https://app.netlify.com/drop>) gets
+  the app itself running in seconds with a permanent address, which is already
+  enough to stop progress disappearing. The `/api` endpoint will not work
+  there, so the family account stays switched off until you deploy with the CLI
+  or connect the repo.
+
+- **Vercel:** `npx vercel --prod`. `vercel.json` is here; the Netlify function
+  would need porting to `api/` for sync to work there.
 
 Then bookmark that address on the iPad and add it to the home screen. Nothing
 about the app changes when you redeploy — same address, same stored progress.
@@ -252,7 +297,8 @@ Two consequences worth knowing:
 
 ```sh
 node tests/selftest.mjs   # 357 checks: generators, mastery, stars, badges, storage
-node tests/smoke.mjs      # 92 checks: drives the real UI in headless Chromium
+node tests/sync.mjs       #  40 checks: two devices, one family code, real endpoint
+node tests/smoke.mjs      #  96 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
@@ -277,6 +323,9 @@ index.html              screens, in markup
 css/app.css             all styling, one file
 js/curriculum.js        the 47 branches and their generators
 js/store.js             profiles, progress, per-fact history (localStorage)
+js/merge.js             combining two devices' progress, losslessly
+js/sync.js              the family account client (pull, push, conflict retry)
+netlify/functions/      the family account endpoint (compare-and-set)
 js/engine.js            building a set, timing, scoring, mastery
 js/badges.js            32 badges as pure tests against the profile
 js/audio.js             every sound, synthesised with WebAudio

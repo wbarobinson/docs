@@ -47,9 +47,9 @@ var DEFAULT_SETTINGS = {
     return 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)
   }
 
-  function newProfile(name, avatar, theme) {
+  function newProfile(name, avatar, theme, id) {
     return {
-      id: uid(),
+      id: id || uid(),
       name: name || 'Ara',
       avatar: avatar || '🦜',
       theme: theme || KM.DEFAULT_THEME,
@@ -61,6 +61,12 @@ var DEFAULT_SETTINGS = {
       facts: {}, // "27+11" -> { n, wrong, ms, lastMs, lastAt }
       badges: {}, // id -> earnedAt
       days: {}, // "2026-08-23" -> { sets, problems, correct, ms }
+      // Append-only record of finished sets. Two devices can be merged by
+      // taking the union of their logs, which is why totals are derived from
+      // this rather than merged as counters (max loses work, sum double-counts).
+      log: [],
+      // Whatever was already counted before logging existed.
+      baseline: { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0 },
       streak: { current: 0, best: 0, lastDay: null },
       totals: { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0, bestCombo: 0 },
     }
@@ -96,9 +102,12 @@ var DEFAULT_SETTINGS = {
     return !!(x && x.profiles && x.profiles.length && x.profiles[0].id)
   }
 
+  // The two children who ship with the app get fixed ids, not random ones.
+  // Two devices must recognise the same child when a family account merges
+  // them, and a random id per device would give you two Aras.
   function fresh() {
-    var ara = newProfile('Ara', '🦜', 'jungle')
-    var jon = newProfile('Jon', '🦖', 'dino')
+    var ara = newProfile('Ara', '🦜', 'jungle', 'ara')
+    var jon = newProfile('Jon', '🦖', 'dino', 'jon')
     return { version: 1, activeId: ara.id, profiles: [ara, jon] }
   }
 
@@ -120,8 +129,10 @@ var DEFAULT_SETTINGS = {
       var hasJon = state.profiles.some(function (x) {
         return x.theme === 'dino' || x.name === 'Jon'
       })
-      if (!hasJon) state.profiles.push(newProfile('Jon', '🦖', 'dino'))
+      if (!hasJon) state.profiles.push(newProfile('Jon', '🦖', 'dino', 'jon'))
     }
+
+    normaliseSeededIds(state)
 
     // Fill in anything a newer version of the app expects.
     state.profiles.forEach(function (p) {
@@ -130,6 +141,20 @@ var DEFAULT_SETTINGS = {
         if (!p[k]) p[k] = {}
       })
       if (!p.streak) p.streak = { current: 0, best: 0, lastDay: null }
+      if (!p.log) {
+        // Existing history predates the log: freeze it as the baseline so the
+        // numbers do not change under anyone's feet.
+        p.log = []
+        p.baseline = {
+          sets: (p.totals && p.totals.sets) || 0,
+          problems: (p.totals && p.totals.problems) || 0,
+          correct: (p.totals && p.totals.correct) || 0,
+          ms: (p.totals && p.totals.ms) || 0,
+          stars: (p.totals && p.totals.stars) || 0,
+          perfectSets: (p.totals && p.totals.perfectSets) || 0,
+        }
+      }
+      if (!p.baseline) p.baseline = { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0 }
       p.totals = Object.assign(
         { sets: 0, problems: 0, correct: 0, ms: 0, stars: 0, perfectSets: 0, bestCombo: 0 },
         p.totals || {},
@@ -147,6 +172,28 @@ var DEFAULT_SETTINGS = {
   }
 
   // Called after every answered problem, not just at the end of a set.
+  // Installs made before the ids were fixed have a random-id Ara and Jon.
+  // Rename them once, so a family account merges them with every other device
+  // instead of stacking up duplicates.
+  function normaliseSeededIds(state) {
+    ;[
+      { id: 'ara', name: 'Ara' },
+      { id: 'jon', name: 'Jon' },
+    ].forEach(function (seed) {
+      var taken = state.profiles.some(function (p) {
+        return p.id === seed.id
+      })
+      if (taken) return
+      var candidates = state.profiles.filter(function (p) {
+        return p.name === seed.name
+      })
+      if (candidates.length !== 1) return // ambiguous: leave well alone
+      var was = candidates[0].id
+      candidates[0].id = seed.id
+      if (state.activeId === was) state.activeId = seed.id
+    })
+  }
+
   function save() {
     if (!canStore()) return false
     var s = load()
@@ -298,6 +345,29 @@ var DEFAULT_SETTINGS = {
       justMastered = true
     }
 
+    // One line per set, with an id no other device will generate.
+    p.log.push({
+      id: uid() + '-' + p.log.length,
+      at: Date.now(),
+      day: today(),
+      stageId: res.stageId,
+      count: res.count,
+      firstTry: res.firstTry,
+      ms: res.ms,
+      stars: stars,
+    })
+    // Four years of daily practice before this matters, and trimming only ever
+    // costs detail, never the totals, because they are baselined below.
+    if (p.log.length > 3000) {
+      var dropped = p.log.shift()
+      p.baseline.sets += 1
+      p.baseline.problems += dropped.count
+      p.baseline.correct += dropped.firstTry
+      p.baseline.ms += dropped.ms
+      p.baseline.stars += dropped.stars
+      if (dropped.firstTry === dropped.count) p.baseline.perfectSets += 1
+    }
+
     p.totals.sets++
     p.totals.problems += res.count
     p.totals.correct += res.firstTry
@@ -434,6 +504,19 @@ var DEFAULT_SETTINGS = {
     recentDays: recentDays,
     levelProgress: levelProgress,
     today: today,
+    // Used by sync: swap in a merged savefile and write it down.
+    replace: function (next) {
+      if (!looksValid(next)) return false
+      state = next
+      state.profiles.forEach(function (x) {
+        if (!x.settings) x.settings = Object.assign({}, DEFAULT_SETTINGS)
+      })
+      if (!state.profiles.some(function (x) { return x.id === state.activeId })) {
+        state.activeId = state.profiles[0].id
+      }
+      save()
+      return true
+    },
     reset: function () {
       state = fresh()
       clearSession()

@@ -6,13 +6,15 @@
  * (which is not a bad way to run a practice session).
  * Bump CACHE when the files change.
  */
-var CACHE = 'ara-jungle-v2'
+var CACHE = 'ara-jungle-v3'
 var FILES = [
   './',
   './index.html',
   './css/app.css',
   './js/curriculum.js',
   './js/store.js',
+  './js/merge.js',
+  './js/sync.js',
   './js/badges.js',
   './js/audio.js',
   './js/juice.js',
