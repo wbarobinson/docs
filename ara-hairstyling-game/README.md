@@ -2,12 +2,19 @@
 
 A hairstyling game built for Ara, to be played with fingers on an iPad.
 
-Clients come in, each one asks for a look ("bubblegum hair, curly, a 🎀"), and
-Ara styles them: brush, cut, colour, curl, straighten, blow-dry, add sparkles
-and bows, then tap **Done!** for a photo with stars.
+Clients come in, each one asks for a look — and the ask arrives as **words**
+("cherry hair · braid · butterfly"). Reading the wish and finding the matching
+emoji in the trays IS the game: every tray chip and dye swatch carries its
+word, tapping a wish speaks it aloud, and the emoji only reveals itself as a
+hint after a good think (sooner for brand-new words, never for words she owns).
+Between clients, the **Word Party** shows one word and four pictures.
 
-There is no way to lose and no way to get stuck. Every haircut gets at least
-three stars, nothing is locked, and 🚿 washes it all out to start again.
+Stars are the one currency and the rule is speakable: 3 for finishing, 4 for
+granting a wish, 5 for granting them all; matched words earn 1 each. Stars
+open accessory packs (Garden, Animals, Ocean, Sweets, Sky, Treasure), climb
+ranks (Little Helper → Sparkle Legend), and light 18 badges. Packs only ever
+ADD things — every tool works from minute one, there is no way to lose, and
+🚿 washes it all out to start again.
 
 ## Getting it onto the iPad
 
@@ -29,6 +36,23 @@ npx http-server .      # then open the printed address on the iPad
 Served over http(s) it also registers a service worker, so after the first
 visit it keeps working offline.
 
+## What the salon remembers
+
+Persistence uses the same architecture as Ara's Number Jungle:
+
+- **Two stylists** — Ara 🦜 and Jon 🦖 share the iPad; everything hangs off a
+  profile, switched from the top bar.
+- **Nothing is lost to a closed tab** — the half-done makeover (hair, dye,
+  bows, even a placed photo) snapshots continuously and is restored on the
+  next open; finished work lives in an append-only log with a rolling backup
+  copy of the whole state.
+- **Family code** — grown-ups (long-press 🔒 in the profile card) can make a
+  code; typing it on another device merges both salons. Merges only ever go
+  up: a star earned anywhere is earned everywhere, badges are forever.
+- **Paste-anywhere backup** — the same panel exports the whole record as text.
+- **Word records** — every word she reads is tracked (seen / matched /
+  hinted), which drives which words the wishes and the Word Party choose next.
+
 ## Styling a real photo
 
 Tap 🔔 → **📷 Style a real photo**. On the iPad that offers the camera or the
@@ -46,6 +70,7 @@ Tap 🔔 → **Back to drawn friends** to go back to Poppy and the others.
 | Tool | What it does |
 | --- | --- |
 | 💆 Brush | Drag through the hair to move it, smooth it and make it shiny |
+| 🌱 Grow | The inverse of scissors: paint the tips and the hair grows back |
 | ✂️ Cut | Drag across the hair to trim it to that length |
 | 🎨 Colour | Pick a colour and paint it on — paint only the ends for an ombré |
 | 🌀 Curl | Drag over the hair to curl it, a bit more on every pass |
@@ -93,6 +118,12 @@ index.html              the page
 style.css               the buttons and trays
 js/hair.js              strand physics, tools, styles
 js/render.js            hair shading: clumps, lighting, specular
+js/store.js             profiles, log, streaks, session snapshot, gallery
+js/merge.js             progress-only-up merge of two copies
+js/sync.js              family-code sync (compare-and-set, local-first)
+js/words.js             generated content: word bank, packs, badges, ranks
+js/party.js             the Word Party matching game
+js/badges.js            badge engine (pure predicates)
 js/clients.js           clients, colours, accessories, the wish list
 js/audio.js             synthesised sound effects (no audio files)
 js/game.js              drawing, touch handling, photos, UI
@@ -109,3 +140,6 @@ node build.js
 ## Feedback
 
 `FEEDBACK.md` is the list Ara is filling in. That is the roadmap.
+
+Tests: `node test/store.test.js` (persistence and merge) and
+`node test/boot.test.js` (both bundles boot clean).

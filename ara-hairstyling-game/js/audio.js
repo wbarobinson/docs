@@ -65,6 +65,7 @@
     spray: function (t) { noise(t, 0.22, 2200, 0.06); },
     dryer: function (t) { noise(t, 0.18, 700, 0.05); },
     pop: function (t) { tone(520, t, 0.1, 'sine', 0.14); tone(780, t + 0.04, 0.1, 'sine', 0.09); },
+    ding: function (t) { tone(880, t, 0.18, 'triangle', 0.12); tone(1318, t + 0.09, 0.22, 'triangle', 0.1); },
     sparkle: function (t) {
       [1320, 1760, 2200].forEach(function (f, i) { tone(f, t + i * 0.055, 0.16, 'triangle', 0.07); });
     },

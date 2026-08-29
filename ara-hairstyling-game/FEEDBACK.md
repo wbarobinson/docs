@@ -22,6 +22,9 @@ Play with it, then write here (or just tell someone and they'll write it down):
 
 ## Already thought of, not built yet
 
+- A gift at every 10th star (a one-off surprise, not a shop)
+- Grab-and-drag to move a placed bow (today: tap it off, clip it back on)
+- Client picker portraits with a signature quirk each
 - Braids that really interlock instead of just waving
 - Hair extensions, so hair can get longer than it started
 - Choosing your own client's face and outfit

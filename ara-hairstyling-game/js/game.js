@@ -14,6 +14,7 @@
   var TOOLS = {
     brush:    { radius: 58, label: 'Brush' },
     scissors: { radius: 26, label: 'Cut' },
+    grow:     { radius: 60, label: 'Grow' },
     dye:      { radius: 44, label: 'Color' },
     curl:     { radius: 52, label: 'Curl' },
     straight: { radius: 52, label: 'Straight' },
@@ -28,7 +29,7 @@
     confetti: [], volume: 0, time: 0, frame: 0, mirror: true, mainColor: null,
     children: 3, photo: null, fitting: false,
     client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
-    tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
+    tool: 'brush', color: S.COLORS[0].css, accessory: '🎀', bankedStars: 0,
     pointer: { x: 500, y: 300, active: false },
     undo: []
   };
@@ -81,6 +82,20 @@
     }
   }
 
+  function shrinkPhoto(source) {
+    try {
+      var max = 640
+      var k = Math.min(1, max / Math.max(source.width, source.height))
+      var c = document.createElement('canvas')
+      c.width = Math.round(source.width * k)
+      c.height = Math.round(source.height * k)
+      c.getContext('2d').drawImage(source, 0, 0, c.width, c.height)
+      return c.toDataURL('image/jpeg', 0.75)
+    } catch (e) {
+      return null
+    }
+  }
+
   function usePhoto(source) {
     var scale = Math.min(
       (HEAD.rx * 2.6) / source.width,
@@ -88,6 +103,7 @@
     );
     state.photo = {
       img: source,
+      data: shrinkPhoto(source),
       x: HEAD.cx,
       y: HEAD.cy,
       scale: scale,
@@ -140,7 +156,12 @@
   function newClient(which) {
     var c = which || S.CLIENTS[Math.floor(Math.random() * S.CLIENTS.length)];
     state.client = c;
-    state.wishes = S.makeRequest(Math.random);
+    state.bankedStars = 0;
+    sessionDone = false;
+    clearTimeout(snapTimer);
+    Store.clearSession();
+    var prof = Store.profile();
+    state.wishes = S.makeRequest(Math.random, { stars: prof.totals.stars, level: prof.level || 1 });
     H.resetHair(state, c.hair);
     state.confetti.length = 0;
     state.undo.length = 0;
@@ -180,6 +201,10 @@
 
   /* ---------- tools ---------- */
 
+  function express(kind, ms) {
+    state.expression = { kind: kind, until: state.time + (ms || 500) };
+  }
+
   function applyTool(p, dx, dy, isDown) {
     if (state.fitting) {
       if (state.photo) { state.photo.x += dx; state.photo.y += dy; }
@@ -191,7 +216,12 @@
       H.brush(state, p.x, p.y, dx, dy, r);
       if (Math.hypot(dx, dy) > 2) { Snd.play('brush', 140); }
     } else if (t === 'scissors') {
-      if (H.cut(state, p.x, p.y, r)) { Snd.play('snip', 60); }
+      if (H.cut(state, p.x, p.y, r)) { Snd.play('snip', 60); express('ooh', 600); }
+    } else if (t === 'grow') {
+      if (H.grow(state, p.x, p.y, r, state.client.hair)) {
+        Snd.play('spray', 250);
+        express('stars', 400);
+      }
     } else if (t === 'dye') {
       if (H.dye(state, p.x, p.y, r, state.color)) { Snd.play('spray', 220); }
     } else if (t === 'curl') {
@@ -202,13 +232,17 @@
       H.brush(state, p.x, p.y, dx * 0.5, dy * 0.5, r);
       Snd.play('brush', 200);
     } else if (t === 'dryer') {
+      express('squint', 300);
       H.blow(state, p.x, p.y, r, dx, dy);
       state.volume = Math.min(1, state.volume + 0.03);
       Snd.play('dryer', 180);
     } else if (t === 'sparkle') {
+      express('stars', 700);
       addSparkle(p.x, p.y);
     } else if (t === 'accessory' && isDown) {
-      placeAccessory(p.x, p.y);
+      // Touching a bow that is already in the hair plucks it off; touching
+      // hair clips a new one on. Remove-then-place is how she moves one.
+      if (!pluckAccessory(p.x, p.y)) { placeAccessory(p.x, p.y); }
     }
   }
 
@@ -224,10 +258,24 @@
     Snd.play('sparkle', 260);
   }
 
+  function pluckAccessory(x, y) {
+    for (var i = state.accessories.length - 1; i >= 0; i--) {
+      var pos = accessoryPos(state.accessories[i]);
+      if (pos && Math.hypot(pos.x - x, pos.y - y) < 42) {
+        state.accessories.splice(i, 1);
+        Snd.play('pop');
+        scheduleSnapshot();
+        return true;
+      }
+    }
+    return false;
+  }
+
   function placeAccessory(x, y) {
     var hit = H.nearestSegment(state.strands, x, y, 90);
     if (!hit) { return; }
     var p = hit.strand.pts[hit.index];
+    scheduleSnapshot();
     state.accessories.push({
       emoji: state.accessory,
       si: state.strands.indexOf(hit.strand),
@@ -275,7 +323,7 @@
 
     function end(e) {
       pointers.delete(e.pointerId);
-      if (pointers.size === 0) { state.pointer.active = false; }
+      if (pointers.size === 0) { state.pointer.active = false; scheduleSnapshot(); }
     }
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
@@ -409,9 +457,12 @@
   function drawFace() {
     if (state.photo) { return; }        // the photo already has a face
     var c = state.client;
+    var express = state.expression && state.expression.until > state.time ? state.expression.kind : null;
     var lookX = clamp((state.pointer.x - HEAD.cx) / 340, -1, 1) * 5;
     var lookY = clamp((state.pointer.y - HEAD.cy) / 340, -1, 1) * 4;
     var open = state.blink > 0 ? 0.12 : 1;
+    if (express === 'squint') { open = Math.min(open, 0.3); }
+    if (express === 'ooh') { open = 1.15; }
     var eyes = [[HEAD.cx - 40, HEAD.cy + 14], [HEAD.cx + 40, HEAD.cy + 14]];
 
     ctx.save();
@@ -444,6 +495,13 @@
       ctx.ellipse(e[0] + lookX - 5, e[1] + lookY - 6 * open, 4, 4 * open, 0, 0, 6.2832);
       ctx.fill();
 
+      if (express === 'stars') {
+        ctx.font = '22px ' + EMOJI_FONT;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✨', e[0], e[1] - 30);
+      }
+
       ctx.strokeStyle = 'rgba(60,40,45,0.6)';
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
@@ -471,6 +529,13 @@
     ctx.stroke();
 
     /* mouth - widens as the client gets what she asked for */
+    if (express === 'ooh') {
+      ctx.fillStyle = '#8c4653';
+      ctx.beginPath();
+      ctx.ellipse(HEAD.cx, HEAD.cy + 84, 13, 17, 0, 0, 6.2832);
+      ctx.fill();
+      return;
+    }
     var smile = 0.35 + state.happy * 0.65;
     ctx.strokeStyle = '#c4535e';
     ctx.lineWidth = 6;
@@ -623,17 +688,38 @@
   function drawConfetti() {
     for (var i = state.confetti.length - 1; i >= 0; i--) {
       var c = state.confetti[i];
-      c.vy += 0.16;
+      c.vy += c.col === 'bubble' ? -0.02 : 0.16;
       c.x += c.vx; c.y += c.vy; c.rot += c.spin;
       c.life -= 0.008;
       if (c.life <= 0 || c.y > VH + 40) { state.confetti.splice(i, 1); continue; }
       ctx.save();
       ctx.globalAlpha = Math.max(0, Math.min(1, c.life));
       ctx.translate(c.x, c.y);
-      ctx.rotate(c.rot);
-      ctx.fillStyle = c.col;
-      ctx.fillRect(-7, -4, 14, 8);
+      if (c.col === 'bubble') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, c.r, 0, 6.2832);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.col;
+        ctx.fillRect(-7, -4, 14, 8);
+      }
       ctx.restore();
+    }
+  }
+
+  function burstBubbles() {
+    for (var i = 0; i < 26; i++) {
+      state.confetti.push({
+        x: HEAD.cx + rand(-150, 150), y: HEAD.cy + rand(-120, 160),
+        vx: rand(-0.6, 0.6), vy: rand(-2.6, -1.2),
+        rot: 0, spin: 0, life: rand(0.7, 1.2),
+        col: 'bubble', r: rand(6, 18)
+      });
     }
   }
 
@@ -806,7 +892,10 @@
 
     H.step(state);
 
+    if (state.happyBounce > 0) { state.happyBounce--; }
+    var lift = state.happyBounce > 0 ? Math.sin(state.happyBounce * 0.26) * 10 : 0;
     drawBackdrop();
+    if (lift) { ctx.translate(0, -lift); }
     drawHair('back');
     drawBody();
     drawHead();
@@ -828,7 +917,8 @@
 
   function takePhoto() {
     var m = H.measure(state);
-    var res = S.score(state.wishes, m, state.accessories);
+    var res = S.score(state.wishes, m, state.accessories, state.sparkles);
+    recordFinishedClient(m, res);
     Snd.play('shutter');
     setTimeout(function () { Snd.play('cheer'); }, 260);
     burstConfetti();
@@ -869,42 +959,177 @@
 
     p.fillStyle = '#8a6b7d';
     p.font = '28px "Trebuchet MS", sans-serif';
-    p.fillText("styled by Ara", pw / 2, 918);
+    var prof = Store.profile();
+    var rank = UI.rankFor(prof.totals.stars).cur;
+    p.fillText('styled by ' + rank.emoji + ' ' + rank.name + ' ' + prof.name, pw / 2, 918);
 
     var data = pc.toDataURL('image/jpeg', 0.8);
-    UI.showPhoto(data, res);
+    setTimeout(function () { UI.showPhoto(data, res); }, 900);
     return data;
+  }
+
+  /* ---------- progress: what a finished client adds up to ---------- */
+
+  function distinctColors() {
+    var seen = {};
+    state.strands.forEach(function (s) {
+      for (var i = 0; i < s.n; i++) { seen[s.cols[i]] = true; }
+    });
+    return Object.keys(seen);
+  }
+
+  /* Hexes are for canvases; badges and merges speak in readable names. */
+  function colorNames(hexes) {
+    var out = [];
+    hexes.forEach(function (hex) {
+      for (var i = 0; i < S.COLORS.length; i++) {
+        if (S.COLORS[i].css === hex && out.indexOf(S.COLORS[i].name) < 0) {
+          out.push(S.COLORS[i].name);
+        }
+      }
+    });
+    return out;
+  }
+
+  function recordFinishedClient(m, res) {
+    // Re-shooting the same client pays only the improvement, so mashing
+    // Done! mints nothing but making the look better still counts.
+    var prevBanked = state.bankedStars;
+    var delta = Math.max(0, res.stars - prevBanked);
+    state.bankedStars = Math.max(prevBanked, res.stars);
+    if (delta === 0) { return; }
+    var colors = distinctColors();
+    var p = Store.recordClient({
+      stars: delta, got: res.got, total: res.total,
+      reshoot: prevBanked > 0,
+      finalStars: res.stars,
+      style: state.style,
+      accs: state.accessories.map(function (a) { return a.emoji; }),
+      colors: colorNames(colors),
+      client: state.client.name,
+      photo: !!state.photo,
+      rainbow: colors.length >= 6,
+    });
+    Store.clearSession();
+    sessionDone = true;
+    clearTimeout(snapTimer);
+    if (window.SalonStore.sync) { window.SalonStore.sync.schedule(); }
+    UI.refreshProgress(p);
+    UI.maybeUnlockPacks();
+    if (window.SalonBadges) { window.SalonBadges.checkAll(p); }
   }
 
   /* ---------- sticker book (saved photos) ---------- */
 
-  var Gallery = {
-    key: 'ara.gallery',
-    all: function () {
-      try { return JSON.parse(localStorage.getItem(this.key) || '[]'); }
-      catch (e) { return []; }
-    },
-    add: function (data) {
-      var list = this.all();
-      list.unshift(data);
-      while (list.length > 8) { list.pop(); }
-      try { localStorage.setItem(this.key, JSON.stringify(list)); }
-      catch (e) {
-        list = list.slice(0, 4);
-        try { localStorage.setItem(this.key, JSON.stringify(list)); } catch (e2) { /* full */ }
-      }
-      return list;
-    },
-    clear: function () {
-      try { localStorage.removeItem(this.key); } catch (e) { /* ignore */ }
+  var Store = window.SalonStore.store
+
+  function speakWord(text) {
+    if (!('speechSynthesis' in window) || window.Sound.isMuted()) { return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.8;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* reading aloud is a bonus */ }
+  }
+
+  /* ---------- the makeover she is half way through ---------- */
+
+  var snapTimer = null
+  var sessionDone = false
+
+  function snapshotSession() {
+    if (sessionDone) { return; }
+    var strands = state.strands.map(function (s) {
+      return { n: s.n, curl: +s.curl.toFixed(3), shine: +s.shine.toFixed(3), cols: s.cols }
+    })
+    var accs = state.accessories.map(function (a) {
+      return { emoji: a.emoji, si: a.si, index: a.index, dx: a.dx, dy: a.dy, size: a.size, rot: a.rot }
+    })
+    var sparks = state.sparkles.map(function (sp) {
+      return { si: state.strands.indexOf(sp.strand), index: sp.index, dx: sp.dx, dy: sp.dy, size: sp.size, phase: sp.phase }
+    })
+    var snap = {
+      client: state.client && state.client.name,
+      bankedStars: state.bankedStars,
+      wishes: state.wishes,
+      style: state.style,
+      strands: strands,
+      accessories: accs,
+      sparkles: sparks,
     }
-  };
+    if (state.photo && state.photo.data) {
+      snap.photo = { data: state.photo.data, x: state.photo.x, y: state.photo.y, scale: state.photo.scale, skin: state.photo.skin }
+    }
+    Store.saveSession(snap)
+  }
+
+  function scheduleSnapshot() {
+    clearTimeout(snapTimer)
+    snapTimer = setTimeout(snapshotSession, 1200)
+  }
+
+  function restoreSession(snap) {
+    var c = null
+    for (var i = 0; i < S.CLIENTS.length; i++) if (S.CLIENTS[i].name === snap.client) c = S.CLIENTS[i]
+    state.client = c || S.CLIENTS[0]
+    state.wishes = snap.wishes || []
+    H.resetHair(state, state.client.hair)
+    state.style = snap.style || 'down'
+    ;(snap.strands || []).forEach(function (ss, idx) {
+      var s = state.strands[idx]
+      if (!s) return
+      s.n = Math.max(1, Math.min(s.maxN, ss.n))
+      s.curl = ss.curl || 0
+      s.shine = ss.shine || 0.35
+      if (ss.cols && ss.cols.length) s.cols = ss.cols.slice(0, s.maxN)
+    })
+    state.accessories = (snap.accessories || []).filter(function (a) { return state.strands[a.si] })
+    state.sparkles = (snap.sparkles || []).map(function (sp) {
+      var s = state.strands[sp.si]
+      return s ? { strand: s, index: sp.index, dx: sp.dx, dy: sp.dy, size: sp.size, phase: sp.phase } : null
+    }).filter(Boolean)
+    if (snap.photo && snap.photo.data) {
+      var im = new Image()
+      im.onload = function () {
+        state.photo = { img: im, data: snap.photo.data, x: snap.photo.x, y: snap.photo.y, scale: snap.photo.scale, skin: snap.photo.skin }
+      }
+      im.src = snap.photo.data
+    }
+    UI.renderRequest()
+  }
 
   /* ---------- UI ---------- */
+
+  /* Press and hold to really do it; a quick tap only explains. */
+  function holdToFire(el, ms, fire, explain) {
+    var timer = null;
+    el.classList.add('holdable');
+    el.addEventListener('pointerdown', function () {
+      if (timer) { return; } // a second finger must not orphan the first timer
+      el.classList.add('holding');
+      timer = setTimeout(function () {
+        timer = null;
+        el.classList.remove('holding');
+        fire();
+      }, ms);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) {
+      el.addEventListener(n, function () {
+        el.classList.remove('holding');
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+          if (explain) { explain(); }
+        }
+      });
+    });
+  }
 
   var UI = {
     init: function () {
       var self = this;
+      this.progressView = document.getElementById('progress-view');
       this.tray = document.getElementById('tray');
       this.request = document.getElementById('request');
       this.photoView = document.getElementById('photo-view');
@@ -928,10 +1153,113 @@
       document.getElementById('btn-clients').addEventListener('click', function () { self.showClients(); });
       document.getElementById('btn-wash').addEventListener('click', function () {
         snapshot();
-        H.resetHair(state, state.client.hair);
+        burstBubbles();
         Snd.play('spray');
-        self.toast('All washed out!');
+        setTimeout(function () {
+          H.resetHair(state, state.client.hair);
+          Store.clearSession();
+          self.toast('All washed out!');
+        }, 650);
       });
+      /* progress chip + card */
+      document.getElementById('btn-progress').addEventListener('click', function () {
+        self.showProgress();
+      });
+      document.getElementById('progress-close').addEventListener('click', function () {
+        self.progressView.classList.remove('show');
+      });
+
+      /* who is playing */
+      var profileBtn = document.getElementById('btn-profile');
+      var profileView = document.getElementById('profile-view');
+      var profileGrid = document.getElementById('profile-grid');
+      function renderProfiles() {
+        var s = Store.load();
+        profileGrid.innerHTML = '';
+        s.profiles.forEach(function (p) {
+          var b = document.createElement('button');
+          b.className = 'chip labeled tall' + (p.id === s.activeId ? ' on' : '');
+          b.innerHTML = '<span style="font-size:34px">' + p.avatar + '</span><em>' + p.name + '</em>';
+          b.addEventListener('click', function () {
+            Store.setActive(p.id);
+            profileBtn.textContent = p.avatar;
+            profileView.classList.remove('show');
+            self.refreshProgress(Store.profile());
+            newClient();
+          });
+          profileGrid.appendChild(b);
+        });
+      }
+      profileBtn.textContent = Store.profile().avatar;
+      profileBtn.addEventListener('click', function () {
+        renderProfiles();
+        self.hideToast();
+        profileView.classList.add('show');
+      });
+      document.getElementById('profile-close').addEventListener('click', function () {
+        profileView.classList.remove('show');
+      });
+
+      /* grown-ups: long-press to open, so little fingers stay out */
+      var guView = document.getElementById('grownups-view');
+      var guOpen = document.getElementById('grownups-open');
+      var holdTimer = null;
+      guOpen.addEventListener('pointerdown', function () {
+        if (holdTimer) { return; }
+        holdTimer = setTimeout(function () {
+          holdTimer = null;
+          profileView.classList.remove('show');
+          self.openGrownups();
+        }, 1200);
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) {
+        guOpen.addEventListener(n, function () {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            self.toast('Hold the button down for a grown-up moment');
+          }
+        });
+      });
+      document.getElementById('grownups-close').addEventListener('click', function () {
+        guView.classList.remove('show');
+      });
+      document.getElementById('gu-copy').addEventListener('click', function () {
+        var ta = document.getElementById('gu-backup');
+        ta.value = Store.exportText();
+        ta.select();
+        try { document.execCommand('copy'); self.toast('Copied!'); } catch (e) {}
+        if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); }
+      });
+      document.getElementById('gu-import').addEventListener('click', function () {
+        var r = Store.importText(document.getElementById('gu-backup').value);
+        self.toast(r.ok ? 'Backup folded in!' : r.error);
+        if (r.ok) { self.refreshProgress(Store.profile()); }
+      });
+      document.getElementById('gu-create').addEventListener('click', function () {
+        window.SalonStore.sync.create().then(function (r) {
+          self.renderSyncState();
+          self.toast(r.code ? 'Your code: ' + r.code : 'Could not reach the sync server');
+        });
+      });
+      document.getElementById('gu-join').addEventListener('click', function () {
+        var c = prompt('Type the family code:');
+        if (!c) { return; }
+        window.SalonStore.sync.join(c).then(function (r) {
+          self.renderSyncState();
+          self.refreshProgress(Store.profile());
+          self.toast(r.ok ? 'Joined! Progress folded together.' : (r.reason || 'That did not work'));
+        });
+      });
+      document.getElementById('gu-leave').addEventListener('click', function () {
+        window.SalonStore.sync.leave();
+        self.renderSyncState();
+      });
+      document.getElementById('gu-party').addEventListener('change', function (e) {
+        Store.profile().settings.party = e.target.checked;
+        Store.save();
+      });
+
       var mirror = document.getElementById('btn-mirror');
       mirror.addEventListener('click', function () {
         state.mirror = !state.mirror;
@@ -948,24 +1276,41 @@
       document.getElementById('photo-again').addEventListener('click', function () {
         self.photoView.classList.remove('show');
       });
+      function shrinkSticker(img) {
+        try {
+          var c = document.createElement('canvas');
+          var k = 360 / img.naturalWidth;
+          c.width = 360;
+          c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          return c.toDataURL('image/jpeg', 0.7);
+        } catch (e) {
+          return img.src;
+        }
+      }
       document.getElementById('photo-save').addEventListener('click', function () {
-        Gallery.add(self.photoImg.src);
+        Store.galleryAdd(shrinkSticker(self.photoImg));
         Snd.play('sparkle');
         self.toast('Saved to your sticker book!');
         self.photoView.classList.remove('show');
       });
       document.getElementById('photo-next').addEventListener('click', function () {
-        Gallery.add(self.photoImg.src);
+        Store.galleryAdd(shrinkSticker(self.photoImg));
         self.photoView.classList.remove('show');
-        newClient();
+        var started = window.SalonParty.start(function () {
+          self.refreshProgress(Store.profile());
+          newClient();
+        });
+        if (!started) { newClient(); }
       });
       document.getElementById('book-close').addEventListener('click', function () {
         self.bookView.classList.remove('show');
       });
-      document.getElementById('book-clear').addEventListener('click', function () {
-        Gallery.clear();
+      holdToFire(document.getElementById('book-clear'), 1200, function () {
+        Store.galleryClear();
         self.showBook();
-      });
+        self.toast('The book is empty again');
+      }, function () { self.toast('Hold the button down to really empty it'); });
       document.getElementById('client-close').addEventListener('click', function () {
         self.clientView.classList.remove('show');
       });
@@ -1004,45 +1349,30 @@
     buildTrays: function () {
       var self = this;
       var colors = document.getElementById('tray-dye');
-      S.COLORS.forEach(function (c) {
+      S.COLORS.forEach(function (col) {
+        var wrap = document.createElement('div');
+        wrap.className = 'swatch-wrap';
         var b = document.createElement('button');
         b.className = 'swatch';
-        b.style.background = c.css;
-        b.title = c.name;
-        b.setAttribute('aria-label', c.name);
+        b.style.background = col.css;
+        b.setAttribute('aria-label', col.name);
         b.addEventListener('click', function () {
-          state.color = c.css;
+          state.color = col.css;
           colors.querySelectorAll('.swatch').forEach(function (o) { o.classList.remove('on'); });
           b.classList.add('on');
+          speakWord(col.name);
           Snd.play('pop');
         });
-        colors.appendChild(b);
+        var em = document.createElement('em');
+        em.textContent = col.name;
+        wrap.appendChild(b);
+        wrap.appendChild(em);
+        colors.appendChild(wrap);
       });
-      colors.firstChild.classList.add('on');
+      colors.querySelector('.swatch').classList.add('on');
+      state.color = S.COLORS[0].css;
 
-      var accs = document.getElementById('tray-accessory');
-      S.ACCESSORIES.forEach(function (e) {
-        var b = document.createElement('button');
-        b.className = 'chip';
-        b.textContent = e;
-        b.addEventListener('click', function () {
-          state.accessory = e;
-          accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
-          b.classList.add('on');
-          Snd.play('pop');
-        });
-        accs.appendChild(b);
-      });
-      accs.firstChild.classList.add('on');
-      var clearAcc = document.createElement('button');
-      clearAcc.className = 'chip wide';
-      clearAcc.textContent = '🗑️';
-      clearAcc.addEventListener('click', function () {
-        snapshot();
-        state.accessories.length = 0;
-        Snd.play('pop');
-      });
-      accs.appendChild(clearAcc);
+      this.buildAccessoryTray();
 
       var styles = document.getElementById('tray-style');
       S.STYLES.forEach(function (st) {
@@ -1052,6 +1382,7 @@
         b.addEventListener('click', function () {
           snapshot();
           state.style = st.id;
+          scheduleSnapshot();
           styles.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
           b.classList.add('on');
           Snd.play('sparkle');
@@ -1072,6 +1403,65 @@
       });
     },
 
+    buildAccessoryTray: function () {
+      var self = this;
+      var accs = document.getElementById('tray-accessory');
+      accs.innerHTML = '';
+      var stars = Store.profile().totals.stars;
+      var open = S.unlockedPacks(stars);
+      var first = null;
+      S.PACKS.forEach(function (pack) {
+        var items = S.ACCESSORIES.filter(function (a) { return a.category === pack.id; });
+        if (!items.length) { return; }
+        var isOpen = open.indexOf(pack.id) >= 0;
+        var label = document.createElement('div');
+        label.className = 'pack-label' + (isOpen ? '' : ' locked');
+        label.textContent = isOpen ? pack.name : '🔒 ' + pack.name + ' · ' + pack.stars + ' ⭐';
+        accs.appendChild(label);
+        if (!isOpen) { return; }
+        items.forEach(function (a) {
+          var b = document.createElement('button');
+          b.className = 'chip worded';
+          b.innerHTML = '<span>' + a.emoji + '</span><em>' + a.word + '</em>';
+          b.addEventListener('click', function () {
+            state.accessory = a.emoji;
+            accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
+            b.classList.add('on');
+            speakWord(a.word);
+            Snd.play('pop');
+          });
+          if (!first) { first = b; }
+          accs.appendChild(b);
+        });
+      });
+      if (first) {
+        first.classList.add('on');
+        state.accessory = first.querySelector('span').textContent;
+      }
+      var clearAcc = document.createElement('button');
+      clearAcc.className = 'chip wide';
+      clearAcc.textContent = '🗑️';
+      holdToFire(clearAcc, 900, function () {
+        snapshot();
+        state.accessories.length = 0;
+        Snd.play('pop');
+      }, function () { self.toast('Hold 🗑️ down to take every bow off'); });
+      accs.appendChild(clearAcc);
+      this._packsOpen = open.length;
+    },
+
+    /* Called after stars change: reopen the tray if a pack just unlocked. */
+    maybeUnlockPacks: function () {
+      var open = S.unlockedPacks(Store.profile().totals.stars);
+      if (open.length > (this._packsOpen || 1)) {
+        var newest = S.PACKS.filter(function (p) { return open.indexOf(p.id) >= 0; }).pop();
+        this.buildAccessoryTray();
+        burstConfetti();
+        Snd.play('cheer');
+        this.toast('🎉 ' + newest.name + ' pack is open!');
+      }
+    },
+
     selectTool: function (tool) {
       state.tool = tool;
       document.querySelectorAll('[data-tool]').forEach(function (b) {
@@ -1086,6 +1476,96 @@
       Snd.play('pop');
     },
 
+    rankFor: function (stars) {
+      var ranks = window.SalonWords.ranks;
+      var cur = ranks[0], next = null;
+      for (var i = 0; i < ranks.length; i++) {
+        if (stars >= ranks[i].stars) { cur = ranks[i]; next = ranks[i + 1] || null; }
+      }
+      return { cur: cur, next: next };
+    },
+
+    refreshProgress: function (p) {
+      p = p || Store.profile();
+      var starEl = document.getElementById('star-count');
+      var before = +starEl.textContent || 0;
+      starEl.textContent = p.totals.stars;
+      if (p.totals.stars > before) {
+        var chipEl = document.getElementById('btn-progress');
+        chipEl.classList.remove('minted');
+        void chipEl.offsetWidth;
+        chipEl.classList.add('minted');
+      }
+      var r = this.rankFor(p.totals.stars);
+      document.getElementById('rank-name').textContent = r.cur.emoji + ' ' + r.cur.name;
+      document.getElementById('btn-profile').textContent = p.avatar;
+      this.maybeUnlockPacks();
+    },
+
+    showProgress: function () {
+      var p = Store.profile();
+      this.hideToast();
+      var r = this.rankFor(p.totals.stars);
+      document.getElementById('progress-rank').textContent = r.cur.emoji + ' ' + r.cur.name;
+      var bar = document.getElementById('progress-bar');
+      if (r.next) {
+        var span = r.next.stars - r.cur.stars;
+        var into = p.totals.stars - r.cur.stars;
+        bar.querySelector('i').style.right = Math.max(0, 100 - (into / span) * 100) + '%';
+        bar.querySelector('span').textContent = (r.next.stars - p.totals.stars) + ' ⭐ to ' + r.next.name;
+      } else {
+        bar.querySelector('i').style.right = '0%';
+        bar.querySelector('span').textContent = 'Top of the salon!';
+      }
+      document.getElementById('progress-stats').innerHTML =
+        '<span>💇 ' + p.totals.clients + ' clients</span>' +
+        '<span>⭐ ' + p.totals.stars + '</span>' +
+        '<span>📖 ' + p.totals.words + ' words</span>' +
+        '<span>🌼 ' + p.streak.current + ' day' + (p.streak.current === 1 ? '' : 's') + '</span>';
+      var grid = document.getElementById('badge-grid');
+      grid.innerHTML = '';
+      window.SalonWords.badges.forEach(function (b) {
+        var d = document.createElement('div');
+        d.className = 'badge-tile' + (p.badges[b.id] ? '' : ' locked');
+        d.innerHTML = '<span class="e">' + b.emoji + '</span>' + b.name;
+        grid.appendChild(d);
+      });
+      var shelf = document.getElementById('word-shelf');
+      shelf.innerHTML = '';
+      var read = Object.keys(p.words).filter(function (w) { return p.words[w].n >= 2; }).sort();
+      if (!read.length) {
+        shelf.innerHTML = '<span class="empty-w">Words you match at the Word Party land here.</span>';
+      } else {
+        read.forEach(function (w) {
+          var t = document.createElement('span');
+          t.className = 'w';
+          t.textContent = w;
+          shelf.appendChild(t);
+        });
+      }
+      this.progressView.classList.add('show');
+    },
+
+    openGrownups: function () {
+      document.getElementById('gu-party').checked = !!Store.profile().settings.party;
+      document.getElementById('gu-backup').value = '';
+      this.renderSyncState();
+      document.getElementById('grownups-view').classList.add('show');
+    },
+
+    renderSyncState: function () {
+      var st = window.SalonStore.sync.status();
+      var elState = document.getElementById('gu-sync-state');
+      document.getElementById('gu-leave').hidden = !st.code;
+      if (!st.code) {
+        elState.textContent = 'No family code yet. Make one here, then type it on the other device.';
+      } else {
+        elState.innerHTML = 'Code: <b>' + st.code + '</b>' +
+          (st.lastSyncAt ? ' · last synced ' + new Date(st.lastSyncAt).toLocaleString() : '') +
+          (st.lastError ? ' · last try failed (' + st.lastError + ') — progress is safe on this device' : '');
+      }
+    },
+
     setFitting: function (on) {
       document.body.classList.toggle('fitting', !!on);
     },
@@ -1096,9 +1576,41 @@
       var c = state.client;
       var html = '<span class="who">' + c.name + ' wants</span>';
       state.wishes.forEach(function (w, i) {
-        html += '<span class="wish" data-i="' + i + '">' + w.icon + ' ' + w.label + '</span>';
+        // A colour's peek is the colour itself — 🎨 would reveal nothing,
+        // and a hint that does not help is not a hint.
+        var peek = w.kind === 'color'
+          ? '<span class="peek dot" style="background:' + w.value + '"></span>'
+          : '<span class="peek">' + w.icon + '</span>';
+        html += '<span class="wish" data-i="' + i + '"><b class="w">' + w.label + '</b>' +
+          (w.suffix || '') + peek + '</span>';
       });
       this.request.innerHTML = html;
+      var self = this;
+      this.request.querySelectorAll('.wish').forEach(function (node, idx) {
+        var w = state.wishes[idx];
+        // The peek reveals itself after a think whose length depends on how
+        // well she knows this word: brand new words get help quickly, words
+        // she owns stay hidden unless she asks. Never a lock either way.
+        var rec = Store.profile().words[w ? w.label : ''] || null;
+        var known = rec ? (rec.n || 0) - (rec.wrong || 0) * 0.5 : 0;
+        var delay = known >= 3 ? 0 : rec ? 12000 : 6000;
+        if (delay) {
+          setTimeout(function () {
+            if (w && !w.done && !w.tapped) {
+              w.autoPeeked = true;
+              node.classList.add('peeking');
+            }
+          }, delay);
+        }
+        node.addEventListener('click', function () {
+          // A peek is a hint, not a fail: flash the emoji and say the word.
+          if (!w || node.classList.contains('done')) { return; }
+          w.tapped = true;
+          node.classList.add('peeking');
+          speakWord(w.label);
+          setTimeout(function () { node.classList.remove('peeking'); }, 1800);
+        });
+      });
     },
 
     markWishes: function (m) {
@@ -1106,14 +1618,25 @@
       for (var i = 0; i < nodes.length; i++) {
         var w = state.wishes[i];
         if (!w) { continue; }
-        var done = false;
-        if (w.kind === 'color') { done = m.mainColor === w.value; }
-        else if (w.kind === 'curl') { done = m.curl >= 0.35; }
-        else if (w.kind === 'straight') { done = m.curl <= 0.25; }
-        else if (w.kind === 'style') { done = m.style === w.value; }
-        else if (w.kind === 'short') { done = m.length <= 0.8; }
-        else if (w.kind === 'accessory') {
-          done = state.accessories.some(function (a) { return a.emoji === w.value; });
+        var done = S.wishDone(w, m, state.accessories, state.sparkles, w.done);
+        if (done && !w.done) {
+          w.done = true;
+          nodes[i].classList.add('granted');
+          Snd.play('ding');
+          state.happyBounce = 24;
+          speakWord(w.label + '!');
+          // Reading only counts when she actually read: an auto-revealed
+          // emoji means the picture did the work, so it stays a hint.
+          if (!w.counted && (w.kind === 'accessory' || w.kind === 'color')) {
+            w.counted = true;
+            if (!w.autoPeeked) {
+              Store.recordWord(w.label, true, 0, !!w.tapped);
+              this.refreshProgress(Store.profile());
+            }
+          }
+        } else if (!done && w.done) {
+          w.done = false;
+          nodes[i].classList.remove('granted');
         }
         nodes[i].classList.toggle('done', done);
       }
@@ -1128,14 +1651,22 @@
     showPhoto: function (data, res) {
       this.hideToast();
       this.photoImg.src = data;
-      document.getElementById('photo-stars').textContent =
-        new Array(res.stars + 1).join('⭐');
+      var host = document.getElementById('photo-stars');
+      host.innerHTML = '';
+      for (var i = 0; i < res.stars; i++) {
+        var s = document.createElement('span');
+        s.className = 'star-in';
+        s.style.animationDelay = (i * 0.25) + 's';
+        s.textContent = '⭐';
+        host.appendChild(s);
+      }
       this.photoView.classList.add('show');
+      if (res.stars >= 5) { setTimeout(function () { Snd.play('cheer'); }, res.stars * 250); }
     },
 
     showBook: function () {
       this.hideToast();
-      var list = Gallery.all();
+      var list = Store.galleryAll();
       this.bookGrid.innerHTML = list.length
         ? ''
         : '<p class="empty">No photos yet. Style someone, then tap 📸!</p>';
@@ -1170,10 +1701,29 @@
     ctx.lineJoin = 'round';
     resize();
     global.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        snapshotSession();
+        if (window.SalonStore.sync.code()) { window.SalonStore.sync.flush(); }
+      }
+    });
     global.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
+    window.SalonBadges.list = window.SalonWords.badges;
     UI.init();
+    UI.refreshProgress(Store.profile());
     bindInput();
-    newClient(S.CLIENTS[0]);
+    if (window.SalonStore.sync.code()) {
+      window.SalonStore.sync.pull().then(function (r) {
+        if (r.ok && !r.empty) { UI.refreshProgress(Store.profile()); }
+      });
+    }
+    var resume = Store.loadSession();
+    if (resume) {
+      restoreSession(resume);
+      UI.toast("Here's where you left off!");
+    } else {
+      newClient(S.CLIENTS[0]);
+    }
     requestAnimationFrame(frame);
   }
 

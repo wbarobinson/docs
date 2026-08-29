@@ -5,10 +5,11 @@
 const fs = require('fs');
 const path = require('path');
 
+const crypto = require('crypto');
 const root = __dirname;
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
-const JS = ['js/hair.js', 'js/render.js', 'js/clients.js', 'js/audio.js', 'js/game.js'];
+const JS = ['js/hair.js', 'js/render.js', 'js/store.js', 'js/merge.js', 'js/sync.js', 'js/words.js', 'js/clients.js', 'js/audio.js', 'js/badges.js', 'js/party.js', 'js/game.js'];
 const css = read('style.css');
 const js = JS.map(read).join('\n');
 const html = read('index.html');
@@ -47,6 +48,12 @@ ${head}
 ${main}
 </body>
 </html>`;
+
+// Stamp the service worker cache name with a hash of everything it serves,
+// so a deploy can never forget to bump the version.
+const hash = crypto.createHash('sha1').update(JS.map(read).join('') + css + html).digest('hex').slice(0, 10);
+const sw = read('sw.js').replace('__BUILD__', hash).replace(/ara-salon-[a-f0-9]{10}/, 'ara-salon-' + hash);
+fs.writeFileSync(path.join(root, 'sw.build.js'), sw);
 
 fs.mkdirSync(path.join(root, 'single-file'), { recursive: true });
 fs.writeFileSync(path.join(root, 'single-file/ara-salon.html'), standalone);

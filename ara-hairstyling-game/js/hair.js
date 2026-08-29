@@ -300,6 +300,28 @@
     return cutAny;
   }
 
+  function grow(state, x, y, r, naturalColor) {
+    var grew = false;
+    var strands = state.strands;
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      if (s.n >= s.maxN) { continue; }
+      var tip = s.pts[s.n];
+      if (Math.hypot(tip.x - x, tip.y - y) < r) {
+        s.n++;
+        var p = s.pts[s.n];
+        // The new point sprouts at the tip, not wherever it was left lying,
+        // so the strand does not snap across the screen.
+        p.x = tip.x + rand(-3, 3);
+        p.y = tip.y + 4;
+        p.ox = p.x; p.oy = p.y;
+        s.cols[s.n - 1] = naturalColor;
+        grew = true;
+      }
+    }
+    return grew;
+  }
+
   function dye(state, x, y, r, color) {
     var painted = false;
     eachNearPoint(state.strands, x, y, r, function (s, i, p, f) {
@@ -348,7 +370,7 @@
   /* ---------- measurements, used to score a client's request ---------- */
 
   function measure(state) {
-    var s, i, n = 0, curlSum = 0, lenSum = 0;
+    var s, i, n = 0, curlSum = 0, lenSum = 0, segs = 0;
     var hues = {};
     for (i = 0; i < state.strands.length; i++) {
       s = state.strands[i];
@@ -356,15 +378,21 @@
       curlSum += s.curl;
       lenSum += s.n / s.maxN;
       for (var c = 0; c < s.n; c++) {
+        segs++;
         hues[s.cols[c]] = (hues[s.cols[c]] || 0) + 1;
       }
     }
     var top = null, topN = 0;
-    for (var k in hues) { if (hues[k] > topN) { topN = hues[k]; top = k; } }
+    var coverage = {};
+    for (var k in hues) {
+      coverage[k] = segs ? hues[k] / segs : 0;
+      if (hues[k] > topN) { topN = hues[k]; top = k; }
+    }
     return {
       curl: n ? curlSum / n : 0,
       length: n ? lenSum / n : 0,
       mainColor: top,
+      coverage: coverage,
       style: state.style
     };
   }
@@ -372,7 +400,7 @@
   global.Hair = {
     HEAD: HEAD, SHOULDER_Y: SHOULDER_Y, SHOULDER_HALF: SHOULDER_HALF, shoulderAt: shoulderAt, SEGS: SEGS, SEG_LEN: SEG_LEN,
     createHair: createHair, step: step, displayPoints: displayPoints,
-    brush: brush, cut: cut, dye: dye, curl: curl, blow: blow,
+    brush: brush, cut: cut, grow: grow, dye: dye, curl: curl, blow: blow,
     nearestSegment: nearestSegment, resetHair: resetHair, measure: measure,
     gatherPoint: gatherPoint, BEHIND_STYLES: BEHIND_STYLES,
     clamp: clamp, lerp: lerp, rand: rand

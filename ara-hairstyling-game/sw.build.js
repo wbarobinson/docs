@@ -1,5 +1,5 @@
 /* Caches the salon so it keeps working with no wifi (in the car, on a plane). */
-var CACHE = 'ara-salon-__BUILD__'; // build.js stamps a content hash here
+var CACHE = 'ara-salon-16ab460f05'; // build.js stamps a content hash here
 var FILES = [
   './', './index.html', './style.css',
   './js/hair.js', './js/render.js', './js/store.js', './js/merge.js',

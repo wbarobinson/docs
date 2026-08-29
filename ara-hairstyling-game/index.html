@@ -19,6 +19,8 @@
 
 <header id="topbar">
   <button id="btn-clients" class="round" aria-label="Choose a client">🔔</button>
+  <button id="btn-profile" class="round" aria-label="Who is playing?">🦜</button>
+  <button id="btn-progress" class="chip-progress" aria-label="Your stars and badges">⭐ <b id="star-count">0</b> <span id="rank-name"></span></button>
   <div id="request" aria-live="polite"></div>
   <div class="spacer"></div>
   <button id="btn-undo" class="round" aria-label="Undo">↩️</button>
@@ -37,6 +39,7 @@
 <nav id="dock">
   <button data-tool="brush"><span>💆</span><em>Brush</em></button>
   <button data-tool="scissors"><span>✂️</span><em>Cut</em></button>
+  <button data-tool="grow"><span>🌱</span><em>Grow</em></button>
   <button data-tool="dye"><span>🎨</span><em>Color</em></button>
   <button data-tool="curl"><span>🌀</span><em>Curl</em></button>
   <button data-tool="straight"><span>💧</span><em>Straight</em></button>
@@ -82,6 +85,77 @@
   </div>
 </div>
 
+<div id="party-view" class="overlay party">
+  <div class="card party-card">
+    <div id="party-dots" class="party-dots"></div>
+    <div id="party-word" class="party-word"></div>
+    <div id="party-grid" class="party-grid"></div>
+    <div class="row">
+      <button id="party-say">🔊 Say it</button>
+      <button id="party-skip">Skip</button>
+    </div>
+  </div>
+</div>
+
+<div id="progress-view" class="overlay">
+  <div class="card">
+    <h2 id="progress-rank"></h2>
+    <div id="progress-bar"><i></i><span></span></div>
+    <div id="progress-stats" class="stat-row"></div>
+    <h3 class="shelf-title">Your badges</h3>
+    <div id="badge-grid" class="badge-grid"></div>
+    <h3 class="shelf-title">Words you can read 📖</h3>
+    <div id="word-shelf" class="word-shelf"></div>
+    <div class="row">
+      <button id="progress-close" class="primary">Back to the salon</button>
+    </div>
+  </div>
+</div>
+
+<div id="profile-view" class="overlay">
+  <div class="card">
+    <h2>Who is playing? </h2>
+    <div id="profile-grid" class="chips"></div>
+    <div class="row">
+      <button id="grownups-open">🔒 Grown-ups</button>
+      <button id="profile-close" class="primary">Play!</button>
+    </div>
+  </div>
+</div>
+
+<div id="grownups-view" class="overlay">
+  <div class="card grownups">
+    <h2>Grown-ups 🔒</h2>
+    <p class="hint">Progress lives on this iPad. A family code copies it between devices; the backup box is a copy you can paste anywhere safe.</p>
+    <div class="gu-block">
+      <h3>Family code</h3>
+      <div id="gu-sync-state" class="hint"></div>
+      <div class="row">
+        <button id="gu-create">Make a code</button>
+        <button id="gu-join">Type a code</button>
+        <button id="gu-leave" hidden>Forget the code</button>
+      </div>
+    </div>
+    <div class="gu-block">
+      <h3>Backup</h3>
+      <textarea id="gu-backup" rows="3" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="gu-copy">Copy backup</button>
+        <button id="gu-import">Paste one back in</button>
+      </div>
+    </div>
+    <div class="gu-block">
+      <h3>Word Party</h3>
+      <label class="gu-toggle"><input type="checkbox" id="gu-party"> Reading round between clients</label>
+    </div>
+    <div class="row">
+      <button id="grownups-close" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="badge-pop"></div>
+
 <div id="client-view" class="overlay">
   <div class="card">
     <h2>Who is next? 🔔</h2>
@@ -100,13 +174,19 @@
 
 <script src="js/hair.js"></script>
 <script src="js/render.js"></script>
+<script src="js/store.js"></script>
+<script src="js/merge.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/words.js"></script>
 <script src="js/clients.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/badges.js"></script>
+<script src="js/party.js"></script>
 <script src="js/game.js"></script>
 <script>
 window.Game.start();
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-  navigator.serviceWorker.register('sw.js').catch(function () { /* offline mode is optional */ });
+  navigator.serviceWorker.register('sw.build.js').catch(function () { /* offline mode is optional */ });
 }
 </script>
 </body>

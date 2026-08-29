@@ -97,8 +97,8 @@ html, body {
 #request .wish.done {
   background: #b6ecd0;
   color: #1f6b48;
-  text-decoration: line-through;
 }
+#request .wish.done .w::after { content: ' ⭐'; }
 
 /* ---------- tool dock ---------- */
 
@@ -364,6 +364,265 @@ body.fitting #topbar { display: none; }
 #fitbar button.primary { background: #ff8fc4; color: #fff; font-size: 19px; padding: 0 18px; }
 #fitbar button:active { transform: translateY(2px); }
 
+/* ---------- progress chip in the topbar ---------- */
+
+.chip-progress {
+  height: 62px;
+  border: none;
+  border-radius: 31px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  color: inherit;
+  background: #fff6fb;
+  box-shadow: 0 4px 0 #e79cc4, 0 8px 18px rgba(160, 60, 110, 0.22);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.chip-progress:active { transform: translateY(3px); box-shadow: 0 1px 0 #e79cc4; }
+.chip-progress #rank-name { font-size: 15px; font-weight: 700; opacity: 0.75; }
+
+/* ---------- word party ---------- */
+
+.overlay.party { background: rgba(255, 214, 236, 0.92); }
+.party-card { min-width: min(560px, 92vw); }
+.party-dots { font-size: 22px; min-height: 28px; letter-spacing: 3px; }
+.party-word {
+  font-size: clamp(56px, 12vh, 96px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #c2417f;
+  margin: 6px 0 10px;
+}
+.party-word.pop { animation: party-pop 0.35s ease-out; }
+@keyframes party-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.party-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 14px;
+  justify-items: stretch;
+  margin: 6px auto 10px;
+  max-width: 420px;
+}
+.party-choice {
+  font-size: 64px;
+  padding: 18px 10px;
+  border: none;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 5px 0 #e79cc4;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.25s;
+}
+.party-choice:active { transform: translateY(3px); }
+.party-choice.right { background: #b6ecd0; animation: party-pop 0.3s; }
+.party-choice.wrong { animation: wiggle 0.3s; }
+.party-choice.gone { opacity: 0.25; transform: scale(0.82); pointer-events: none; }
+@keyframes wiggle { 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+
+/* ---------- progress card ---------- */
+
+#progress-bar {
+  position: relative;
+  height: 30px;
+  border-radius: 15px;
+  background: #ffe3f1;
+  overflow: hidden;
+  margin: 4px 12px;
+  flex: 0 0 auto;
+}
+#progress-bar i {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: linear-gradient(90deg, #ffb84d, #ff8fc4);
+  border-radius: 15px;
+  transition: right 0.6s ease-out;
+}
+#progress-bar span {
+  position: relative;
+  display: block;
+  line-height: 30px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.stat-row {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 16px;
+  font-weight: 700;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+.shelf-title { margin: 10px 0 6px; font-size: 18px; flex: 0 0 auto; }
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.badge-tile {
+  background: #ffe3f1;
+  border-radius: 16px;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.badge-tile .e { font-size: 30px; display: block; }
+.badge-tile.locked { opacity: 0.38; filter: grayscale(1); }
+.word-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  overflow-y: auto;
+  max-height: 120px;
+  flex: 0 1 auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.word-shelf .w {
+  background: #b6ecd0;
+  color: #1f6b48;
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.word-shelf .empty-w { opacity: 0.65; font-size: 14px; }
+
+/* ---------- badge celebration ---------- */
+
+#badge-pop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#badge-pop.show { opacity: 1; }
+.badge-card {
+  background: #fff6fb;
+  border-radius: 30px;
+  padding: 26px 40px;
+  text-align: center;
+  box-shadow: 0 16px 50px rgba(120, 30, 80, 0.4);
+  animation: party-pop 0.4s;
+}
+.badge-emoji { font-size: 74px; }
+.badge-name { font-size: 26px; font-weight: 800; color: #c2417f; }
+.badge-blurb { font-size: 16px; opacity: 0.8; }
+
+/* ---------- grown-ups ---------- */
+
+.grownups { text-align: left; }
+.gu-block { margin: 12px 4px; flex: 0 0 auto; }
+.gu-block h3 { margin: 0 0 6px; font-size: 17px; }
+#gu-backup {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 2px solid #ffd0e6;
+  font-size: 12px;
+  font-family: monospace;
+  padding: 8px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.gu-toggle { font-size: 16px; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.gu-toggle input { width: 22px; height: 22px; }
+
+/* wish chips carry the word big and hide the emoji until it is earned */
+#request .wish { display: inline-flex; align-items: center; gap: 6px; }
+#request .wish .peek { display: none; }
+#request .wish.peeking .peek, #request .wish.done .peek { display: inline; }
+#request .wish.done { text-decoration: none; }
+
+
+/* labels under swatches and accessory chips: reading everywhere */
+.swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; }
+.swatch-wrap em { font-style: normal; font-size: 12px; font-weight: 800; }
+.chip.worded { min-width: 70px; height: 78px; font-size: 27px; }
+.chip.worded em { font-style: normal; font-size: 11.5px; font-weight: 800; }
+.pack-label {
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0.7;
+  margin: 4px 0 0;
+}
+.pack-label.locked { opacity: 0.45; }
+
+/* bigger wish chips: they are the curriculum */
+#request { font-size: 21px; max-width: 56vw; }
+#request .wish {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#request .wish.granted { animation: party-pop 0.4s; }
+#request .wish .peek { font-size: 24px; }
+
+/* stars land one at a time on the photo card */
+.star-in {
+  display: inline-block;
+  opacity: 0;
+  animation: star-land 0.4s ease-out forwards;
+}
+@keyframes star-land {
+  from { opacity: 0; transform: scale(2.4) rotate(-30deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+/* the star chip pulses when new stars land */
+.chip-progress.minted { animation: mint 0.7s ease-out; }
+@keyframes mint {
+  30% { transform: scale(1.18); box-shadow: 0 4px 0 #e79cc4, 0 0 26px #ffd23f; }
+}
+
+/* hold-to-really-do-it buttons fill up while pressed */
+.holdable { position: relative; overflow: hidden; }
+.holdable.holding::before {
+  content: '';
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: rgba(240, 71, 63, 0.35);
+  animation: holdfill 1.2s linear forwards;
+}
+@keyframes holdfill { to { inset: 0 0 0 0; } }
+
+/* Narrow screens: the late "bigger chips" override above must not undo the
+   small-screen sizing, so it is re-asserted here at the end of the cascade. */
+@media (max-width: 820px) {
+  #request { font-size: 17px; max-width: 50vw; }
+  #request .wish { padding: 6px 12px; }
+}
+
+/* a colour wish peeks as the colour itself */
+#request .wish .peek.dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 3px rgba(120, 30, 80, 0.3);
+}
+
 </style>
 </head>
 <body>
@@ -371,6 +630,8 @@ body.fitting #topbar { display: none; }
 
 <header id="topbar">
   <button id="btn-clients" class="round" aria-label="Choose a client">🔔</button>
+  <button id="btn-profile" class="round" aria-label="Who is playing?">🦜</button>
+  <button id="btn-progress" class="chip-progress" aria-label="Your stars and badges">⭐ <b id="star-count">0</b> <span id="rank-name"></span></button>
   <div id="request" aria-live="polite"></div>
   <div class="spacer"></div>
   <button id="btn-undo" class="round" aria-label="Undo">↩️</button>
@@ -389,6 +650,7 @@ body.fitting #topbar { display: none; }
 <nav id="dock">
   <button data-tool="brush"><span>💆</span><em>Brush</em></button>
   <button data-tool="scissors"><span>✂️</span><em>Cut</em></button>
+  <button data-tool="grow"><span>🌱</span><em>Grow</em></button>
   <button data-tool="dye"><span>🎨</span><em>Color</em></button>
   <button data-tool="curl"><span>🌀</span><em>Curl</em></button>
   <button data-tool="straight"><span>💧</span><em>Straight</em></button>
@@ -433,6 +695,77 @@ body.fitting #topbar { display: none; }
     </div>
   </div>
 </div>
+
+<div id="party-view" class="overlay party">
+  <div class="card party-card">
+    <div id="party-dots" class="party-dots"></div>
+    <div id="party-word" class="party-word"></div>
+    <div id="party-grid" class="party-grid"></div>
+    <div class="row">
+      <button id="party-say">🔊 Say it</button>
+      <button id="party-skip">Skip</button>
+    </div>
+  </div>
+</div>
+
+<div id="progress-view" class="overlay">
+  <div class="card">
+    <h2 id="progress-rank"></h2>
+    <div id="progress-bar"><i></i><span></span></div>
+    <div id="progress-stats" class="stat-row"></div>
+    <h3 class="shelf-title">Your badges</h3>
+    <div id="badge-grid" class="badge-grid"></div>
+    <h3 class="shelf-title">Words you can read 📖</h3>
+    <div id="word-shelf" class="word-shelf"></div>
+    <div class="row">
+      <button id="progress-close" class="primary">Back to the salon</button>
+    </div>
+  </div>
+</div>
+
+<div id="profile-view" class="overlay">
+  <div class="card">
+    <h2>Who is playing? </h2>
+    <div id="profile-grid" class="chips"></div>
+    <div class="row">
+      <button id="grownups-open">🔒 Grown-ups</button>
+      <button id="profile-close" class="primary">Play!</button>
+    </div>
+  </div>
+</div>
+
+<div id="grownups-view" class="overlay">
+  <div class="card grownups">
+    <h2>Grown-ups 🔒</h2>
+    <p class="hint">Progress lives on this iPad. A family code copies it between devices; the backup box is a copy you can paste anywhere safe.</p>
+    <div class="gu-block">
+      <h3>Family code</h3>
+      <div id="gu-sync-state" class="hint"></div>
+      <div class="row">
+        <button id="gu-create">Make a code</button>
+        <button id="gu-join">Type a code</button>
+        <button id="gu-leave" hidden>Forget the code</button>
+      </div>
+    </div>
+    <div class="gu-block">
+      <h3>Backup</h3>
+      <textarea id="gu-backup" rows="3" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="gu-copy">Copy backup</button>
+        <button id="gu-import">Paste one back in</button>
+      </div>
+    </div>
+    <div class="gu-block">
+      <h3>Word Party</h3>
+      <label class="gu-toggle"><input type="checkbox" id="gu-party"> Reading round between clients</label>
+    </div>
+    <div class="row">
+      <button id="grownups-close" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="badge-pop"></div>
 
 <div id="client-view" class="overlay">
   <div class="card">
@@ -753,6 +1086,28 @@ body.fitting #topbar { display: none; }
     return cutAny;
   }
 
+  function grow(state, x, y, r, naturalColor) {
+    var grew = false;
+    var strands = state.strands;
+    for (var si = 0; si < strands.length; si++) {
+      var s = strands[si];
+      if (s.n >= s.maxN) { continue; }
+      var tip = s.pts[s.n];
+      if (Math.hypot(tip.x - x, tip.y - y) < r) {
+        s.n++;
+        var p = s.pts[s.n];
+        // The new point sprouts at the tip, not wherever it was left lying,
+        // so the strand does not snap across the screen.
+        p.x = tip.x + rand(-3, 3);
+        p.y = tip.y + 4;
+        p.ox = p.x; p.oy = p.y;
+        s.cols[s.n - 1] = naturalColor;
+        grew = true;
+      }
+    }
+    return grew;
+  }
+
   function dye(state, x, y, r, color) {
     var painted = false;
     eachNearPoint(state.strands, x, y, r, function (s, i, p, f) {
@@ -801,7 +1156,7 @@ body.fitting #topbar { display: none; }
   /* ---------- measurements, used to score a client's request ---------- */
 
   function measure(state) {
-    var s, i, n = 0, curlSum = 0, lenSum = 0;
+    var s, i, n = 0, curlSum = 0, lenSum = 0, segs = 0;
     var hues = {};
     for (i = 0; i < state.strands.length; i++) {
       s = state.strands[i];
@@ -809,15 +1164,21 @@ body.fitting #topbar { display: none; }
       curlSum += s.curl;
       lenSum += s.n / s.maxN;
       for (var c = 0; c < s.n; c++) {
+        segs++;
         hues[s.cols[c]] = (hues[s.cols[c]] || 0) + 1;
       }
     }
     var top = null, topN = 0;
-    for (var k in hues) { if (hues[k] > topN) { topN = hues[k]; top = k; } }
+    var coverage = {};
+    for (var k in hues) {
+      coverage[k] = segs ? hues[k] / segs : 0;
+      if (hues[k] > topN) { topN = hues[k]; top = k; }
+    }
     return {
       curl: n ? curlSum / n : 0,
       length: n ? lenSum / n : 0,
       mainColor: top,
+      coverage: coverage,
       style: state.style
     };
   }
@@ -825,7 +1186,7 @@ body.fitting #topbar { display: none; }
   global.Hair = {
     HEAD: HEAD, SHOULDER_Y: SHOULDER_Y, SHOULDER_HALF: SHOULDER_HALF, shoulderAt: shoulderAt, SEGS: SEGS, SEG_LEN: SEG_LEN,
     createHair: createHair, step: step, displayPoints: displayPoints,
-    brush: brush, cut: cut, dye: dye, curl: curl, blow: blow,
+    brush: brush, cut: cut, grow: grow, dye: dye, curl: curl, blow: blow,
     nearestSegment: nearestSegment, resetHair: resetHair, measure: measure,
     gatherPoint: gatherPoint, BEHIND_STYLES: BEHIND_STYLES,
     clamp: clamp, lerp: lerp, rand: rand
@@ -1018,11 +1379,778 @@ body.fitting #topbar { display: none; }
   };
 })(window);
 
+/*
+ * store.js — everything the salon remembers about a stylist.
+ *
+ * Ported from Ara's Number Jungle: one localStorage key, a backup copy of the
+ * last good state, and a session key for the makeover she is half way
+ * through. Ara and Jon get fixed profile ids so a family-code merge
+ * recognises the same child on every device.
+ *
+ * Totals are derived from an append-only log plus a frozen baseline, because
+ * two devices are merged by taking the union of their logs — max loses work
+ * and sum double-counts.
+ */
+;(function (root) {
+  var SALON = (root.SalonStore = root.SalonStore || {})
+  var KEY = 'arahairsalon.v1'
+  var BAK = KEY + '.bak'
+  var SESSION = KEY + '.session'
+  var GALLERY = KEY + '.gallery.' // + profile id; photos are heavy, kept apart
+  var storageOk = null
+
+  var DEFAULT_SETTINGS = { sound: true, party: true }
+
+  function today() {
+    var d = new Date()
+    return (
+      d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0')
+    )
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36)
+  }
+
+  function newProfile(name, avatar, id) {
+    return {
+      id: id || 'p' + uid(),
+      name: name || 'Ara',
+      avatar: avatar || '🦜',
+      createdAt: Date.now(),
+      settings: Object.assign({}, DEFAULT_SETTINGS),
+      // "cat" -> { n, wrong, hints, lastAt, level } — every word she has read
+      words: {},
+      level: 1, // current reading level, moves up as words stick
+      badges: {}, // id -> earnedAt
+      days: {}, // "2026-08-29" -> { clients, stars, words }
+      // Append-only record of finished clients and word rounds. Merging two
+      // devices is the union of their logs; totals fall out of that.
+      log: [],
+      baseline: { clients: 0, stars: 0, wishes: 0, words: 0, photos: 0, fiveStar: 0 },
+      streak: { current: 0, best: 0, lastDay: null },
+      flags: {}, // one-off event flags: usedRealPhoto, rainbowInOneLook
+      totals: { clients: 0, stars: 0, wishes: 0, words: 0, photos: 0, fiveStar: 0 },
+      styleCounts: {}, accCounts: {}, colorCounts: {}, clientCounts: {},
+    }
+  }
+
+  var state = null
+
+  function canStore() {
+    if (storageOk !== null) return storageOk
+    try {
+      root.localStorage.setItem(KEY + '.probe', '1')
+      root.localStorage.removeItem(KEY + '.probe')
+      storageOk = true
+    } catch (e) {
+      storageOk = false
+    }
+    return storageOk
+  }
+
+  function readJSON(key) {
+    try {
+      var raw = root.localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : null
+    } catch (e) {
+      return null
+    }
+  }
+
+  function looksValid(x) {
+    return !!(x && x.profiles && x.profiles.length && x.profiles[0].id)
+  }
+
+  function fresh() {
+    var ara = newProfile('Ara', '🦜', 'ara')
+    var jon = newProfile('Jon', '🦖', 'jon')
+    return { version: 1, activeId: ara.id, profiles: [ara, jon] }
+  }
+
+  /* Recompute derived numbers from baseline + log. Runs on load and after
+     merges, so a bug can never leave the totals drifting from the record. */
+  function derive(p) {
+    var t = {
+      clients: p.baseline.clients || 0,
+      stars: p.baseline.stars || 0,
+      wishes: p.baseline.wishes || 0,
+      words: p.baseline.words || 0,
+      photos: p.baseline.photos || 0,
+      fiveStar: p.baseline.fiveStar || 0,
+    }
+    var style = {}, acc = {}, color = {}, who = {}
+    p.log.forEach(function (e) {
+      if (e.kind === 'client') {
+        t.stars += e.stars || 0
+        // Exactly one event per visit can carry a final score of five: a
+        // re-shoot only exists when it improved, so it cannot repeat a five.
+        if ((e.finalStars || e.stars) >= 5) t.fiveStar++
+        // A re-shoot of the same visit pays its star improvement only; the
+        // visit itself, and everything "per client", was already counted.
+        if (e.reshoot) return
+        t.clients++
+        t.wishes += e.got || 0
+        if (e.photo) t.photos++
+        if (e.style) style[e.style] = (style[e.style] || 0) + 1
+        ;(e.accs || []).forEach(function (a) { acc[a] = (acc[a] || 0) + 1 })
+        ;(e.colors || []).forEach(function (c) { color[c] = (color[c] || 0) + 1 })
+        if (e.client) who[e.client] = (who[e.client] || 0) + 1
+      } else if (e.kind === 'word') {
+        t.words++
+        t.stars += e.stars || 0
+      }
+    })
+    p.totals = t
+    p.styleCounts = style
+    p.accCounts = acc
+    p.colorCounts = color
+    p.clientCounts = who
+  }
+
+  function load() {
+    if (state) return state
+    var main = readJSON(KEY)
+    if (looksValid(main)) state = main
+    else {
+      var bak = readJSON(BAK)
+      state = looksValid(bak) ? bak : fresh()
+      if (looksValid(bak)) state.restoredFromBackup = true
+    }
+
+    normaliseSeededIds(state)
+    if (!state.profiles.some(function (p) { return p.id === 'jon' || p.name === 'Jon' })) {
+      state.profiles.push(newProfile('Jon', '🦖', 'jon'))
+    }
+
+    state.profiles.forEach(function (p) {
+      p.settings = Object.assign({}, DEFAULT_SETTINGS, p.settings || {})
+      ;['words', 'badges', 'days', 'flags'].forEach(function (k) { if (!p[k]) p[k] = {} })
+      if (!p.streak) p.streak = { current: 0, best: 0, lastDay: null }
+      if (!p.log) p.log = []
+      if (!p.baseline) p.baseline = { clients: 0, stars: 0, wishes: 0, words: 0, photos: 0, fiveStar: 0 }
+      if (!p.level) p.level = 1
+      derive(p)
+    })
+    return state
+  }
+
+  function normaliseSeededIds(state) {
+    ;[{ id: 'ara', name: 'Ara' }, { id: 'jon', name: 'Jon' }].forEach(function (seed) {
+      if (state.profiles.some(function (p) { return p.id === seed.id })) return
+      var candidates = state.profiles.filter(function (p) { return p.name === seed.name })
+      if (candidates.length !== 1) return
+      var was = candidates[0].id
+      candidates[0].id = seed.id
+      if (state.activeId === was) state.activeId = seed.id
+    })
+  }
+
+  function save() {
+    if (!canStore()) return false
+    var s = load()
+    s.savedAt = Date.now()
+    try {
+      var text = JSON.stringify(s)
+      var previous = root.localStorage.getItem(KEY)
+      if (previous && looksValid(readJSON(KEY))) root.localStorage.setItem(BAK, previous)
+      root.localStorage.setItem(KEY, text)
+      if (SALON.sync && SALON.sync.schedule) SALON.sync.schedule()
+      return true
+    } catch (e) {
+      // Out of quota. Photos are re-takeable and the backup is not, so the
+      // gallery goes first, the backup last.
+      try {
+        s.profiles.forEach(function (p) {
+          try { root.localStorage.removeItem(GALLERY + p.id) } catch (e3) {}
+        })
+        root.localStorage.setItem(KEY, JSON.stringify(s))
+        return true
+      } catch (e2) {
+        try {
+          root.localStorage.removeItem(BAK)
+          root.localStorage.setItem(KEY, JSON.stringify(s))
+          return true
+        } catch (e4) {
+          return false
+        }
+      }
+    }
+  }
+
+  function replace(next) {
+    if (!looksValid(next)) return false
+    state = next
+    state.profiles.forEach(derive)
+    return save()
+  }
+
+  function profile() {
+    var s = load()
+    for (var i = 0; i < s.profiles.length; i++) {
+      if (s.profiles[i].id === s.activeId) return s.profiles[i]
+    }
+    s.activeId = s.profiles[0].id
+    return s.profiles[0]
+  }
+
+  function setActive(id) {
+    var s = load()
+    if (s.profiles.some(function (p) { return p.id === id })) {
+      s.activeId = id
+      save()
+    }
+    return profile()
+  }
+
+  /* ---------- recording what happened ---------------------------------- */
+
+  function bumpDay(p, field, by) {
+    var d = today()
+    if (!p.days[d]) p.days[d] = { clients: 0, stars: 0, words: 0 }
+    p.days[d][field] = (p.days[d][field] || 0) + (by || 1)
+    // A gentle streak: doing anything today counts, and a missed day just
+    // starts a fresh run — no scolding, the best run is remembered forever.
+    var st = p.streak
+    if (st.lastDay !== d) {
+      var yesterday = new Date(Date.now() - 86400000)
+      var y = yesterday.getFullYear() + '-' +
+        String(yesterday.getMonth() + 1).padStart(2, '0') + '-' +
+        String(yesterday.getDate()).padStart(2, '0')
+      st.current = st.lastDay === y ? st.current + 1 : 1
+      if (st.current > st.best) st.best = st.current
+      st.lastDay = d
+    }
+  }
+
+  function recordClient(ev) {
+    var p = profile()
+    p.log.push({
+      id: uid(), t: Date.now(), kind: 'client',
+      stars: ev.stars, got: ev.got, total: ev.total,
+      reshoot: !!ev.reshoot, finalStars: ev.finalStars || ev.stars,
+      style: ev.style, accs: ev.accs || [], colors: ev.colors || [],
+      client: ev.client, photo: !!ev.photo,
+    })
+    if (ev.photo) p.flags.usedRealPhoto = true
+    if (ev.rainbow) p.flags.rainbowInOneLook = true
+    if (!ev.reshoot) bumpDay(p, 'clients')
+    bumpDay(p, 'stars', ev.stars)
+    derive(p)
+    save()
+    return p
+  }
+
+  function recordWord(word, ok, level, hinted) {
+    var p = profile()
+    var w = p.words[word] || { n: 0, wrong: 0, hints: 0, level: level || 1, lastAt: 0 }
+    if (ok) w.n++
+    else if (!hinted) w.wrong++ // "say it" is help asked for, never a fail
+    if (hinted) w.hints++
+    w.level = level || w.level
+    w.lastAt = Date.now()
+    p.words[word] = w
+    if (ok) {
+      p.log.push({ id: uid(), t: Date.now(), kind: 'word', word: word, stars: 1 })
+      bumpDay(p, 'words')
+      bumpDay(p, 'stars', 1)
+    }
+    derive(p)
+    save()
+    return p
+  }
+
+  function earnBadge(id) {
+    var p = profile()
+    if (p.badges[id]) return false
+    p.badges[id] = Date.now()
+    save()
+    return true
+  }
+
+  /* ---------- the makeover she is half way through ---------------------- */
+
+  function saveSession(snapshot) {
+    if (!canStore()) return
+    snapshot.profileId = load().activeId
+    snapshot.savedAt = Date.now()
+    try {
+      root.localStorage.setItem(SESSION, JSON.stringify(snapshot))
+    } catch (e) {}
+  }
+
+  function loadSession() {
+    var snap = readJSON(SESSION)
+    if (!snap || !snap.strands || !snap.strands.length) return null
+    if (Date.now() - (snap.savedAt || 0) > 86400000) return null
+    if (snap.profileId && snap.profileId !== load().activeId) return null
+    return snap
+  }
+
+  function clearSession() {
+    try { root.localStorage.removeItem(SESSION) } catch (e) {}
+  }
+
+  /* ---------- the sticker book ------------------------------------------ */
+  /* Photos are dataURLs and dwarf everything else, so they live under their
+     own per-profile key, outside the merged/exported state. */
+
+  function galleryKey() { return GALLERY + load().activeId }
+
+  function galleryAll() {
+    return readJSON(galleryKey()) || []
+  }
+
+  // Budgeted by bytes, not count: small stickers mean she keeps dozens, and
+  // nothing is ever silently chopped to a handful.
+  var GALLERY_BUDGET = 1200000
+
+  function galleryAdd(data) {
+    var list = galleryAll()
+    list.unshift(data)
+    var bytes = list.reduce(function (n, d) { return n + d.length }, 0)
+    while (list.length > 1 && bytes > GALLERY_BUDGET) {
+      bytes -= list.pop().length
+    }
+    for (;;) {
+      try {
+        root.localStorage.setItem(galleryKey(), JSON.stringify(list))
+        break
+      } catch (e) {
+        if (list.length <= 1) break
+        list.pop() // quota squeeze: drop the oldest, one at a time
+      }
+    }
+    return list
+  }
+
+  function galleryClear() {
+    try { root.localStorage.removeItem(galleryKey()) } catch (e) {}
+  }
+
+  /* ---------- backup you can paste somewhere safe ------------------------ */
+
+  function exportText() {
+    return JSON.stringify(load())
+  }
+
+  function importText(text) {
+    var incoming
+    try {
+      incoming = JSON.parse(String(text).trim())
+    } catch (e) {
+      return { ok: false, error: 'That does not look like a backup — it should start with {' }
+    }
+    if (!looksValid(incoming)) return { ok: false, error: 'No stylists found in that backup.' }
+    // Never lose local work to a paste: merge, don't overwrite.
+    var merged = root.SalonMerge ? root.SalonMerge(load(), incoming) : incoming
+    state = null
+    try {
+      root.localStorage.setItem(KEY, JSON.stringify(merged))
+    } catch (e) {
+      return { ok: false, error: 'This browser will not let the app save.' }
+    }
+    load()
+    return { ok: true, profiles: merged.profiles.length }
+  }
+
+  SALON.store = {
+    KEY: KEY,
+    canStore: canStore,
+    load: load,
+    save: save,
+    replace: replace,
+    profile: profile,
+    setActive: setActive,
+    newProfile: newProfile,
+    recordClient: recordClient,
+    recordWord: recordWord,
+    earnBadge: earnBadge,
+    saveSession: saveSession,
+    loadSession: loadSession,
+    clearSession: clearSession,
+    galleryAll: galleryAll,
+    galleryAdd: galleryAdd,
+    galleryClear: galleryClear,
+    exportText: exportText,
+    importText: importText,
+    today: today,
+    derive: derive,
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this)
+
+/*
+ * merge.js — combining two copies of the same family's salon.
+ *
+ * Ported from Ara's Number Jungle. Neither copy is "right", so we never pick
+ * a winner wholesale: logs are unioned, counters take the better number, and
+ * a badge once earned is earned forever. merge(a, b) equals merge(b, a).
+ */
+;(function (root) {
+  var SALON = (root.SalonStore = root.SalonStore || {})
+
+  function maxOf(a, b) { return (a || 0) > (b || 0) ? a || 0 : b || 0 }
+  function newer(a, b) { return (a.savedAt || 0) >= (b.savedAt || 0) ? a : b }
+
+  function mergeWords(a, b) {
+    var out = {}
+    Object.keys(a || {}).forEach(function (k) { out[k] = a[k] })
+    Object.keys(b || {}).forEach(function (k) {
+      var mine = out[k], theirs = b[k]
+      if (!mine) { out[k] = theirs; return }
+      out[k] = {
+        n: maxOf(mine.n, theirs.n),
+        wrong: maxOf(mine.wrong, theirs.wrong),
+        hints: maxOf(mine.hints, theirs.hints),
+        level: maxOf(mine.level, theirs.level),
+        lastAt: maxOf(mine.lastAt, theirs.lastAt),
+      }
+    })
+    return out
+  }
+
+  function mergeDays(a, b) {
+    var out = {}
+    var keys = {}
+    Object.keys(a || {}).forEach(function (k) { keys[k] = true })
+    Object.keys(b || {}).forEach(function (k) { keys[k] = true })
+    Object.keys(keys).forEach(function (day) {
+      var x = (a || {})[day] || {}, y = (b || {})[day] || {}
+      out[day] = {
+        clients: maxOf(x.clients, y.clients),
+        stars: maxOf(x.stars, y.stars),
+        words: maxOf(x.words, y.words),
+      }
+    })
+    return out
+  }
+
+  function mergeBadges(a, b) {
+    var out = {}
+    Object.keys(a || {}).forEach(function (k) { out[k] = a[k] })
+    Object.keys(b || {}).forEach(function (k) {
+      // Earned once, earned forever; the first time is the true one.
+      out[k] = out[k] ? Math.min(out[k], b[k]) : b[k]
+    })
+    return out
+  }
+
+  function mergeLog(a, b) {
+    var seen = {}
+    var out = []
+    ;(a || []).concat(b || []).forEach(function (e) {
+      var key = e.id || e.t + ':' + e.kind
+      if (seen[key]) return
+      seen[key] = true
+      out.push(e)
+    })
+    out.sort(function (x, y) { return (x.t || 0) - (y.t || 0) })
+    return out
+  }
+
+  function mergeFlags(a, b) {
+    var out = {}
+    Object.keys(a || {}).forEach(function (k) { if (a[k]) out[k] = a[k] })
+    Object.keys(b || {}).forEach(function (k) { if (b[k]) out[k] = b[k] })
+    return out
+  }
+
+  function mergeProfile(x, y) {
+    var f = (x.createdAt || 0) <= (y.createdAt || 0) ? x : y // keep the elder identity
+    var fresher = newer(x, y)
+    var out = {
+      id: f.id,
+      name: fresher.name || f.name,
+      avatar: fresher.avatar || f.avatar,
+      createdAt: Math.min(x.createdAt || Date.now(), y.createdAt || Date.now()),
+      settings: Object.assign({}, x.settings, fresher.settings),
+      words: mergeWords(x.words, y.words),
+      level: maxOf(x.level, y.level) || 1,
+      badges: mergeBadges(x.badges, y.badges),
+      days: mergeDays(x.days, y.days),
+      log: mergeLog(x.log, y.log),
+      baseline: {
+        clients: maxOf(x.baseline && x.baseline.clients, y.baseline && y.baseline.clients),
+        stars: maxOf(x.baseline && x.baseline.stars, y.baseline && y.baseline.stars),
+        wishes: maxOf(x.baseline && x.baseline.wishes, y.baseline && y.baseline.wishes),
+        words: maxOf(x.baseline && x.baseline.words, y.baseline && y.baseline.words),
+        photos: maxOf(x.baseline && x.baseline.photos, y.baseline && y.baseline.photos),
+        fiveStar: maxOf(x.baseline && x.baseline.fiveStar, y.baseline && y.baseline.fiveStar),
+      },
+      streak: {
+        best: maxOf(x.streak && x.streak.best, y.streak && y.streak.best),
+        // The device used most recently is the only one that can speak to the
+        // current run.
+        current: (fresher.streak && fresher.streak.current) || 0,
+        lastDay: (fresher.streak && fresher.streak.lastDay) || null,
+      },
+      flags: mergeFlags(x.flags, y.flags),
+      totals: {}, styleCounts: {}, accCounts: {}, colorCounts: {}, clientCounts: {},
+    }
+    return out
+  }
+
+  function merge(a, b) {
+    var profiles = []
+    var byId = {}
+    ;(a.profiles || []).forEach(function (p) { byId[p.id] = p })
+    ;(b.profiles || []).forEach(function (p) {
+      byId[p.id] = byId[p.id] ? mergeProfile(byId[p.id], p) : p
+    })
+    Object.keys(byId).forEach(function (id) { profiles.push(byId[id]) })
+    profiles.sort(function (x, y) { return (x.createdAt || 0) - (y.createdAt || 0) })
+    var freshest = newer(a, b)
+    var out = {
+      version: 1,
+      activeId: freshest.activeId,
+      profiles: profiles,
+      savedAt: maxOf(a.savedAt, b.savedAt),
+    }
+    if (!profiles.some(function (p) { return p.id === out.activeId })) {
+      out.activeId = profiles[0] && profiles[0].id
+    }
+    if (SALON.store && SALON.store.derive) profiles.forEach(SALON.store.derive)
+    return out
+  }
+
+  root.SalonMerge = merge
+})(typeof globalThis !== 'undefined' ? globalThis : this)
+
+/*
+ * sync.js — the family account, ported from Ara's Number Jungle.
+ *
+ * No email, no password: one long random family code is the key. Type the
+ * same code on another device and everyone's salon follows them there.
+ * Local storage stays the source of truth; sync is additive and optional —
+ * if the network is down or the server is asleep, play carries on and
+ * nothing local is lost.
+ */
+;(function (root) {
+  var SALON = (root.SalonStore = root.SalonStore || {})
+  var META = 'arahairsalon.v1.sync'
+  var ENDPOINT = '/api/progress'
+  function api() { return (SALON.sync && SALON.sync.ENDPOINT) || ENDPOINT }
+  var pushTimer = null
+  var inFlight = false
+
+  function meta() {
+    try { return JSON.parse(root.localStorage.getItem(META)) || {} } catch (e) { return {} }
+  }
+  function saveMeta(m) {
+    try { root.localStorage.setItem(META, JSON.stringify(m)) } catch (e) {}
+  }
+
+  function newCode() {
+    var words = ['ribbon', 'sparkle', 'braid', 'blossom', 'seashell', 'tiara', 'velvet', 'peach', 'clover', 'comet']
+    var pick = words[Math.floor(Math.random() * words.length)]
+    var rand = ''
+    var alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'
+    for (var i = 0; i < 10; i++) rand += alphabet[Math.floor(Math.random() * alphabet.length)]
+    return pick + '-' + rand
+  }
+
+  function clean(code) {
+    return String(code || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+  }
+
+  function code() { return meta().code || null }
+
+  function status() {
+    var m = meta()
+    return {
+      code: m.code || null,
+      version: m.version || 0,
+      lastSyncAt: m.lastSyncAt || 0,
+      lastError: m.lastError || null,
+      busy: inFlight,
+    }
+  }
+
+  function fetcher() { return root.fetch ? root.fetch.bind(root) : null }
+
+  function pull() {
+    var m = meta()
+    var f = fetcher()
+    if (!m.code || !f) return Promise.resolve({ ok: false, reason: 'no-code' })
+    inFlight = true
+    return f(api() + '?code=' + encodeURIComponent(m.code), { headers: { accept: 'application/json' } })
+      .then(function (res) {
+        if (res.status === 404) return { ok: true, empty: true }
+        if (!res.ok) throw new Error('server said ' + res.status)
+        return res.json()
+      })
+      .then(function (body) {
+        inFlight = false
+        if (body.empty) {
+          saveMeta(Object.assign(m, { lastSyncAt: Date.now(), lastError: null }))
+          return { ok: true, empty: true }
+        }
+        var merged = root.SalonMerge(SALON.store.load(), body.data)
+        SALON.store.replace(merged)
+        saveMeta(Object.assign(m, { version: body.version, lastSyncAt: Date.now(), lastError: null }))
+        return { ok: true, version: body.version }
+      })
+      .catch(function (err) {
+        inFlight = false
+        saveMeta(Object.assign(meta(), { lastError: String(err.message || err) }))
+        return { ok: false, reason: String(err.message || err) }
+      })
+  }
+
+  // Compare-and-set: if someone else wrote while we were away, the server
+  // hands back its copy, we merge it in and try once more.
+  function push(retrying) {
+    var m = meta()
+    var f = fetcher()
+    if (!m.code || !f) return Promise.resolve({ ok: false, reason: 'no-code' })
+    inFlight = true
+    var payload = { code: m.code, baseVersion: m.version || 0, data: SALON.store.load() }
+    return f(api(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) {
+        return res.json().then(function (body) { return { status: res.status, body: body } })
+      })
+      .then(function (r) {
+        inFlight = false
+        if (r.status === 409 && !retrying) {
+          var merged = root.SalonMerge(SALON.store.load(), r.body.data)
+          SALON.store.replace(merged)
+          saveMeta(Object.assign(meta(), { version: r.body.version }))
+          return push(true)
+        }
+        if (r.status !== 200) throw new Error(r.body && r.body.error ? r.body.error : 'server said ' + r.status)
+        saveMeta(Object.assign(meta(), { version: r.body.version, lastSyncAt: Date.now(), lastError: null }))
+        return { ok: true, version: r.body.version }
+      })
+      .catch(function (err) {
+        inFlight = false
+        saveMeta(Object.assign(meta(), { lastError: String(err.message || err) }))
+        return { ok: false, reason: String(err.message || err) }
+      })
+  }
+
+  function create() {
+    var m = meta()
+    m.code = newCode()
+    m.version = 0
+    saveMeta(m)
+    return push().then(function (r) { return Object.assign(r, { code: m.code }) })
+  }
+
+  function join(raw) {
+    var c = clean(raw)
+    if (c.length < 6) return Promise.resolve({ ok: false, reason: 'That code looks too short.' })
+    saveMeta({ code: c, version: 0 })
+    // Pull first so existing progress is folded in rather than replaced.
+    return pull().then(function (r) {
+      if (!r.ok) return r
+      return push().then(function (p) { return Object.assign(p, { code: c }) })
+    })
+  }
+
+  function leave() { saveMeta({}) }
+
+  // Called after every client. Debounced, because a photo moment is busy.
+  function schedule() {
+    if (!code()) return
+    if (pushTimer) root.clearTimeout(pushTimer)
+    pushTimer = root.setTimeout(function () {
+      pushTimer = null
+      push()
+    }, 2500)
+  }
+
+  function flush() {
+    if (!code()) return Promise.resolve({ ok: false, reason: 'no-code' })
+    if (pushTimer) { root.clearTimeout(pushTimer); pushTimer = null }
+    return push()
+  }
+
+  SALON.sync = {
+    META: META, ENDPOINT: ENDPOINT,
+    code: code, status: status, newCode: newCode, clean: clean,
+    create: create, join: join, leave: leave,
+    pull: pull, push: push, schedule: schedule, flush: flush,
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this)
+
+/*
+ * words.js — the reading content: every emoji the salon knows, and the word
+ * a child reads for it. Generated from a validated content pass; levels are
+ * 1 = CVC decodable, 2 = blends/digraphs, 3 = two syllables, 4 = showpiece.
+ */
+;(function (root) {
+  root.SalonWords = {
+
+  /* words for the Word Party matching game */
+  bank: [{"word":"cat","emoji":"🐱","level":1,"category":"animals"},{"word":"dog","emoji":"🐶","level":1,"category":"animals"},{"word":"pig","emoji":"🐷","level":1,"category":"animals"},{"word":"fox","emoji":"🦊","level":1,"category":"animals"},{"word":"bat","emoji":"🦇","level":1,"category":"animals"},{"word":"rat","emoji":"🐀","level":1,"category":"animals"},{"word":"bug","emoji":"🪲","level":1,"category":"animals"},{"word":"egg","emoji":"🥚","level":1,"category":"food"},{"word":"sun","emoji":"☀️","level":1,"category":"nature"},{"word":"log","emoji":"🪵","level":1,"category":"nature"},{"word":"web","emoji":"🕸️","level":1,"category":"nature"},{"word":"fog","emoji":"🌫️","level":1,"category":"nature"},{"word":"bed","emoji":"🛏️","level":1,"category":"things"},{"word":"box","emoji":"📦","level":1,"category":"things"},{"word":"pen","emoji":"🖊️","level":1,"category":"things"},{"word":"map","emoji":"🗺️","level":1,"category":"things"},{"word":"cup","emoji":"🥤","level":1,"category":"things"},{"word":"bell","emoji":"🔔","level":1,"category":"things"},{"word":"net","emoji":"🥅","level":1,"category":"things"},{"word":"hut","emoji":"🛖","level":1,"category":"things"},{"word":"can","emoji":"🥫","level":1,"category":"things"},{"word":"pan","emoji":"🍳","level":1,"category":"things"},{"word":"ten","emoji":"🔟","level":1,"category":"things"},{"word":"six","emoji":"6️⃣","level":1,"category":"things"},{"word":"pin","emoji":"📌","level":1,"category":"things"},{"word":"bag","emoji":"👜","level":1,"category":"things"},{"word":"tub","emoji":"🛁","level":1,"category":"things"},{"word":"bus","emoji":"🚌","level":1,"category":"vehicles"},{"word":"van","emoji":"🚐","level":1,"category":"vehicles"},{"word":"leg","emoji":"🦵","level":1,"category":"body"},{"word":"hat","emoji":"🎩","level":1,"category":"clothes"},{"word":"cap","emoji":"🧢","level":1,"category":"clothes"},{"word":"sad","emoji":"😢","level":1,"category":"feelings"},{"word":"mad","emoji":"😠","level":1,"category":"feelings"},{"word":"hot","emoji":"🥵","level":1,"category":"feelings"},{"word":"yum","emoji":"😋","level":1,"category":"feelings"},{"word":"ant","emoji":"🐜","level":2,"category":"animals"},{"word":"fish","emoji":"🐟","level":2,"category":"animals"},{"word":"frog","emoji":"🐸","level":2,"category":"animals"},{"word":"crab","emoji":"🦀","level":2,"category":"animals"},{"word":"duck","emoji":"🦆","level":2,"category":"animals"},{"word":"cow","emoji":"🐮","level":2,"category":"animals"},{"word":"bee","emoji":"🐝","level":2,"category":"animals"},{"word":"owl","emoji":"🦉","level":2,"category":"animals"},{"word":"shark","emoji":"🦈","level":2,"category":"animals"},{"word":"snake","emoji":"🐍","level":2,"category":"animals"},{"word":"bear","emoji":"🐻","level":2,"category":"animals"},{"word":"horse","emoji":"🐴","level":2,"category":"animals"},{"word":"cake","emoji":"🎂","level":2,"category":"food"},{"word":"bread","emoji":"🍞","level":2,"category":"food"},{"word":"cheese","emoji":"🧀","level":2,"category":"food"},{"word":"milk","emoji":"🥛","level":2,"category":"food"},{"word":"grapes","emoji":"🍇","level":2,"category":"food"},{"word":"corn","emoji":"🌽","level":2,"category":"food"},{"word":"moon","emoji":"🌙","level":2,"category":"nature"},{"word":"star","emoji":"⭐","level":2,"category":"nature"},{"word":"tree","emoji":"🌳","level":2,"category":"nature"},{"word":"leaf","emoji":"🍁","level":2,"category":"nature"},{"word":"rain","emoji":"🌧️","level":2,"category":"nature"},{"word":"cloud","emoji":"☁️","level":2,"category":"nature"},{"word":"fire","emoji":"🔥","level":2,"category":"nature"},{"word":"key","emoji":"🔑","level":2,"category":"things"},{"word":"book","emoji":"📕","level":2,"category":"things"},{"word":"ball","emoji":"⚽","level":2,"category":"things"},{"word":"clock","emoji":"⏰","level":2,"category":"things"},{"word":"house","emoji":"🏠","level":2,"category":"things"},{"word":"nose","emoji":"👃","level":2,"category":"body"},{"word":"hand","emoji":"✋","level":2,"category":"body"},{"word":"foot","emoji":"🦶","level":2,"category":"body"},{"word":"sock","emoji":"🧦","level":2,"category":"clothes"},{"word":"shoe","emoji":"👟","level":2,"category":"clothes"},{"word":"dress","emoji":"👗","level":2,"category":"clothes"},{"word":"car","emoji":"🚗","level":2,"category":"vehicles"},{"word":"train","emoji":"🚂","level":2,"category":"vehicles"},{"word":"truck","emoji":"🚚","level":2,"category":"vehicles"},{"word":"boat","emoji":"⛵","level":2,"category":"vehicles"},{"word":"cold","emoji":"🥶","level":2,"category":"feelings"},{"word":"cry","emoji":"😭","level":2,"category":"feelings"},{"word":"lion","emoji":"🦁","level":3,"category":"animals"},{"word":"tiger","emoji":"🐯","level":3,"category":"animals"},{"word":"panda","emoji":"🐼","level":3,"category":"animals"},{"word":"monkey","emoji":"🐵","level":3,"category":"animals"},{"word":"zebra","emoji":"🦓","level":3,"category":"animals"},{"word":"bunny","emoji":"🐰","level":3,"category":"animals"},{"word":"turtle","emoji":"🐢","level":3,"category":"animals"},{"word":"penguin","emoji":"🐧","level":3,"category":"animals"},{"word":"spider","emoji":"🕷️","level":3,"category":"animals"},{"word":"apple","emoji":"🍎","level":3,"category":"food"},{"word":"pizza","emoji":"🍕","level":3,"category":"food"},{"word":"cookie","emoji":"🍪","level":3,"category":"food"},{"word":"banana","emoji":"🍌","level":3,"category":"food"},{"word":"carrot","emoji":"🥕","level":3,"category":"food"},{"word":"donut","emoji":"🍩","level":3,"category":"food"},{"word":"popcorn","emoji":"🍿","level":3,"category":"food"},{"word":"flower","emoji":"🌸","level":3,"category":"nature"},{"word":"cactus","emoji":"🌵","level":3,"category":"nature"},{"word":"mushroom","emoji":"🍄","level":3,"category":"nature"},{"word":"snowman","emoji":"⛄","level":3,"category":"nature"},{"word":"robot","emoji":"🤖","level":3,"category":"things"},{"word":"pencil","emoji":"✏️","level":3,"category":"things"},{"word":"guitar","emoji":"🎸","level":3,"category":"things"},{"word":"balloon","emoji":"🎈","level":3,"category":"things"},{"word":"puzzle","emoji":"🧩","level":3,"category":"things"},{"word":"glasses","emoji":"👓","level":3,"category":"clothes"},{"word":"rocket","emoji":"🚀","level":3,"category":"vehicles"},{"word":"airplane","emoji":"✈️","level":3,"category":"vehicles"},{"word":"tractor","emoji":"🚜","level":3,"category":"vehicles"},{"word":"happy","emoji":"😊","level":3,"category":"feelings"},{"word":"excited","emoji":"🤩","level":4,"category":"feelings"},{"word":"silly","emoji":"🤪","level":3,"category":"feelings"},{"word":"sleepy","emoji":"😴","level":3,"category":"feelings"},{"word":"butterfly","emoji":"🦋","level":4,"category":"animals"},{"word":"unicorn","emoji":"🦄","level":4,"category":"animals"},{"word":"dinosaur","emoji":"🦕","level":4,"category":"animals"},{"word":"elephant","emoji":"🐘","level":4,"category":"animals"},{"word":"octopus","emoji":"🐙","level":4,"category":"animals"},{"word":"kangaroo","emoji":"🦘","level":4,"category":"animals"},{"word":"flamingo","emoji":"🦩","level":4,"category":"animals"},{"word":"caterpillar","emoji":"🐛","level":4,"category":"animals"},{"word":"mermaid","emoji":"🧜‍♀️","level":3,"category":"animals"},{"word":"watermelon","emoji":"🍉","level":4,"category":"food"},{"word":"strawberry","emoji":"🍓","level":4,"category":"food"},{"word":"pineapple","emoji":"🍍","level":4,"category":"food"},{"word":"broccoli","emoji":"🥦","level":4,"category":"food"},{"word":"spaghetti","emoji":"🍝","level":4,"category":"food"},{"word":"rainbow","emoji":"🌈","level":3,"category":"nature"},{"word":"volcano","emoji":"🌋","level":4,"category":"nature"},{"word":"snowflake","emoji":"❄️","level":3,"category":"nature"},{"word":"sunflower","emoji":"🌻","level":4,"category":"nature"},{"word":"umbrella","emoji":"☔","level":4,"category":"things"},{"word":"helicopter","emoji":"🚁","level":4,"category":"vehicles"},{"word":"surprised","emoji":"😮","level":4,"category":"feelings"}],
+
+  /* clip-on accessories, grouped into unlockable packs by category */
+  accessories: [{"word":"bow","emoji":"🎀","level":2,"category":"starter"},{"word":"cat","emoji":"🐱","level":1,"category":"starter"},{"word":"dog","emoji":"🐶","level":1,"category":"starter"},{"word":"sun","emoji":"☀️","level":1,"category":"starter"},{"word":"bug","emoji":"🪲","level":1,"category":"starter"},{"word":"hat","emoji":"🎩","level":1,"category":"starter"},{"word":"cap","emoji":"🧢","level":1,"category":"starter"},{"word":"pig","emoji":"🐷","level":1,"category":"starter"},{"word":"fox","emoji":"🦊","level":1,"category":"starter"},{"word":"heart","emoji":"❤️","level":2,"category":"starter"},{"word":"rose","emoji":"🌹","level":2,"category":"garden"},{"word":"bee","emoji":"🐝","level":2,"category":"garden"},{"word":"snail","emoji":"🐌","level":2,"category":"garden"},{"word":"leaf","emoji":"🍁","level":2,"category":"garden"},{"word":"tulip","emoji":"🌷","level":3,"category":"garden"},{"word":"daisy","emoji":"🌼","level":3,"category":"garden"},{"word":"flower","emoji":"🌸","level":3,"category":"garden"},{"word":"mushroom","emoji":"🍄","level":3,"category":"garden"},{"word":"sunflower","emoji":"🌻","level":4,"category":"garden"},{"word":"ladybug","emoji":"🐞","level":4,"category":"garden"},{"word":"butterfly","emoji":"🦋","level":4,"category":"garden"},{"word":"cake","emoji":"🎂","level":2,"category":"sweets"},{"word":"pie","emoji":"🥧","level":2,"category":"sweets"},{"word":"peach","emoji":"🍑","level":2,"category":"sweets"},{"word":"candy","emoji":"🍬","level":3,"category":"sweets"},{"word":"cupcake","emoji":"🧁","level":3,"category":"sweets"},{"word":"donut","emoji":"🍩","level":3,"category":"sweets"},{"word":"cookie","emoji":"🍪","level":3,"category":"sweets"},{"word":"cherry","emoji":"🍒","level":3,"category":"sweets"},{"word":"lollipop","emoji":"🍭","level":4,"category":"sweets"},{"word":"chocolate","emoji":"🍫","level":4,"category":"sweets"},{"word":"strawberry","emoji":"🍓","level":4,"category":"sweets"},{"word":"shell","emoji":"🐚","level":2,"category":"ocean"},{"word":"fish","emoji":"🐟","level":2,"category":"ocean"},{"word":"crab","emoji":"🦀","level":2,"category":"ocean"},{"word":"whale","emoji":"🐳","level":2,"category":"ocean"},{"word":"shark","emoji":"🦈","level":2,"category":"ocean"},{"word":"wave","emoji":"🌊","level":2,"category":"ocean"},{"word":"dolphin","emoji":"🐬","level":3,"category":"ocean"},{"word":"turtle","emoji":"🐢","level":3,"category":"ocean"},{"word":"octopus","emoji":"🐙","level":4,"category":"ocean"},{"word":"mermaid","emoji":"🧜‍♀️","level":3,"category":"ocean"},{"word":"jellyfish","emoji":"🪼","level":4,"category":"ocean"},{"word":"star","emoji":"⭐","level":2,"category":"sky"},{"word":"moon","emoji":"🌙","level":2,"category":"sky"},{"word":"cloud","emoji":"☁️","level":2,"category":"sky"},{"word":"kite","emoji":"🪁","level":2,"category":"sky"},{"word":"rocket","emoji":"🚀","level":3,"category":"sky"},{"word":"planet","emoji":"🪐","level":3,"category":"sky"},{"word":"comet","emoji":"☄️","level":3,"category":"sky"},{"word":"balloon","emoji":"🎈","level":3,"category":"sky"},{"word":"rainbow","emoji":"🌈","level":3,"category":"sky"},{"word":"snowflake","emoji":"❄️","level":3,"category":"sky"},{"word":"lightning","emoji":"⚡","level":4,"category":"sky"},{"word":"frog","emoji":"🐸","level":2,"category":"animals"},{"word":"duck","emoji":"🦆","level":2,"category":"animals"},{"word":"chick","emoji":"🐤","level":2,"category":"animals"},{"word":"owl","emoji":"🦉","level":2,"category":"animals"},{"word":"panda","emoji":"🐼","level":3,"category":"animals"},{"word":"bunny","emoji":"🐰","level":3,"category":"animals"},{"word":"tiger","emoji":"🐯","level":3,"category":"animals"},{"word":"monkey","emoji":"🐵","level":3,"category":"animals"},{"word":"penguin","emoji":"🐧","level":3,"category":"animals"},{"word":"unicorn","emoji":"🦄","level":4,"category":"animals"},{"word":"dinosaur","emoji":"🦕","level":4,"category":"animals"},{"word":"bell","emoji":"🔔","level":1,"category":"treasure"},{"word":"crown","emoji":"👑","level":2,"category":"treasure"},{"word":"ring","emoji":"💍","level":2,"category":"treasure"},{"word":"key","emoji":"🔑","level":2,"category":"treasure"},{"word":"gift","emoji":"🎁","level":2,"category":"treasure"},{"word":"beads","emoji":"📿","level":2,"category":"treasure"},{"word":"wand","emoji":"🪄","level":2,"category":"treasure"},{"word":"sparkle","emoji":"✨","level":3,"category":"treasure"},{"word":"princess","emoji":"👸","level":3,"category":"treasure"},{"word":"castle","emoji":"🏰","level":3,"category":"treasure"},{"word":"diamond","emoji":"💎","level":4,"category":"treasure"}],
+
+  /* dye colours: every name is one readable word */
+  colors: [{"name":"black","css":"#26221f"},{"name":"brown","css":"#5c3823"},{"name":"cocoa","css":"#8a5a33"},{"name":"caramel","css":"#a4692f"},{"name":"honey","css":"#d9a441"},{"name":"blonde","css":"#eed49a"},{"name":"gold","css":"#f4b41f"},{"name":"ginger","css":"#c4522c"},{"name":"cherry","css":"#e63f39"},{"name":"coral","css":"#ff7f6b"},{"name":"rose","css":"#f79ac0"},{"name":"pink","css":"#ff4fa3"},{"name":"peach","css":"#ffb38a"},{"name":"orange","css":"#ff8a2a"},{"name":"lemon","css":"#f9e547"},{"name":"lime","css":"#a5e05a"},{"name":"mint","css":"#63dcb4"},{"name":"green","css":"#3f9e4d"},{"name":"teal","css":"#17a398"},{"name":"sky","css":"#82cdf5"},{"name":"blue","css":"#3a6fe0"},{"name":"navy","css":"#263b73"},{"name":"lilac","css":"#c9a6f2"},{"name":"purple","css":"#8e3bb0"},{"name":"plum","css":"#632a5f"},{"name":"berry","css":"#b0388d"},{"name":"silver","css":"#c9cede"},{"name":"snow","css":"#f6f2ea"}],
+
+  /* extra drawn clients */
+  clients: [{"name":"Bo","skin":"#fbdcc4","skin2":"#eec0a4","hair":"#b0502e","eye":"#4d7fa8","shirt":"#ff9147","blush":"#ffa3a0"},{"name":"Kai","skin":"#d9a06b","skin2":"#c08753","hair":"#26221f","eye":"#3b2a1e","shirt":"#f0473f","blush":"#d98a72"},{"name":"Lulu","skin":"#5b3a26","skin2":"#4a2e1d","hair":"#1f1a16","eye":"#3b2a1e","shirt":"#ff7ab8","blush":"#a85b52"},{"name":"Tess","skin":"#efc9a5","skin2":"#dbab85","hair":"#7a4a22","eye":"#4a6b3a","shirt":"#7ad3c0","blush":"#f09a94"},{"name":"Juno","skin":"#a5714a","skin2":"#8f5d3a","hair":"#3a2418","eye":"#5a4632","shirt":"#ffb3d9","blush":"#c47a68"}],
+
+  /* salon ranks */
+  ranks: [{"stars":0,"emoji":"🌱","name":"Little Helper"},{"stars":15,"emoji":"✂️","name":"Junior Stylist"},{"stars":45,"emoji":"⭐","name":"Star Stylist"},{"stars":120,"emoji":"💫","name":"Super Stylist"},{"stars":300,"emoji":"🪄","name":"Hair Wizard"},{"stars":700,"emoji":"🏆","name":"Salon Champ"},{"stars":1500,"emoji":"👑","name":"Sparkle Legend"}],
+
+  /* the trophy shelf: each test is a pure predicate over the profile */
+  badges: [
+    { id: "first-client", emoji: "\ud83c\udf89", name: "First Client", blurb: "You styled your very first friend!",
+      test: function (p) { return p.totals.clients >= 1; } },
+    { id: "busy-salon", emoji: "\ud83d\udc87", name: "Busy Salon", blurb: "Ten happy clients walked out smiling!",
+      test: function (p) { return p.totals.clients >= 10; } },
+    { id: "hair-hero", emoji: "\ud83e\uddb8", name: "Hair Hero", blurb: "Wow, fifty clients love your work!",
+      test: function (p) { return p.totals.clients >= 50; } },
+    { id: "first-braid", emoji: "\ud83e\udea2", name: "Braid Beginner", blurb: "You made your very first braid!",
+      test: function (p) { return (p.styleCounts.braid || 0) >= 1; } },
+    { id: "pigtail-pro", emoji: "\ud83d\udc67", name: "Pigtail Pro", blurb: "Three bouncy pigtail looks, hooray!",
+      test: function (p) { return (p.styleCounts.pigtails || 0) >= 3; } },
+    { id: "bun-baker", emoji: "\ud83e\uddc1", name: "Bun Baker", blurb: "You baked up three beautiful buns!",
+      test: function (p) { return (p.styleCounts.bun || 0) >= 3; } },
+    { id: "hello-you", emoji: "\ud83d\udcf8", name: "Hello You", blurb: "You styled a real photo friend!",
+      test: function (p) { return !!p.flags.usedRealPhoto; } },
+    { id: "photo-friends", emoji: "\ud83d\uddbc\ufe0f", name: "Photo Friends", blurb: "Five real photo friends got new hair!",
+      test: function (p) { return p.totals.photos >= 5; } },
+    { id: "butterfly-garden", emoji: "\ud83e\udd8b", name: "Butterfly Garden", blurb: "Ten butterflies landed in the hair!",
+      test: function (p) { return (p.accCounts['\ud83e\udd8b'] || 0) >= 10; } },
+    { id: "crown-collector", emoji: "\ud83d\udc51", name: "Crown Collector", blurb: "You gave out five sparkly crowns!",
+      test: function (p) { return (p.accCounts['\ud83d\udc51'] || 0) >= 5; } },
+    { id: "rainbow-head", emoji: "\ud83c\udf08", name: "Rainbow Head", blurb: "Every rainbow color in one amazing look!",
+      test: function (p) { return !!p.flags.rainbowInOneLook; } },
+    { id: "pink-power", emoji: "\ud83c\udf38", name: "Pink Power", blurb: "Three friends got pretty pink hair!",
+      test: function (p) { return (p.colorCounts.pink || 0) >= 3; } },
+    { id: "five-star-five", emoji: "\u2b50", name: "Five Star Five", blurb: "Five clients gave you all five stars!",
+      test: function (p) { return p.totals.fiveStar >= 5; } },
+    { id: "three-day-streak", emoji: "\ud83d\udd25", name: "Streak Star", blurb: "You played three days in a row!",
+      test: function (p) { return p.streak.best >= 3; } },
+    { id: "little-reader", emoji: "\ud83d\udd24", name: "Little Reader", blurb: "You read ten words all by yourself!",
+      test: function (p) { return p.totals.words >= 10; } },
+    { id: "word-wizard", emoji: "\ud83d\udcda", name: "Word Wizard", blurb: "One hundred words read, amazing!",
+      test: function (p) { return p.totals.words >= 100; } },
+    { id: "wish-granter", emoji: "\ud83e\ude84", name: "Wish Granter", blurb: "You made twenty-five hair wishes come true!",
+      test: function (p) { return p.totals.wishes >= 25; } },
+    { id: "friend-to-all", emoji: "\ud83d\udc6f", name: "Friend To All", blurb: "You styled every single drawn friend!",
+      test: function (p) { return ['Bo','Kai','Lulu','Tess','Juno'].every(function (n) { return (p.clientCounts[n] || 0) >= 1; }); } }
+  ]
+  };
+})(window);
+
 /* Ara's Hair Salon - the clients who come in, and the looks they ask for. */
 (function (global) {
   'use strict';
 
-  var COLORS = [
+  var W = global.SalonWords || {};
+
+  var FALLBACK_COLORS = [
     { name: 'bubblegum', css: '#ff7ab8' },
     { name: 'cotton candy', css: '#ffb3d9' },
     { name: 'lavender', css: '#b98cf5' },
@@ -1041,9 +2169,42 @@ body.fitting #topbar { display: none; }
     { name: 'snow', css: '#f2eee6' }
   ];
 
-  var ACCESSORIES = [
-    '🎀', '🌸', '👑', '⭐', '🦋', '💎', '🌈', '🌼', '🍓', '🐚', '🍀', '❤️'
+  var COLORS = (W.colors && W.colors.length ? W.colors : FALLBACK_COLORS).map(function (x) {
+    return { name: x.name, css: x.css };
+  });
+
+  var FALLBACK_ACCESSORIES = [
+    { emoji: '🎀', word: 'bow', level: 2, category: 'starter' },
+    { emoji: '🌸', word: 'flower', level: 3, category: 'starter' },
+    { emoji: '👑', word: 'crown', level: 2, category: 'starter' },
+    { emoji: '⭐', word: 'star', level: 2, category: 'starter' },
+    { emoji: '🦋', word: 'butterfly', level: 4, category: 'starter' },
+    { emoji: '❤️', word: 'heart', level: 2, category: 'starter' }
   ];
+  var ACCESSORIES = (W.accessories && W.accessories.length ? W.accessories : FALLBACK_ACCESSORIES);
+
+  /* Accessory packs open as stars pile up. Thresholds are tuned to a
+     five-year-old earning roughly 20-40 stars in a sitting: two packs open on
+     day one, then about one a day after that. */
+  var PACKS = [
+    { id: 'starter', name: 'Starter', stars: 0 },
+    { id: 'garden', name: 'Garden', stars: 15 },
+    { id: 'animals', name: 'Animals', stars: 35 },
+    { id: 'ocean', name: 'Ocean', stars: 60 },
+    { id: 'sweets', name: 'Sweets', stars: 95 },
+    { id: 'sky', name: 'Sky', stars: 140 },
+    { id: 'treasure', name: 'Treasure', stars: 200 }
+  ];
+
+  function unlockedPacks(stars) {
+    return PACKS.filter(function (p) { return stars >= p.stars; }).map(function (p) { return p.id; });
+  }
+
+  function unlockedAccessories(stars) {
+    var open = unlockedPacks(stars);
+    var out = ACCESSORIES.filter(function (a) { return open.indexOf(a.category) >= 0; });
+    return out.length ? out : ACCESSORIES.slice(0, 8);
+  }
 
   var STYLES = [
     { id: 'down', label: 'Down', icon: '💇' },
@@ -1055,6 +2216,7 @@ body.fitting #topbar { display: none; }
     { id: 'halfup', label: 'Half up', icon: '🎗️' }
   ];
 
+  var EXTRA_CLIENTS = (W.clients || []);
   var CLIENTS = [
     { name: 'Poppy', skin: '#f6cfae', skin2: '#e3b191', hair: '#5c3823', eye: '#4a6b3a', shirt: '#ff8fb1', blush: '#ff9aa8' },
     { name: 'Nia', skin: '#8a5a3b', skin2: '#764930', hair: '#2f2b45', eye: '#3b2a1e', shirt: '#7ad3c0', blush: '#c4726a' },
@@ -1062,59 +2224,93 @@ body.fitting #topbar { display: none; }
     { name: 'Isla', skin: '#fbe0cd', skin2: '#eec3a8', hair: '#d9a441', eye: '#4d7fa8', shirt: '#ffd23f', blush: '#ffa0a8' },
     { name: 'Zuri', skin: '#6d4429', skin2: '#5a3720', hair: '#3a2418', eye: '#3b2a1e', shirt: '#4bc4e8', blush: '#b8655c' },
     { name: 'Ava', skin: '#e8b78f', skin2: '#d29e76', hair: '#a4692f', eye: '#5c8a5c', shirt: '#5fdcb0', blush: '#e08a86' }
-  ];
+  ].concat(EXTRA_CLIENTS);
 
-  /* A request is 1-3 wishes. Every wish is easy to see and easy to grant. */
-  function makeRequest(rnd) {
+  /* A request is 1-3 wishes. Every wish is a short reading moment: the chip
+     shows the word, and the matching emoji lives in the trays. Words lean on
+     the reader's level so the request is decodable, not decoration. */
+  function makeRequest(rnd, opts) {
+    opts = opts || {};
+    var stars = opts.stars || 0;
+    var level = opts.level || 1;
     var pick = function (arr) { return arr[Math.floor(rnd() * arr.length)]; };
     var wishes = [];
-    var color = pick(COLORS);
-    wishes.push({ kind: 'color', value: color.css, label: color.name + ' hair', icon: '🎨' });
+
+    var wordLevel = function (w) { return w.length <= 3 ? 1 : w.length <= 5 ? 2 : 3; };
+    var easyColors = COLORS.filter(function (x) { return wordLevel(x.name) <= level + 1; });
+    var color = pick(easyColors.length >= 4 ? easyColors : COLORS);
+    wishes.push({ kind: 'color', value: color.css, label: color.name, suffix: ' hair', icon: '🎨' });
 
     var roll = rnd();
     if (roll < 0.45) {
-      wishes.push({ kind: 'curl', value: 0.6, label: 'curly', icon: '🌀' });
+      wishes.push({ kind: 'curl', value: 0.6, label: 'curly', suffix: '', icon: '🌀' });
     } else if (roll < 0.7) {
-      wishes.push({ kind: 'straight', value: 0.2, label: 'nice and straight', icon: '💧' });
+      wishes.push({ kind: 'straight', value: 0.2, label: 'straight', suffix: '', icon: '💧' });
     }
 
     if (rnd() < 0.6) {
       var st = STYLES[1 + Math.floor(rnd() * (STYLES.length - 1))];
-      wishes.push({ kind: 'style', value: st.id, label: 'a ' + st.label.toLowerCase(), icon: st.icon });
+      wishes.push({ kind: 'style', value: st.id, label: st.label.toLowerCase(), suffix: '', icon: st.icon });
     }
-    if (rnd() < 0.6) {
-      var acc = pick(ACCESSORIES);
-      wishes.push({ kind: 'accessory', value: acc, label: 'a ' + acc, icon: acc });
+    if (rnd() < 0.75) {
+      var pool = unlockedAccessories(stars);
+      var easy = pool.filter(function (a) { return a.level <= level + 1; });
+      var acc = pick(easy.length ? easy : pool);
+      wishes.push({ kind: 'accessory', value: acc.emoji, label: acc.word, suffix: '', icon: acc.emoji });
     }
     if (rnd() < 0.3) {
-      wishes.push({ kind: 'short', value: 0.6, label: 'a trim', icon: '✂️' });
+      wishes.push({ kind: 'sparkle', value: 8, label: 'sparkly', suffix: '', icon: '✨' });
+    }
+    if (rnd() < 0.25) {
+      wishes.push({ kind: 'short', value: 0.6, label: 'a trim', suffix: '', icon: '✂️' });
+    }
+    // Always at least two wishes, so five stars always means "I read the
+    // request and granted all of it", never a freebie.
+    if (wishes.length < 2) {
+      wishes.push({ kind: 'curl', value: 0.6, label: 'curly', suffix: '', icon: '🌀' });
     }
     return wishes.slice(0, 3);
   }
 
+  /* ONE predicate decides whether a wish is granted, used by both the live
+     chips and the final score, so they can never disagree. Colour goes by
+     coverage, not plurality, with hysteresis so a chip near the line does
+     not flicker: it lights at 35% of the hair and only goes back out under
+     30%. */
+  function wishDone(w, m, accessories, sparkles, wasDone) {
+    switch (w.kind) {
+      case 'color': {
+        var cov = (m.coverage && m.coverage[w.value]) || 0;
+        return cov >= (wasDone ? 0.30 : 0.35);
+      }
+      case 'curl': return m.curl >= 0.35;
+      case 'straight': return m.curl <= 0.25;
+      case 'style': return m.style === w.value;
+      case 'short': return m.length <= 0.8;
+      case 'sparkle': return (sparkles ? sparkles.length : 0) >= w.value;
+      case 'accessory':
+        return (accessories || []).some(function (a) { return a.emoji === w.value; });
+      default: return false;
+    }
+  }
+
   /* Scoring is kind on purpose: three stars is the floor, five is very reachable. */
-  function score(wishes, m, accessories) {
+  function score(wishes, m, accessories, sparkles) {
     var got = 0;
     for (var i = 0; i < wishes.length; i++) {
-      var w = wishes[i];
-      if (w.kind === 'color' && m.mainColor === w.value) { got++; }
-      else if (w.kind === 'curl' && m.curl >= 0.35) { got++; }
-      else if (w.kind === 'straight' && m.curl <= 0.25) { got++; }
-      else if (w.kind === 'style' && m.style === w.value) { got++; }
-      else if (w.kind === 'short' && m.length <= 0.8) { got++; }
-      else if (w.kind === 'accessory') {
-        for (var a = 0; a < accessories.length; a++) {
-          if (accessories[a].emoji === w.value) { got++; break; }
-        }
-      }
+      // The chip state is the truth the child has been watching; honour it.
+      if (wishDone(wishes[i], m, accessories, sparkles, wishes[i].done)) { got++; }
     }
-    var ratio = wishes.length ? got / wishes.length : 1;
-    return { stars: Math.max(3, Math.round(3 + ratio * 2)), got: got, total: wishes.length };
+    // A rule she can say out loud: 3 for finishing, 4 for granting a wish,
+    // 5 for granting them all.
+    var stars = got === wishes.length ? 5 : got > 0 ? 4 : 3;
+    return { stars: stars, got: got, total: wishes.length };
   }
 
   global.Salon = {
     COLORS: COLORS, ACCESSORIES: ACCESSORIES, STYLES: STYLES, CLIENTS: CLIENTS,
-    makeRequest: makeRequest, score: score
+    PACKS: PACKS, unlockedPacks: unlockedPacks, unlockedAccessories: unlockedAccessories,
+    makeRequest: makeRequest, score: score, wishDone: wishDone
   };
 })(window);
 
@@ -1185,6 +2381,7 @@ body.fitting #topbar { display: none; }
     spray: function (t) { noise(t, 0.22, 2200, 0.06); },
     dryer: function (t) { noise(t, 0.18, 700, 0.05); },
     pop: function (t) { tone(520, t, 0.1, 'sine', 0.14); tone(780, t + 0.04, 0.1, 'sine', 0.09); },
+    ding: function (t) { tone(880, t, 0.18, 'triangle', 0.12); tone(1318, t + 0.09, 0.22, 'triangle', 0.1); },
     sparkle: function (t) {
       [1320, 1760, 2200].forEach(function (f, i) { tone(f, t + i * 0.055, 0.16, 'triangle', 0.07); });
     },
@@ -1215,6 +2412,244 @@ body.fitting #topbar { display: none; }
   };
 })(window);
 
+/*
+ * badges.js — the trophy shelf, ported pattern from Ara's Number Jungle.
+ *
+ * Each badge is a pure test against the profile, so awarding is just "run all
+ * the tests and see which ones newly pass". A badge can never be missed by a
+ * bug in the place it was supposed to be handed out.
+ */
+;(function (root) {
+  var B = (root.SalonBadges = {})
+  var queue = []
+  var showing = false
+
+  // Filled in from SalonWords.badges at boot: [{id, emoji, name, blurb, test(p)}]
+  B.list = []
+
+  B.checkAll = function (p) {
+    var Store = root.SalonStore.store
+    B.list.forEach(function (badge) {
+      if (p.badges[badge.id]) return
+      var passed = false
+      try { passed = !!badge.test(p) } catch (e) {}
+      if (passed && Store.earnBadge(badge.id)) queue.push(badge)
+    })
+    drain()
+  }
+
+  function drain() {
+    if (showing || !queue.length) return
+    showing = true
+    var badge = queue.shift()
+    var host = document.getElementById('badge-pop')
+    host.innerHTML =
+      '<div class="badge-card"><div class="badge-emoji">' + badge.emoji + '</div>' +
+      '<div class="badge-name">' + badge.name + '</div>' +
+      '<div class="badge-blurb">' + badge.blurb + '</div></div>'
+    host.classList.add('show')
+    if (root.Sound) root.Sound.play('cheer')
+    setTimeout(function () {
+      host.classList.remove('show')
+      setTimeout(function () { showing = false; drain() }, 350)
+    }, 2300)
+  }
+})(window);
+
+/*
+ * party.js — the Word Party, a between-clients reading moment.
+ *
+ * One word, four emoji. She reads the word and taps the picture it names.
+ * Wrong guesses just wiggle away; the word stays until she finds it, and a
+ * speaker button reads it aloud (that counts as a hint, not a fail).
+ *
+ * Word choice is adaptive off the per-word record in the store: mostly words
+ * at her level, with one gentle revisit of something she has missed before.
+ */
+;(function (root) {
+  var Party = (root.SalonParty = {})
+  var Store, Words, Snd
+
+  var ROUNDS = 3
+  var CHOICES = 4
+
+  var el = {}
+  var run = null // { rounds: [...], i, stars, onDone }
+
+  function init() {
+    Store = root.SalonStore.store
+    Words = root.SalonWords
+    Snd = root.Sound
+    el.view = document.getElementById('party-view')
+    el.word = document.getElementById('party-word')
+    el.grid = document.getElementById('party-grid')
+    el.dots = document.getElementById('party-dots')
+    el.say = document.getElementById('party-say')
+    el.skip = document.getElementById('party-skip')
+    el.say.addEventListener('click', function () {
+      if (!run) return
+      speak(run.rounds[run.i].word)
+      Store.recordWord(run.rounds[run.i].word, false, run.rounds[run.i].level, true)
+    })
+    el.skip.addEventListener('click', close)
+    if (!('speechSynthesis' in root)) el.say.hidden = true
+  }
+
+  function speak(word) {
+    try {
+      var u = new SpeechSynthesisUtterance(word)
+      u.rate = 0.8
+      root.speechSynthesis.cancel()
+      root.speechSynthesis.speak(u)
+    } catch (e) {}
+  }
+
+  /* How solid is a word already? Solid words drop out of rotation. */
+  function solidity(rec) {
+    if (!rec) return 0
+    return Math.max(0, (rec.n || 0) - (rec.wrong || 0) * 0.5)
+  }
+
+  function currentLevel(p) {
+    // Move up when enough words at this level are solid; never move down.
+    var lvl = p.level || 1
+    var atLevel = Words.bank.filter(function (w) { return w.level === lvl })
+    var solid = atLevel.filter(function (w) { return solidity(p.words[w.word]) >= 2 }).length
+    if (solid >= Math.min(8, Math.max(4, atLevel.length / 3)) && lvl < 4) {
+      p.level = lvl + 1
+      Store.save()
+      return p.level
+    }
+    return lvl
+  }
+
+  function pickRounds(p) {
+    var lvl = currentLevel(p)
+    var pool = Words.bank.slice()
+    var byWord = p.words || {}
+
+    // A revisit: the word she has struggled with most recently.
+    var struggles = pool.filter(function (w) {
+      var r = byWord[w.word]
+      return r && r.wrong > r.n && w.level <= lvl
+    }).sort(function (a, b) { return (byWord[b.word].lastAt || 0) - (byWord[a.word].lastAt || 0) })
+
+    // Fresh-ish words at her level, least-seen first, then a shuffle.
+    var fresh = pool.filter(function (w) {
+      return w.level === lvl && solidity(byWord[w.word]) < 3
+    })
+    if (fresh.length < ROUNDS) {
+      fresh = fresh.concat(pool.filter(function (w) { return w.level === Math.max(1, lvl - 1) }))
+    }
+    fresh.sort(function (a, b) {
+      var d = solidity(byWord[a.word]) - solidity(byWord[b.word])
+      return d !== 0 ? d : Math.random() - 0.5
+    })
+
+    var rounds = []
+    if (struggles.length && Math.random() < 0.7) rounds.push(struggles[0])
+    for (var i = 0; rounds.length < ROUNDS && i < fresh.length; i++) {
+      if (rounds.indexOf(fresh[i]) === -1) rounds.push(fresh[i])
+    }
+    // Tiny banks or brand-new profiles: fall back to anything.
+    for (var j = 0; rounds.length < ROUNDS && j < pool.length; j++) {
+      if (rounds.indexOf(pool[j]) === -1) rounds.push(pool[j])
+    }
+    return rounds
+  }
+
+  function distractors(round) {
+    var out = []
+    var pool = Words.bank.filter(function (w) {
+      return w.word !== round.word && w.emoji !== round.emoji
+    })
+    // Prefer other categories so the pictures are not confusable.
+    pool.sort(function (a, b) {
+      var ca = a.category === round.category ? 1 : 0
+      var cb = b.category === round.category ? 1 : 0
+      return ca - cb || Math.random() - 0.5
+    })
+    for (var i = 0; out.length < CHOICES - 1 && i < pool.length; i++) {
+      var dup = out.some(function (o) { return o.emoji === pool[i].emoji })
+      if (!dup) out.push(pool[i])
+    }
+    return out
+  }
+
+  function renderRound() {
+    run.answered = false
+    var r = run.rounds[run.i]
+    el.word.textContent = r.word
+    el.word.className = 'party-word pop'
+    void el.word.offsetWidth // restart the pop animation
+    el.dots.textContent = new Array(run.i + 1).join('⭐') + new Array(run.rounds.length - run.i + 1).join('· ')
+
+    var options = distractors(r).concat([r])
+    options.sort(function () { return Math.random() - 0.5 })
+    el.grid.innerHTML = ''
+    options.forEach(function (o) {
+      var b = document.createElement('button')
+      b.className = 'party-choice'
+      b.textContent = o.emoji
+      b.setAttribute('aria-label', o.word)
+      b.addEventListener('click', function () { choose(b, o, r) })
+      el.grid.appendChild(b)
+    })
+  }
+
+  function choose(btn, picked, r) {
+    if (!run || run.answered) return
+    if (picked.word === r.word) {
+      run.answered = true
+      btn.classList.add('right')
+      Snd.play('sparkle')
+      Store.recordWord(r.word, true, r.level)
+      run.stars++
+      setTimeout(function () {
+        if (!run) return
+        run.i++
+        if (run.i >= run.rounds.length) finish()
+        else renderRound()
+      }, 650)
+    } else {
+      btn.classList.add('wrong')
+      Snd.play('pop')
+      Store.recordWord(r.word, false, r.level)
+      setTimeout(function () { btn.classList.add('gone') }, 300)
+    }
+  }
+
+  function finish() {
+    var stars = run ? run.stars : 0
+    el.word.textContent = stars > 0 ? '+' + stars + ' ⭐' : '🎈'
+    el.grid.innerHTML = ''
+    el.dots.textContent = ''
+    Snd.play('cheer')
+    setTimeout(close, 1100)
+  }
+
+  function close() {
+    var done = run && run.onDone
+    run = null
+    el.view.classList.remove('show')
+    if (done) done()
+  }
+
+  /* Between clients. Returns false if the party is off or has no words. */
+  Party.start = function (onDone) {
+    if (!el.view) init()
+    var p = Store.profile()
+    if (!p.settings.party || !Words || !Words.bank.length) return false
+    run = { rounds: pickRounds(p), i: 0, stars: 0, onDone: onDone }
+    if (!run.rounds.length) { run = null; return false }
+    el.view.classList.add('show')
+    renderRound()
+    return true
+  }
+
+  Party.init = init
+})(window);
+
 /* Ara's Hair Salon - drawing, touch handling and the salon loop. */
 (function (global) {
   'use strict';
@@ -1231,6 +2666,7 @@ body.fitting #topbar { display: none; }
   var TOOLS = {
     brush:    { radius: 58, label: 'Brush' },
     scissors: { radius: 26, label: 'Cut' },
+    grow:     { radius: 60, label: 'Grow' },
     dye:      { radius: 44, label: 'Color' },
     curl:     { radius: 52, label: 'Curl' },
     straight: { radius: 52, label: 'Straight' },
@@ -1245,7 +2681,7 @@ body.fitting #topbar { display: none; }
     confetti: [], volume: 0, time: 0, frame: 0, mirror: true, mainColor: null,
     children: 3, photo: null, fitting: false,
     client: null, wishes: [], happy: 0.6, blink: 0, nextBlink: 120,
-    tool: 'brush', color: S.COLORS[0].css, accessory: S.ACCESSORIES[0],
+    tool: 'brush', color: S.COLORS[0].css, accessory: '🎀', bankedStars: 0,
     pointer: { x: 500, y: 300, active: false },
     undo: []
   };
@@ -1298,6 +2734,20 @@ body.fitting #topbar { display: none; }
     }
   }
 
+  function shrinkPhoto(source) {
+    try {
+      var max = 640
+      var k = Math.min(1, max / Math.max(source.width, source.height))
+      var c = document.createElement('canvas')
+      c.width = Math.round(source.width * k)
+      c.height = Math.round(source.height * k)
+      c.getContext('2d').drawImage(source, 0, 0, c.width, c.height)
+      return c.toDataURL('image/jpeg', 0.75)
+    } catch (e) {
+      return null
+    }
+  }
+
   function usePhoto(source) {
     var scale = Math.min(
       (HEAD.rx * 2.6) / source.width,
@@ -1305,6 +2755,7 @@ body.fitting #topbar { display: none; }
     );
     state.photo = {
       img: source,
+      data: shrinkPhoto(source),
       x: HEAD.cx,
       y: HEAD.cy,
       scale: scale,
@@ -1357,7 +2808,12 @@ body.fitting #topbar { display: none; }
   function newClient(which) {
     var c = which || S.CLIENTS[Math.floor(Math.random() * S.CLIENTS.length)];
     state.client = c;
-    state.wishes = S.makeRequest(Math.random);
+    state.bankedStars = 0;
+    sessionDone = false;
+    clearTimeout(snapTimer);
+    Store.clearSession();
+    var prof = Store.profile();
+    state.wishes = S.makeRequest(Math.random, { stars: prof.totals.stars, level: prof.level || 1 });
     H.resetHair(state, c.hair);
     state.confetti.length = 0;
     state.undo.length = 0;
@@ -1397,6 +2853,10 @@ body.fitting #topbar { display: none; }
 
   /* ---------- tools ---------- */
 
+  function express(kind, ms) {
+    state.expression = { kind: kind, until: state.time + (ms || 500) };
+  }
+
   function applyTool(p, dx, dy, isDown) {
     if (state.fitting) {
       if (state.photo) { state.photo.x += dx; state.photo.y += dy; }
@@ -1408,7 +2868,12 @@ body.fitting #topbar { display: none; }
       H.brush(state, p.x, p.y, dx, dy, r);
       if (Math.hypot(dx, dy) > 2) { Snd.play('brush', 140); }
     } else if (t === 'scissors') {
-      if (H.cut(state, p.x, p.y, r)) { Snd.play('snip', 60); }
+      if (H.cut(state, p.x, p.y, r)) { Snd.play('snip', 60); express('ooh', 600); }
+    } else if (t === 'grow') {
+      if (H.grow(state, p.x, p.y, r, state.client.hair)) {
+        Snd.play('spray', 250);
+        express('stars', 400);
+      }
     } else if (t === 'dye') {
       if (H.dye(state, p.x, p.y, r, state.color)) { Snd.play('spray', 220); }
     } else if (t === 'curl') {
@@ -1419,13 +2884,17 @@ body.fitting #topbar { display: none; }
       H.brush(state, p.x, p.y, dx * 0.5, dy * 0.5, r);
       Snd.play('brush', 200);
     } else if (t === 'dryer') {
+      express('squint', 300);
       H.blow(state, p.x, p.y, r, dx, dy);
       state.volume = Math.min(1, state.volume + 0.03);
       Snd.play('dryer', 180);
     } else if (t === 'sparkle') {
+      express('stars', 700);
       addSparkle(p.x, p.y);
     } else if (t === 'accessory' && isDown) {
-      placeAccessory(p.x, p.y);
+      // Touching a bow that is already in the hair plucks it off; touching
+      // hair clips a new one on. Remove-then-place is how she moves one.
+      if (!pluckAccessory(p.x, p.y)) { placeAccessory(p.x, p.y); }
     }
   }
 
@@ -1441,10 +2910,24 @@ body.fitting #topbar { display: none; }
     Snd.play('sparkle', 260);
   }
 
+  function pluckAccessory(x, y) {
+    for (var i = state.accessories.length - 1; i >= 0; i--) {
+      var pos = accessoryPos(state.accessories[i]);
+      if (pos && Math.hypot(pos.x - x, pos.y - y) < 42) {
+        state.accessories.splice(i, 1);
+        Snd.play('pop');
+        scheduleSnapshot();
+        return true;
+      }
+    }
+    return false;
+  }
+
   function placeAccessory(x, y) {
     var hit = H.nearestSegment(state.strands, x, y, 90);
     if (!hit) { return; }
     var p = hit.strand.pts[hit.index];
+    scheduleSnapshot();
     state.accessories.push({
       emoji: state.accessory,
       si: state.strands.indexOf(hit.strand),
@@ -1492,7 +2975,7 @@ body.fitting #topbar { display: none; }
 
     function end(e) {
       pointers.delete(e.pointerId);
-      if (pointers.size === 0) { state.pointer.active = false; }
+      if (pointers.size === 0) { state.pointer.active = false; scheduleSnapshot(); }
     }
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
@@ -1626,9 +3109,12 @@ body.fitting #topbar { display: none; }
   function drawFace() {
     if (state.photo) { return; }        // the photo already has a face
     var c = state.client;
+    var express = state.expression && state.expression.until > state.time ? state.expression.kind : null;
     var lookX = clamp((state.pointer.x - HEAD.cx) / 340, -1, 1) * 5;
     var lookY = clamp((state.pointer.y - HEAD.cy) / 340, -1, 1) * 4;
     var open = state.blink > 0 ? 0.12 : 1;
+    if (express === 'squint') { open = Math.min(open, 0.3); }
+    if (express === 'ooh') { open = 1.15; }
     var eyes = [[HEAD.cx - 40, HEAD.cy + 14], [HEAD.cx + 40, HEAD.cy + 14]];
 
     ctx.save();
@@ -1661,6 +3147,13 @@ body.fitting #topbar { display: none; }
       ctx.ellipse(e[0] + lookX - 5, e[1] + lookY - 6 * open, 4, 4 * open, 0, 0, 6.2832);
       ctx.fill();
 
+      if (express === 'stars') {
+        ctx.font = '22px ' + EMOJI_FONT;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✨', e[0], e[1] - 30);
+      }
+
       ctx.strokeStyle = 'rgba(60,40,45,0.6)';
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
@@ -1688,6 +3181,13 @@ body.fitting #topbar { display: none; }
     ctx.stroke();
 
     /* mouth - widens as the client gets what she asked for */
+    if (express === 'ooh') {
+      ctx.fillStyle = '#8c4653';
+      ctx.beginPath();
+      ctx.ellipse(HEAD.cx, HEAD.cy + 84, 13, 17, 0, 0, 6.2832);
+      ctx.fill();
+      return;
+    }
     var smile = 0.35 + state.happy * 0.65;
     ctx.strokeStyle = '#c4535e';
     ctx.lineWidth = 6;
@@ -1840,17 +3340,38 @@ body.fitting #topbar { display: none; }
   function drawConfetti() {
     for (var i = state.confetti.length - 1; i >= 0; i--) {
       var c = state.confetti[i];
-      c.vy += 0.16;
+      c.vy += c.col === 'bubble' ? -0.02 : 0.16;
       c.x += c.vx; c.y += c.vy; c.rot += c.spin;
       c.life -= 0.008;
       if (c.life <= 0 || c.y > VH + 40) { state.confetti.splice(i, 1); continue; }
       ctx.save();
       ctx.globalAlpha = Math.max(0, Math.min(1, c.life));
       ctx.translate(c.x, c.y);
-      ctx.rotate(c.rot);
-      ctx.fillStyle = c.col;
-      ctx.fillRect(-7, -4, 14, 8);
+      if (c.col === 'bubble') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, c.r, 0, 6.2832);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.col;
+        ctx.fillRect(-7, -4, 14, 8);
+      }
       ctx.restore();
+    }
+  }
+
+  function burstBubbles() {
+    for (var i = 0; i < 26; i++) {
+      state.confetti.push({
+        x: HEAD.cx + rand(-150, 150), y: HEAD.cy + rand(-120, 160),
+        vx: rand(-0.6, 0.6), vy: rand(-2.6, -1.2),
+        rot: 0, spin: 0, life: rand(0.7, 1.2),
+        col: 'bubble', r: rand(6, 18)
+      });
     }
   }
 
@@ -2023,7 +3544,10 @@ body.fitting #topbar { display: none; }
 
     H.step(state);
 
+    if (state.happyBounce > 0) { state.happyBounce--; }
+    var lift = state.happyBounce > 0 ? Math.sin(state.happyBounce * 0.26) * 10 : 0;
     drawBackdrop();
+    if (lift) { ctx.translate(0, -lift); }
     drawHair('back');
     drawBody();
     drawHead();
@@ -2045,7 +3569,8 @@ body.fitting #topbar { display: none; }
 
   function takePhoto() {
     var m = H.measure(state);
-    var res = S.score(state.wishes, m, state.accessories);
+    var res = S.score(state.wishes, m, state.accessories, state.sparkles);
+    recordFinishedClient(m, res);
     Snd.play('shutter');
     setTimeout(function () { Snd.play('cheer'); }, 260);
     burstConfetti();
@@ -2086,42 +3611,177 @@ body.fitting #topbar { display: none; }
 
     p.fillStyle = '#8a6b7d';
     p.font = '28px "Trebuchet MS", sans-serif';
-    p.fillText("styled by Ara", pw / 2, 918);
+    var prof = Store.profile();
+    var rank = UI.rankFor(prof.totals.stars).cur;
+    p.fillText('styled by ' + rank.emoji + ' ' + rank.name + ' ' + prof.name, pw / 2, 918);
 
     var data = pc.toDataURL('image/jpeg', 0.8);
-    UI.showPhoto(data, res);
+    setTimeout(function () { UI.showPhoto(data, res); }, 900);
     return data;
+  }
+
+  /* ---------- progress: what a finished client adds up to ---------- */
+
+  function distinctColors() {
+    var seen = {};
+    state.strands.forEach(function (s) {
+      for (var i = 0; i < s.n; i++) { seen[s.cols[i]] = true; }
+    });
+    return Object.keys(seen);
+  }
+
+  /* Hexes are for canvases; badges and merges speak in readable names. */
+  function colorNames(hexes) {
+    var out = [];
+    hexes.forEach(function (hex) {
+      for (var i = 0; i < S.COLORS.length; i++) {
+        if (S.COLORS[i].css === hex && out.indexOf(S.COLORS[i].name) < 0) {
+          out.push(S.COLORS[i].name);
+        }
+      }
+    });
+    return out;
+  }
+
+  function recordFinishedClient(m, res) {
+    // Re-shooting the same client pays only the improvement, so mashing
+    // Done! mints nothing but making the look better still counts.
+    var prevBanked = state.bankedStars;
+    var delta = Math.max(0, res.stars - prevBanked);
+    state.bankedStars = Math.max(prevBanked, res.stars);
+    if (delta === 0) { return; }
+    var colors = distinctColors();
+    var p = Store.recordClient({
+      stars: delta, got: res.got, total: res.total,
+      reshoot: prevBanked > 0,
+      finalStars: res.stars,
+      style: state.style,
+      accs: state.accessories.map(function (a) { return a.emoji; }),
+      colors: colorNames(colors),
+      client: state.client.name,
+      photo: !!state.photo,
+      rainbow: colors.length >= 6,
+    });
+    Store.clearSession();
+    sessionDone = true;
+    clearTimeout(snapTimer);
+    if (window.SalonStore.sync) { window.SalonStore.sync.schedule(); }
+    UI.refreshProgress(p);
+    UI.maybeUnlockPacks();
+    if (window.SalonBadges) { window.SalonBadges.checkAll(p); }
   }
 
   /* ---------- sticker book (saved photos) ---------- */
 
-  var Gallery = {
-    key: 'ara.gallery',
-    all: function () {
-      try { return JSON.parse(localStorage.getItem(this.key) || '[]'); }
-      catch (e) { return []; }
-    },
-    add: function (data) {
-      var list = this.all();
-      list.unshift(data);
-      while (list.length > 8) { list.pop(); }
-      try { localStorage.setItem(this.key, JSON.stringify(list)); }
-      catch (e) {
-        list = list.slice(0, 4);
-        try { localStorage.setItem(this.key, JSON.stringify(list)); } catch (e2) { /* full */ }
-      }
-      return list;
-    },
-    clear: function () {
-      try { localStorage.removeItem(this.key); } catch (e) { /* ignore */ }
+  var Store = window.SalonStore.store
+
+  function speakWord(text) {
+    if (!('speechSynthesis' in window) || window.Sound.isMuted()) { return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.8;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* reading aloud is a bonus */ }
+  }
+
+  /* ---------- the makeover she is half way through ---------- */
+
+  var snapTimer = null
+  var sessionDone = false
+
+  function snapshotSession() {
+    if (sessionDone) { return; }
+    var strands = state.strands.map(function (s) {
+      return { n: s.n, curl: +s.curl.toFixed(3), shine: +s.shine.toFixed(3), cols: s.cols }
+    })
+    var accs = state.accessories.map(function (a) {
+      return { emoji: a.emoji, si: a.si, index: a.index, dx: a.dx, dy: a.dy, size: a.size, rot: a.rot }
+    })
+    var sparks = state.sparkles.map(function (sp) {
+      return { si: state.strands.indexOf(sp.strand), index: sp.index, dx: sp.dx, dy: sp.dy, size: sp.size, phase: sp.phase }
+    })
+    var snap = {
+      client: state.client && state.client.name,
+      bankedStars: state.bankedStars,
+      wishes: state.wishes,
+      style: state.style,
+      strands: strands,
+      accessories: accs,
+      sparkles: sparks,
     }
-  };
+    if (state.photo && state.photo.data) {
+      snap.photo = { data: state.photo.data, x: state.photo.x, y: state.photo.y, scale: state.photo.scale, skin: state.photo.skin }
+    }
+    Store.saveSession(snap)
+  }
+
+  function scheduleSnapshot() {
+    clearTimeout(snapTimer)
+    snapTimer = setTimeout(snapshotSession, 1200)
+  }
+
+  function restoreSession(snap) {
+    var c = null
+    for (var i = 0; i < S.CLIENTS.length; i++) if (S.CLIENTS[i].name === snap.client) c = S.CLIENTS[i]
+    state.client = c || S.CLIENTS[0]
+    state.wishes = snap.wishes || []
+    H.resetHair(state, state.client.hair)
+    state.style = snap.style || 'down'
+    ;(snap.strands || []).forEach(function (ss, idx) {
+      var s = state.strands[idx]
+      if (!s) return
+      s.n = Math.max(1, Math.min(s.maxN, ss.n))
+      s.curl = ss.curl || 0
+      s.shine = ss.shine || 0.35
+      if (ss.cols && ss.cols.length) s.cols = ss.cols.slice(0, s.maxN)
+    })
+    state.accessories = (snap.accessories || []).filter(function (a) { return state.strands[a.si] })
+    state.sparkles = (snap.sparkles || []).map(function (sp) {
+      var s = state.strands[sp.si]
+      return s ? { strand: s, index: sp.index, dx: sp.dx, dy: sp.dy, size: sp.size, phase: sp.phase } : null
+    }).filter(Boolean)
+    if (snap.photo && snap.photo.data) {
+      var im = new Image()
+      im.onload = function () {
+        state.photo = { img: im, data: snap.photo.data, x: snap.photo.x, y: snap.photo.y, scale: snap.photo.scale, skin: snap.photo.skin }
+      }
+      im.src = snap.photo.data
+    }
+    UI.renderRequest()
+  }
 
   /* ---------- UI ---------- */
+
+  /* Press and hold to really do it; a quick tap only explains. */
+  function holdToFire(el, ms, fire, explain) {
+    var timer = null;
+    el.classList.add('holdable');
+    el.addEventListener('pointerdown', function () {
+      if (timer) { return; } // a second finger must not orphan the first timer
+      el.classList.add('holding');
+      timer = setTimeout(function () {
+        timer = null;
+        el.classList.remove('holding');
+        fire();
+      }, ms);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) {
+      el.addEventListener(n, function () {
+        el.classList.remove('holding');
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+          if (explain) { explain(); }
+        }
+      });
+    });
+  }
 
   var UI = {
     init: function () {
       var self = this;
+      this.progressView = document.getElementById('progress-view');
       this.tray = document.getElementById('tray');
       this.request = document.getElementById('request');
       this.photoView = document.getElementById('photo-view');
@@ -2145,10 +3805,113 @@ body.fitting #topbar { display: none; }
       document.getElementById('btn-clients').addEventListener('click', function () { self.showClients(); });
       document.getElementById('btn-wash').addEventListener('click', function () {
         snapshot();
-        H.resetHair(state, state.client.hair);
+        burstBubbles();
         Snd.play('spray');
-        self.toast('All washed out!');
+        setTimeout(function () {
+          H.resetHair(state, state.client.hair);
+          Store.clearSession();
+          self.toast('All washed out!');
+        }, 650);
       });
+      /* progress chip + card */
+      document.getElementById('btn-progress').addEventListener('click', function () {
+        self.showProgress();
+      });
+      document.getElementById('progress-close').addEventListener('click', function () {
+        self.progressView.classList.remove('show');
+      });
+
+      /* who is playing */
+      var profileBtn = document.getElementById('btn-profile');
+      var profileView = document.getElementById('profile-view');
+      var profileGrid = document.getElementById('profile-grid');
+      function renderProfiles() {
+        var s = Store.load();
+        profileGrid.innerHTML = '';
+        s.profiles.forEach(function (p) {
+          var b = document.createElement('button');
+          b.className = 'chip labeled tall' + (p.id === s.activeId ? ' on' : '');
+          b.innerHTML = '<span style="font-size:34px">' + p.avatar + '</span><em>' + p.name + '</em>';
+          b.addEventListener('click', function () {
+            Store.setActive(p.id);
+            profileBtn.textContent = p.avatar;
+            profileView.classList.remove('show');
+            self.refreshProgress(Store.profile());
+            newClient();
+          });
+          profileGrid.appendChild(b);
+        });
+      }
+      profileBtn.textContent = Store.profile().avatar;
+      profileBtn.addEventListener('click', function () {
+        renderProfiles();
+        self.hideToast();
+        profileView.classList.add('show');
+      });
+      document.getElementById('profile-close').addEventListener('click', function () {
+        profileView.classList.remove('show');
+      });
+
+      /* grown-ups: long-press to open, so little fingers stay out */
+      var guView = document.getElementById('grownups-view');
+      var guOpen = document.getElementById('grownups-open');
+      var holdTimer = null;
+      guOpen.addEventListener('pointerdown', function () {
+        if (holdTimer) { return; }
+        holdTimer = setTimeout(function () {
+          holdTimer = null;
+          profileView.classList.remove('show');
+          self.openGrownups();
+        }, 1200);
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) {
+        guOpen.addEventListener(n, function () {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            self.toast('Hold the button down for a grown-up moment');
+          }
+        });
+      });
+      document.getElementById('grownups-close').addEventListener('click', function () {
+        guView.classList.remove('show');
+      });
+      document.getElementById('gu-copy').addEventListener('click', function () {
+        var ta = document.getElementById('gu-backup');
+        ta.value = Store.exportText();
+        ta.select();
+        try { document.execCommand('copy'); self.toast('Copied!'); } catch (e) {}
+        if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); }
+      });
+      document.getElementById('gu-import').addEventListener('click', function () {
+        var r = Store.importText(document.getElementById('gu-backup').value);
+        self.toast(r.ok ? 'Backup folded in!' : r.error);
+        if (r.ok) { self.refreshProgress(Store.profile()); }
+      });
+      document.getElementById('gu-create').addEventListener('click', function () {
+        window.SalonStore.sync.create().then(function (r) {
+          self.renderSyncState();
+          self.toast(r.code ? 'Your code: ' + r.code : 'Could not reach the sync server');
+        });
+      });
+      document.getElementById('gu-join').addEventListener('click', function () {
+        var c = prompt('Type the family code:');
+        if (!c) { return; }
+        window.SalonStore.sync.join(c).then(function (r) {
+          self.renderSyncState();
+          self.refreshProgress(Store.profile());
+          self.toast(r.ok ? 'Joined! Progress folded together.' : (r.reason || 'That did not work'));
+        });
+      });
+      document.getElementById('gu-leave').addEventListener('click', function () {
+        window.SalonStore.sync.leave();
+        self.renderSyncState();
+      });
+      document.getElementById('gu-party').addEventListener('change', function (e) {
+        Store.profile().settings.party = e.target.checked;
+        Store.save();
+      });
+
       var mirror = document.getElementById('btn-mirror');
       mirror.addEventListener('click', function () {
         state.mirror = !state.mirror;
@@ -2165,24 +3928,41 @@ body.fitting #topbar { display: none; }
       document.getElementById('photo-again').addEventListener('click', function () {
         self.photoView.classList.remove('show');
       });
+      function shrinkSticker(img) {
+        try {
+          var c = document.createElement('canvas');
+          var k = 360 / img.naturalWidth;
+          c.width = 360;
+          c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          return c.toDataURL('image/jpeg', 0.7);
+        } catch (e) {
+          return img.src;
+        }
+      }
       document.getElementById('photo-save').addEventListener('click', function () {
-        Gallery.add(self.photoImg.src);
+        Store.galleryAdd(shrinkSticker(self.photoImg));
         Snd.play('sparkle');
         self.toast('Saved to your sticker book!');
         self.photoView.classList.remove('show');
       });
       document.getElementById('photo-next').addEventListener('click', function () {
-        Gallery.add(self.photoImg.src);
+        Store.galleryAdd(shrinkSticker(self.photoImg));
         self.photoView.classList.remove('show');
-        newClient();
+        var started = window.SalonParty.start(function () {
+          self.refreshProgress(Store.profile());
+          newClient();
+        });
+        if (!started) { newClient(); }
       });
       document.getElementById('book-close').addEventListener('click', function () {
         self.bookView.classList.remove('show');
       });
-      document.getElementById('book-clear').addEventListener('click', function () {
-        Gallery.clear();
+      holdToFire(document.getElementById('book-clear'), 1200, function () {
+        Store.galleryClear();
         self.showBook();
-      });
+        self.toast('The book is empty again');
+      }, function () { self.toast('Hold the button down to really empty it'); });
       document.getElementById('client-close').addEventListener('click', function () {
         self.clientView.classList.remove('show');
       });
@@ -2221,45 +4001,30 @@ body.fitting #topbar { display: none; }
     buildTrays: function () {
       var self = this;
       var colors = document.getElementById('tray-dye');
-      S.COLORS.forEach(function (c) {
+      S.COLORS.forEach(function (col) {
+        var wrap = document.createElement('div');
+        wrap.className = 'swatch-wrap';
         var b = document.createElement('button');
         b.className = 'swatch';
-        b.style.background = c.css;
-        b.title = c.name;
-        b.setAttribute('aria-label', c.name);
+        b.style.background = col.css;
+        b.setAttribute('aria-label', col.name);
         b.addEventListener('click', function () {
-          state.color = c.css;
+          state.color = col.css;
           colors.querySelectorAll('.swatch').forEach(function (o) { o.classList.remove('on'); });
           b.classList.add('on');
+          speakWord(col.name);
           Snd.play('pop');
         });
-        colors.appendChild(b);
+        var em = document.createElement('em');
+        em.textContent = col.name;
+        wrap.appendChild(b);
+        wrap.appendChild(em);
+        colors.appendChild(wrap);
       });
-      colors.firstChild.classList.add('on');
+      colors.querySelector('.swatch').classList.add('on');
+      state.color = S.COLORS[0].css;
 
-      var accs = document.getElementById('tray-accessory');
-      S.ACCESSORIES.forEach(function (e) {
-        var b = document.createElement('button');
-        b.className = 'chip';
-        b.textContent = e;
-        b.addEventListener('click', function () {
-          state.accessory = e;
-          accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
-          b.classList.add('on');
-          Snd.play('pop');
-        });
-        accs.appendChild(b);
-      });
-      accs.firstChild.classList.add('on');
-      var clearAcc = document.createElement('button');
-      clearAcc.className = 'chip wide';
-      clearAcc.textContent = '🗑️';
-      clearAcc.addEventListener('click', function () {
-        snapshot();
-        state.accessories.length = 0;
-        Snd.play('pop');
-      });
-      accs.appendChild(clearAcc);
+      this.buildAccessoryTray();
 
       var styles = document.getElementById('tray-style');
       S.STYLES.forEach(function (st) {
@@ -2269,6 +4034,7 @@ body.fitting #topbar { display: none; }
         b.addEventListener('click', function () {
           snapshot();
           state.style = st.id;
+          scheduleSnapshot();
           styles.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
           b.classList.add('on');
           Snd.play('sparkle');
@@ -2289,6 +4055,65 @@ body.fitting #topbar { display: none; }
       });
     },
 
+    buildAccessoryTray: function () {
+      var self = this;
+      var accs = document.getElementById('tray-accessory');
+      accs.innerHTML = '';
+      var stars = Store.profile().totals.stars;
+      var open = S.unlockedPacks(stars);
+      var first = null;
+      S.PACKS.forEach(function (pack) {
+        var items = S.ACCESSORIES.filter(function (a) { return a.category === pack.id; });
+        if (!items.length) { return; }
+        var isOpen = open.indexOf(pack.id) >= 0;
+        var label = document.createElement('div');
+        label.className = 'pack-label' + (isOpen ? '' : ' locked');
+        label.textContent = isOpen ? pack.name : '🔒 ' + pack.name + ' · ' + pack.stars + ' ⭐';
+        accs.appendChild(label);
+        if (!isOpen) { return; }
+        items.forEach(function (a) {
+          var b = document.createElement('button');
+          b.className = 'chip worded';
+          b.innerHTML = '<span>' + a.emoji + '</span><em>' + a.word + '</em>';
+          b.addEventListener('click', function () {
+            state.accessory = a.emoji;
+            accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
+            b.classList.add('on');
+            speakWord(a.word);
+            Snd.play('pop');
+          });
+          if (!first) { first = b; }
+          accs.appendChild(b);
+        });
+      });
+      if (first) {
+        first.classList.add('on');
+        state.accessory = first.querySelector('span').textContent;
+      }
+      var clearAcc = document.createElement('button');
+      clearAcc.className = 'chip wide';
+      clearAcc.textContent = '🗑️';
+      holdToFire(clearAcc, 900, function () {
+        snapshot();
+        state.accessories.length = 0;
+        Snd.play('pop');
+      }, function () { self.toast('Hold 🗑️ down to take every bow off'); });
+      accs.appendChild(clearAcc);
+      this._packsOpen = open.length;
+    },
+
+    /* Called after stars change: reopen the tray if a pack just unlocked. */
+    maybeUnlockPacks: function () {
+      var open = S.unlockedPacks(Store.profile().totals.stars);
+      if (open.length > (this._packsOpen || 1)) {
+        var newest = S.PACKS.filter(function (p) { return open.indexOf(p.id) >= 0; }).pop();
+        this.buildAccessoryTray();
+        burstConfetti();
+        Snd.play('cheer');
+        this.toast('🎉 ' + newest.name + ' pack is open!');
+      }
+    },
+
     selectTool: function (tool) {
       state.tool = tool;
       document.querySelectorAll('[data-tool]').forEach(function (b) {
@@ -2303,6 +4128,96 @@ body.fitting #topbar { display: none; }
       Snd.play('pop');
     },
 
+    rankFor: function (stars) {
+      var ranks = window.SalonWords.ranks;
+      var cur = ranks[0], next = null;
+      for (var i = 0; i < ranks.length; i++) {
+        if (stars >= ranks[i].stars) { cur = ranks[i]; next = ranks[i + 1] || null; }
+      }
+      return { cur: cur, next: next };
+    },
+
+    refreshProgress: function (p) {
+      p = p || Store.profile();
+      var starEl = document.getElementById('star-count');
+      var before = +starEl.textContent || 0;
+      starEl.textContent = p.totals.stars;
+      if (p.totals.stars > before) {
+        var chipEl = document.getElementById('btn-progress');
+        chipEl.classList.remove('minted');
+        void chipEl.offsetWidth;
+        chipEl.classList.add('minted');
+      }
+      var r = this.rankFor(p.totals.stars);
+      document.getElementById('rank-name').textContent = r.cur.emoji + ' ' + r.cur.name;
+      document.getElementById('btn-profile').textContent = p.avatar;
+      this.maybeUnlockPacks();
+    },
+
+    showProgress: function () {
+      var p = Store.profile();
+      this.hideToast();
+      var r = this.rankFor(p.totals.stars);
+      document.getElementById('progress-rank').textContent = r.cur.emoji + ' ' + r.cur.name;
+      var bar = document.getElementById('progress-bar');
+      if (r.next) {
+        var span = r.next.stars - r.cur.stars;
+        var into = p.totals.stars - r.cur.stars;
+        bar.querySelector('i').style.right = Math.max(0, 100 - (into / span) * 100) + '%';
+        bar.querySelector('span').textContent = (r.next.stars - p.totals.stars) + ' ⭐ to ' + r.next.name;
+      } else {
+        bar.querySelector('i').style.right = '0%';
+        bar.querySelector('span').textContent = 'Top of the salon!';
+      }
+      document.getElementById('progress-stats').innerHTML =
+        '<span>💇 ' + p.totals.clients + ' clients</span>' +
+        '<span>⭐ ' + p.totals.stars + '</span>' +
+        '<span>📖 ' + p.totals.words + ' words</span>' +
+        '<span>🌼 ' + p.streak.current + ' day' + (p.streak.current === 1 ? '' : 's') + '</span>';
+      var grid = document.getElementById('badge-grid');
+      grid.innerHTML = '';
+      window.SalonWords.badges.forEach(function (b) {
+        var d = document.createElement('div');
+        d.className = 'badge-tile' + (p.badges[b.id] ? '' : ' locked');
+        d.innerHTML = '<span class="e">' + b.emoji + '</span>' + b.name;
+        grid.appendChild(d);
+      });
+      var shelf = document.getElementById('word-shelf');
+      shelf.innerHTML = '';
+      var read = Object.keys(p.words).filter(function (w) { return p.words[w].n >= 2; }).sort();
+      if (!read.length) {
+        shelf.innerHTML = '<span class="empty-w">Words you match at the Word Party land here.</span>';
+      } else {
+        read.forEach(function (w) {
+          var t = document.createElement('span');
+          t.className = 'w';
+          t.textContent = w;
+          shelf.appendChild(t);
+        });
+      }
+      this.progressView.classList.add('show');
+    },
+
+    openGrownups: function () {
+      document.getElementById('gu-party').checked = !!Store.profile().settings.party;
+      document.getElementById('gu-backup').value = '';
+      this.renderSyncState();
+      document.getElementById('grownups-view').classList.add('show');
+    },
+
+    renderSyncState: function () {
+      var st = window.SalonStore.sync.status();
+      var elState = document.getElementById('gu-sync-state');
+      document.getElementById('gu-leave').hidden = !st.code;
+      if (!st.code) {
+        elState.textContent = 'No family code yet. Make one here, then type it on the other device.';
+      } else {
+        elState.innerHTML = 'Code: <b>' + st.code + '</b>' +
+          (st.lastSyncAt ? ' · last synced ' + new Date(st.lastSyncAt).toLocaleString() : '') +
+          (st.lastError ? ' · last try failed (' + st.lastError + ') — progress is safe on this device' : '');
+      }
+    },
+
     setFitting: function (on) {
       document.body.classList.toggle('fitting', !!on);
     },
@@ -2313,9 +4228,41 @@ body.fitting #topbar { display: none; }
       var c = state.client;
       var html = '<span class="who">' + c.name + ' wants</span>';
       state.wishes.forEach(function (w, i) {
-        html += '<span class="wish" data-i="' + i + '">' + w.icon + ' ' + w.label + '</span>';
+        // A colour's peek is the colour itself — 🎨 would reveal nothing,
+        // and a hint that does not help is not a hint.
+        var peek = w.kind === 'color'
+          ? '<span class="peek dot" style="background:' + w.value + '"></span>'
+          : '<span class="peek">' + w.icon + '</span>';
+        html += '<span class="wish" data-i="' + i + '"><b class="w">' + w.label + '</b>' +
+          (w.suffix || '') + peek + '</span>';
       });
       this.request.innerHTML = html;
+      var self = this;
+      this.request.querySelectorAll('.wish').forEach(function (node, idx) {
+        var w = state.wishes[idx];
+        // The peek reveals itself after a think whose length depends on how
+        // well she knows this word: brand new words get help quickly, words
+        // she owns stay hidden unless she asks. Never a lock either way.
+        var rec = Store.profile().words[w ? w.label : ''] || null;
+        var known = rec ? (rec.n || 0) - (rec.wrong || 0) * 0.5 : 0;
+        var delay = known >= 3 ? 0 : rec ? 12000 : 6000;
+        if (delay) {
+          setTimeout(function () {
+            if (w && !w.done && !w.tapped) {
+              w.autoPeeked = true;
+              node.classList.add('peeking');
+            }
+          }, delay);
+        }
+        node.addEventListener('click', function () {
+          // A peek is a hint, not a fail: flash the emoji and say the word.
+          if (!w || node.classList.contains('done')) { return; }
+          w.tapped = true;
+          node.classList.add('peeking');
+          speakWord(w.label);
+          setTimeout(function () { node.classList.remove('peeking'); }, 1800);
+        });
+      });
     },
 
     markWishes: function (m) {
@@ -2323,14 +4270,25 @@ body.fitting #topbar { display: none; }
       for (var i = 0; i < nodes.length; i++) {
         var w = state.wishes[i];
         if (!w) { continue; }
-        var done = false;
-        if (w.kind === 'color') { done = m.mainColor === w.value; }
-        else if (w.kind === 'curl') { done = m.curl >= 0.35; }
-        else if (w.kind === 'straight') { done = m.curl <= 0.25; }
-        else if (w.kind === 'style') { done = m.style === w.value; }
-        else if (w.kind === 'short') { done = m.length <= 0.8; }
-        else if (w.kind === 'accessory') {
-          done = state.accessories.some(function (a) { return a.emoji === w.value; });
+        var done = S.wishDone(w, m, state.accessories, state.sparkles, w.done);
+        if (done && !w.done) {
+          w.done = true;
+          nodes[i].classList.add('granted');
+          Snd.play('ding');
+          state.happyBounce = 24;
+          speakWord(w.label + '!');
+          // Reading only counts when she actually read: an auto-revealed
+          // emoji means the picture did the work, so it stays a hint.
+          if (!w.counted && (w.kind === 'accessory' || w.kind === 'color')) {
+            w.counted = true;
+            if (!w.autoPeeked) {
+              Store.recordWord(w.label, true, 0, !!w.tapped);
+              this.refreshProgress(Store.profile());
+            }
+          }
+        } else if (!done && w.done) {
+          w.done = false;
+          nodes[i].classList.remove('granted');
         }
         nodes[i].classList.toggle('done', done);
       }
@@ -2345,14 +4303,22 @@ body.fitting #topbar { display: none; }
     showPhoto: function (data, res) {
       this.hideToast();
       this.photoImg.src = data;
-      document.getElementById('photo-stars').textContent =
-        new Array(res.stars + 1).join('⭐');
+      var host = document.getElementById('photo-stars');
+      host.innerHTML = '';
+      for (var i = 0; i < res.stars; i++) {
+        var s = document.createElement('span');
+        s.className = 'star-in';
+        s.style.animationDelay = (i * 0.25) + 's';
+        s.textContent = '⭐';
+        host.appendChild(s);
+      }
       this.photoView.classList.add('show');
+      if (res.stars >= 5) { setTimeout(function () { Snd.play('cheer'); }, res.stars * 250); }
     },
 
     showBook: function () {
       this.hideToast();
-      var list = Gallery.all();
+      var list = Store.galleryAll();
       this.bookGrid.innerHTML = list.length
         ? ''
         : '<p class="empty">No photos yet. Style someone, then tap 📸!</p>';
@@ -2387,10 +4353,29 @@ body.fitting #topbar { display: none; }
     ctx.lineJoin = 'round';
     resize();
     global.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        snapshotSession();
+        if (window.SalonStore.sync.code()) { window.SalonStore.sync.flush(); }
+      }
+    });
     global.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
+    window.SalonBadges.list = window.SalonWords.badges;
     UI.init();
+    UI.refreshProgress(Store.profile());
     bindInput();
-    newClient(S.CLIENTS[0]);
+    if (window.SalonStore.sync.code()) {
+      window.SalonStore.sync.pull().then(function (r) {
+        if (r.ok && !r.empty) { UI.refreshProgress(Store.profile()); }
+      });
+    }
+    var resume = Store.loadSession();
+    if (resume) {
+      restoreSession(resume);
+      UI.toast("Here's where you left off!");
+    } else {
+      newClient(S.CLIENTS[0]);
+    }
     requestAnimationFrame(frame);
   }
 
