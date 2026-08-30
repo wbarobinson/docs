@@ -610,3 +610,11 @@ body.fitting #topbar { display: none; }
   border: 3px solid #fff;
   box-shadow: 0 1px 3px rgba(120, 30, 80, 0.3);
 }
+
+/* Trays never reach her face: cap the height and scroll inside instead */
+#tray {
+  max-height: min(30vh, 260px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}

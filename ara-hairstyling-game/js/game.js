@@ -1410,15 +1410,19 @@
       var stars = Store.profile().totals.stars;
       var open = S.unlockedPacks(stars);
       var first = null;
+      var lockedLine = [];
       S.PACKS.forEach(function (pack) {
         var items = S.ACCESSORIES.filter(function (a) { return a.category === pack.id; });
         if (!items.length) { return; }
         var isOpen = open.indexOf(pack.id) >= 0;
+        if (!isOpen) {
+          lockedLine.push(pack.name + ' ' + pack.stars + '⭐');
+          return;
+        }
         var label = document.createElement('div');
-        label.className = 'pack-label' + (isOpen ? '' : ' locked');
-        label.textContent = isOpen ? pack.name : '🔒 ' + pack.name + ' · ' + pack.stars + ' ⭐';
+        label.className = 'pack-label';
+        label.textContent = pack.name;
         accs.appendChild(label);
-        if (!isOpen) { return; }
         items.forEach(function (a) {
           var b = document.createElement('button');
           b.className = 'chip worded';
@@ -1427,6 +1431,7 @@
             state.accessory = a.emoji;
             accs.querySelectorAll('.chip').forEach(function (o) { o.classList.remove('on'); });
             b.classList.add('on');
+            self.holdAccessory(a);
             speakWord(a.word);
             Snd.play('pop');
           });
@@ -1434,6 +1439,12 @@
           accs.appendChild(b);
         });
       });
+      if (lockedLine.length) {
+        var locks = document.createElement('div');
+        locks.className = 'pack-label locked';
+        locks.textContent = '🔒 ' + lockedLine.join(' · ');
+        accs.appendChild(locks);
+      }
       if (first) {
         first.classList.add('on');
         state.accessory = first.querySelector('span').textContent;
@@ -1448,6 +1459,16 @@
       }, function () { self.toast('Hold 🗑️ down to take every bow off'); });
       accs.appendChild(clearAcc);
       this._packsOpen = open.length;
+    },
+
+    /* The picked bow goes "in hand": the tray drops out of the way so she
+       can see the head, and the dock button shows what she is holding. */
+    holdAccessory: function (a) {
+      var dockBtn = document.querySelector('[data-tool="accessory"]');
+      dockBtn.querySelector('span').textContent = a.emoji;
+      dockBtn.querySelector('em').textContent = a.word;
+      this.tray.classList.remove('show');
+      this.toast('Now tap her hair! ' + a.emoji);
     },
 
     /* Called after stars change: reopen the tray if a pack just unlocked. */
