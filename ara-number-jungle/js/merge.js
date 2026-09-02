@@ -81,6 +81,7 @@
         // A run is a claim about consecutive sets on one device; the fresher
         // device is the only one that can speak to it.
         run: fresher.run || 0,
+        bank: fresher.bank || 0,
         lastAt: maxOf(x.lastAt, y.lastAt),
       }
     })

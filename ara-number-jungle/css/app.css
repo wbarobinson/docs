@@ -370,7 +370,19 @@ h2 {
 }
 .runbeads i.on {
   background: var(--good);
-  box-shadow: 0 0 0 3px rgb(52 199 123 / 25%);
+  box-shadow: 0 0 0 3px rgb(47 168 79 / 25%);
+}
+/* Saved from a run she lost: hers to keep, but not yet a finished set. */
+.runbeads i.saved {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgb(255 201 60 / 30%);
+  animation: saved-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes saved-pulse {
+  50% {
+    transform: scale(1.16);
+  }
 }
 
 /* ---------- play ---------- */

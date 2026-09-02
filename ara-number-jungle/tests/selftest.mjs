@@ -385,6 +385,67 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   KM.store.removeProfile(KM.store.profile().id)
 }
 
+// --- 5c. a near miss is saved, not lost -------------------------------
+// Two good sets then a wobble used to put her back at nothing, which lands
+// far too hard on an eight-year-old. The lost run is banked instead.
+{
+  const p = KM.store.addProfile('Bank', '🦜')
+  const good = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
+  const bad = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 5 })
+
+  eq(good().run, 1, 'a good set starts the run')
+  const two = good()
+  eq(two.run, 2, 'two good sets in a row')
+  eq(two.bank, 0, 'with nothing saved yet')
+
+  const wobble = bad()
+  eq(wobble.run, 0, 'the wobble ends the run')
+  eq(wobble.bank, 2, 'but both good sets are saved')
+  eq(wobble.justBanked, 2, 'and the results screen knows it just saved two')
+  eq(wobble.mastered, false, 'a wobble is not a pass')
+
+  const recovery = good()
+  eq(recovery.spentBank, 2, 'the next good set spends what was saved')
+  eq(recovery.run, 3, 'one good set plus two saved is three')
+  eq(recovery.mastered, true, 'so she moves up, instead of starting again')
+  eq(KM.store.stageRecord(KM.store.profile(), 'A-5').bank, 0, 'and the saved sets are used up')
+
+  // Saved sets can never carry her up on their own.
+  const q = KM.store.addProfile('BankCap', '🦜')
+  const g2 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000 })
+  const b2 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000, rightFirstTry: 5 })
+  g2()
+  g2()
+  b2()
+  eq(KM.store.stageRecord(KM.store.profile(), 'A-6').bank, 2, 'two saved after the wobble')
+  const again = b2()
+  eq(again.bank, 2, 'a second wobble does not add more')
+  eq(again.mastered, false, 'and saved sets alone never pass a branch')
+  const third = b2()
+  eq(third.bank, 2, 'nor a third')
+  eq(third.mastered, false, 'still not passed')
+  eq(g2().mastered, true, 'one good set finally does it')
+
+  // A single lost set banks one, and needs two more good ones.
+  const r = KM.store.addProfile('BankOne', '🦜')
+  const g3 = () => playSet(KM.store.profile(), 'A-7', { msEach: 2000 })
+  const b3 = () => playSet(KM.store.profile(), 'A-7', { msEach: 2000, rightFirstTry: 5 })
+  g3()
+  const lostOne = b3()
+  eq(lostOne.bank, 1, 'losing a run of one saves one')
+  const after = g3()
+  eq(after.run, 2, 'the next good set counts as two')
+  eq(after.mastered, false, 'which is not yet a pass')
+  eq(g3().mastered, true, 'the set after that passes it')
+
+  // Nothing to save when there was no run at all.
+  const t = KM.store.addProfile('BankNone', '🦜')
+  const firstBad = playSet(KM.store.profile(), 'A-1', { msEach: 2000, rightFirstTry: 4 })
+  eq(firstBad.bank, 0, 'a bad set with no run behind it saves nothing')
+  eq(firstBad.run, 0, 'and leaves the run at zero')
+  ;[p, q, r, t].forEach((x) => KM.store.removeProfile(x.id))
+}
+
 // --- 6a. progress survives being interrupted --------------------------
 {
   const p = KM.store.profile()

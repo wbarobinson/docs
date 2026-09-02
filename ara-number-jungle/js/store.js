@@ -292,6 +292,9 @@ var DEFAULT_SETTINGS = {
         stars: 0,
         mastered: false,
         run: 0,
+        // Sets saved from a run she lost. They ride along with her next good
+        // set instead of the near-miss counting for nothing.
+        bank: 0,
         lastAt: null,
       }
     }
@@ -336,13 +339,31 @@ var DEFAULT_SETTINGS = {
     if (st.bestScore === null || accuracy > st.bestScore) st.bestScore = accuracy
 
     // Mastery, the Kumon way: three sets in a row that are both accurate and
-    // quick. One slow or scrappy set resets the run — no shortcuts up.
+    // quick. But a child who has done two good sets and then has one bad one
+    // should not be back at nothing — that lands far too hard. So the run she
+    // just lost is SAVED, and rides along with her next good set.
+    //
+    //   two good, then a bad one  → 2 saved, run 0
+    //   next good set             → 1 + 2 saved = 3 → she moves up
+    //
+    // Capped at 2, so passing a branch always needs at least one good set
+    // after the wobble: saved sets can never carry her up on their own.
     var qualifies = accuracy >= 0.9 && quick
-    st.run = qualifies ? st.run + 1 : 0
+    var bankBefore = st.bank || 0
+    var banked = 0
+    if (qualifies) {
+      st.run = st.run + 1 + bankBefore
+      st.bank = 0
+    } else {
+      banked = Math.min(2, Math.max(bankBefore, st.run))
+      st.bank = banked
+      st.run = 0
+    }
     var justMastered = false
     if (!st.mastered && st.run >= 3) {
       st.mastered = true
       justMastered = true
+      st.bank = 0
     }
 
     // One line per set, with an id no other device will generate.
@@ -400,6 +421,10 @@ var DEFAULT_SETTINGS = {
       perProblem: perProblem,
       quick: quick,
       run: st.run,
+      bank: st.bank || 0,
+      // How many were saved by this particular near miss, for the copy.
+      justBanked: banked,
+      spentBank: qualifies ? bankBefore : 0,
       mastered: justMastered,
       levelledUp: levelledUp,
       nextStageId: justMastered && next ? next.id : null,

@@ -111,15 +111,16 @@
     }
     el('storage-warning').hidden = KM.store.canStore()
 
-    var beads = ''
-    for (var i = 0; i < 3; i++) beads += '<i class="' + (i < rec.run ? 'on' : '') + '"></i>'
-    el('home-run').innerHTML = beads
+    el('home-run').innerHTML = beadRow(rec.run, rec.bank)
     var unit = KM.store.theme().unit
+    var have = rec.run + (rec.bank || 0)
     el('home-runlabel').textContent = rec.mastered
       ? 'This ' + unit + ' is already passed — free choice!'
-      : rec.run === 0
-        ? 'Three quick, accurate sets in a row to move up a ' + unit
-        : rec.run + ' of 3 — ' + (3 - rec.run) + ' more to move up!'
+      : rec.bank
+        ? rec.bank + ' saved ✨ — ' + (3 - have <= 1 ? 'one good set' : 3 - have + ' good sets') + ' and you move up!'
+        : rec.run === 0
+          ? 'Three quick, accurate sets in a row to move up a ' + unit
+          : rec.run + ' of 3 — ' + (3 - rec.run) + ' more to move up!'
   }
 
   // ---------- who's playing ----------
@@ -483,7 +484,9 @@
     html +=
       '<div class="card"><h2>How the levels work</h2><p class="tiny muted" style="margin:0">' +
       'She moves up a branch after <b>three sets in a row</b> that are both accurate (9 of 10 right first try) and quick (inside the branch\'s target time). ' +
-      'One scrappy or slow set resets the run — the same bargain a Kumon worksheet makes. Stars are per set: 3 = quick and near-perfect, 2 = solid, 1 = finished it.' +
+      '<b>Near misses are saved, not lost:</b> if she has two good sets and then a wobble, those two are kept and ride along with her next good set, so one more good set still takes her up. ' +
+      'Saved sets are capped at two, so passing always needs a good set after the wobble — they can never carry her up on their own. ' +
+      'Stars are per set: 3 = quick and near-perfect, 2 = solid, 1 = finished it.' +
       '</p></div>'
 
     html +=
@@ -536,10 +539,10 @@
     // Passing counts the branch target, never a personal best: the ladder does
     // not get easier because she had a good day.
     var counted = accurate && res.quick
-    var needed = Math.max(0, 3 - res.run)
+    var have = res.run + (res.bank || 0)
+    var needed = Math.max(0, 3 - have)
     var nextStage = KM.nextStage(stage.id)
-    var beads = ''
-    for (var b = 0; b < 3; b++) beads += '<i class="' + (b < res.run ? 'on' : '') + '"></i>'
+    var beads = beadRow(res.run, res.bank)
 
     return (
       '<h2>Passing ' +
@@ -556,18 +559,39 @@
       beads +
       '</div><p style="margin:10px 0 0;text-align:center">' +
       (counted
-        ? '<b>That one counted!</b> ' +
-          res.run +
-          ' of 3. ' +
-          (needed === 1 ? 'One more' : needed + ' more') +
-          ' and you move up to <b>' +
-          esc(nextStage ? nextStage.name : 'the next one') +
-          '</b> ' +
-          KM.store.theme().token
-        : 'This one did not count, so the run starts again at three. ' +
-          (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
+        ? '<b>That one counted!</b>' +
+          (res.spentBank
+            ? ' Your ' + res.spentBank + ' saved ✨ came with it — ' + res.run + ' of 3.'
+            : ' ' + res.run + ' of 3.') +
+          ' ' +
+          (needed === 0
+            ? ''
+            : (needed === 1 ? 'One more' : needed + ' more') +
+              ' and you move up to <b>' +
+              esc(nextStage ? nextStage.name : 'the next one') +
+              '</b> ' +
+              KM.store.theme().token)
+        : // A near miss keeps what she had. Say that first, loudly.
+          res.bank
+          ? '<b>You keep ' +
+            res.bank +
+            ' saved ✨</b> — this one did not count, but nothing was lost. ' +
+            (needed === 1 ? 'One good set' : needed + ' good sets') +
+            ' and you move up!'
+          : 'This one did not count. ' + (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
       '</p>'
     )
+  }
+
+  // Three beads: solid for sets in the current run, sparkling for ones saved
+  // from a run she lost, empty for what is still to do.
+  function beadRow(run, bank) {
+    var out = ''
+    for (var i = 0; i < 3; i++) {
+      var cls = i < run ? 'on' : i < run + (bank || 0) ? 'saved' : ''
+      out += '<i class="' + cls + '"></i>'
+    }
+    return out
   }
 
   function req(done, label, actual) {
@@ -775,10 +799,13 @@
 
     show('result')
 
-    // Stars land one at a time, each with its own chime.
+    // Stars land one at a time, each with its own chime — and the ones that
+    // light up are the ones she actually earned, not simply the first N.
+    var earned = [true, accurate, quick]
     var star = 0
     var timer = root.setInterval(function () {
-      if (star >= res.stars) {
+      while (star < 3 && !earned[star]) star++ // skip the ones she missed
+      if (star >= 3) {
         root.clearInterval(timer)
         if (res.stars >= 3) KM.juice.confetti(90)
         if (res.improvedBy > 0 || res.beatOwnBest) {

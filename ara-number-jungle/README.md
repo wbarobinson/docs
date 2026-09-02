@@ -164,8 +164,21 @@ branch can only ever produce the kind of question it describes.
 - A set is **quick** if she averages under the branch's target seconds per
   problem, and **accurate** if 9 of 10 are right first try.
 - **Three quick, accurate sets in a row** masters the branch and moves her up.
-  One slow or scrappy set resets the run. That is the whole bargain, and it is
-  the same one a Kumon worksheet makes.
+- **A near miss is saved, not lost.** Two good sets and then a wobble used to
+  put her back at nothing, which is a crushing thing to do to an eight-year-old
+  who could see the finish line. Now the run she lost is *saved* and rides
+  along with her next good set:
+
+  | | run | saved |
+  | --- | --- | --- |
+  | two good sets | 2 | 0 |
+  | then a scrappy one | 0 | **2** |
+  | then one good set | **3** → passes | 0 |
+
+  Saved sets cap at two, so passing always needs a good set after the wobble —
+  they can never carry her up on their own. The results screen leads with
+  *"You keep 2 saved ✨ — nothing was lost"*, and the beads show gold for saved
+  and green for the current run.
 - **Stars** are per set: ⭐⭐⭐ quick and near-perfect, ⭐⭐ solid, ⭐ finished it.
 
 Timing counts thinking time only — from a problem appearing to the right
@@ -296,9 +309,9 @@ Two consequences worth knowing:
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 357 checks: generators, mastery, stars, badges, storage
+node tests/selftest.mjs   # 380 checks: generators, mastery, stars, badges, storage
 node tests/sync.mjs       #  40 checks: two devices, one family code, real endpoint
-node tests/smoke.mjs      #  96 checks: drives the real UI in headless Chromium
+node tests/smoke.mjs      # 103 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```

@@ -659,6 +659,80 @@ try {
     await sleep(250)
   }
 
+  // --- a near miss keeps what she had ---------------------------------
+  // Two good sets, then a deliberately scrappy one: the screen must say what
+  // she keeps, not that she is back to nothing.
+  await cdp.eval(`(() => {
+    const p = KM.store.profile()
+    const rec = KM.store.stageRecord(p, p.stageId)
+    rec.run = 2
+    rec.bank = 0
+    rec.mastered = false
+    KM.store.save()
+    KM.ui.show('home')
+  })()`)
+  await sleep(250)
+  await cdp.click('.screen.active #btn-play')
+  await sleep(400)
+  for (let n = 0; n < 10; n++) {
+    const prob = await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+        const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+    )
+    const right = prob.a + prob.b
+    if (n < 3) {
+      // Three wrong first tries drops her under the accuracy bar.
+      const wrong = String(right % 10 === 0 ? right + 1 : right - 1)
+      for (const ch of wrong) await cdp.click(`.key[data-k="${ch}"]`)
+      await cdp.click('.key[data-k="go"]')
+      await sleep(500)
+    }
+    for (const ch of String(right)) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(600)
+  }
+  await sleep(2400)
+  eq(await cdp.eval("document.querySelector('.screen.active').id"), 'result', 'the scrappy set finishes')
+  eq(await cdp.eval('KM.store.stageRecord(KM.store.profile(), KM.store.profile().stageId).bank'), 2, 'two sets are saved')
+  // Whichever stars are lit must be the ones the labels claim.
+  eq(
+    await cdp.eval(`(() => {
+      const stars = [...document.querySelectorAll('#res-stars span')].map((x) => x.classList.contains('on'))
+      const labels = [...document.querySelectorAll('#res-starlabels span')].map((x) => x.classList.contains('on'))
+      return JSON.stringify(stars) === JSON.stringify(labels)
+    })()`),
+    true,
+    'the lit stars are the ones the labels say she earned',
+  )
+  const kept = await cdp.eval("document.getElementById('res-progress').textContent")
+  ok(kept.includes('keep 2 saved'), 'the results say what she keeps (' + kept.slice(0, 90) + ')')
+  ok(!kept.includes('starts again'), 'and never tell her the run starts again')
+  eq(
+    await cdp.eval("document.querySelectorAll('#res-progress .runbeads i.saved').length"),
+    2,
+    'two beads show as saved rather than empty',
+  )
+  await cdp.shot('14-saved-sets')
+
+  // The next good set should spend them and take her up.
+  await cdp.click('.screen.active #btn-again')
+  await sleep(500)
+  for (let n = 0; n < 10; n++) {
+    const prob = await cdp.eval(
+      `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+        const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+    )
+    for (const ch of String(prob.a + prob.b)) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(600)
+  }
+  await sleep(2600)
+  const passed = await cdp.eval("document.getElementById('res-progress').textContent")
+  ok(passed.includes('passed'), 'one good set after the wobble passes the branch (' + passed.slice(0, 70) + ')')
+  await cdp.shot('15-saved-spent')
+  await cdp.click('.screen.active [data-go="home"]')
+  await sleep(300)
+
   // --- the family account degrades gracefully with no server -----------
   // This test server has no /api endpoint, which is exactly the "offline or
   // not deployed yet" case: it must never cost anyone their progress.
