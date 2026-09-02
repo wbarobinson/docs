@@ -192,6 +192,17 @@
             KM.ui.toast(r.ok ? 'Synced' : r.reason || 'Sync failed')
           })
           return
+        case 'g-copylink': {
+          var link = KM.sync.inviteLink()
+          if (link && root.navigator.clipboard) {
+            root.navigator.clipboard.writeText(link).then(function () {
+              KM.ui.toast('Invite link copied — send it to the other device')
+            })
+          } else {
+            KM.ui.toast(link || 'No family code yet')
+          }
+          return
+        }
         case 'g-copycode': {
           var codeText = KM.sync.code() || ''
           if (root.navigator.clipboard) {
@@ -343,9 +354,19 @@
       root.removeEventListener('touchstart', once)
     })
 
+    // Opened from an invite link? Join that family before anything else.
+    var invite = KM.sync && KM.sync.joinFromLink()
+    if (invite) {
+      invite.then(function (r) {
+        applySettings()
+        KM.ui.show('home')
+        KM.ui.toast(r.ok ? 'Joined the family — progress is shared 🎉' : r.reason || 'Could not join')
+      })
+    }
+
     // A family account, if this device has joined one: fold in whatever the
     // other devices have done since we last looked.
-    if (KM.sync && KM.sync.code()) {
+    if (!invite && KM.sync && KM.sync.code()) {
       KM.sync.pull().then(function (r) {
         if (r.ok && !r.empty) {
           applySettings()

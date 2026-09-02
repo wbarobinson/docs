@@ -385,57 +385,72 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   KM.store.removeProfile(KM.store.profile().id)
 }
 
-// --- 5c. a lost run counts towards the day, not towards moving up -------
-// Moving up still needs three good sets IN A ROW. What a wobble must not do
-// is make the good sets she already did today worth nothing.
+// --- 5c. a broken run pays into the day -------------------------------
+// Moving up still needs three good sets IN A ROW. A wobble resets that, but
+// it pays a bonus point for each good set it cost, so the evening counts for
+// MORE than the clean run would have: 3 stars, 3 stars, 2 stars = 5 points.
 {
-  const p = KM.store.addProfile('DayGoal', '\u{1F99C}')
+  const p = KM.store.addProfile('DayPoints', '\u{1F99C}')
   const good = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
-  const bad = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 5 })
+  const wobble = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 5 })
+
+  eq(p.settings.dayGoal, 5, 'a day is five points by default')
 
   const one = good()
   eq(one.run, 1, 'a good set starts the run')
-  eq(one.good, true, 'and counts as a good set')
-  eq(one.dayGood, 1, 'today has one star')
-  eq(one.dayGoal, 3, 'out of three')
+  eq(one.pointsEarned, 1, 'and earns one point')
+  eq(one.bonusPoints, 0, 'with no bonus')
+  eq(one.dayPoints, 1, 'one point today')
 
   const two = good()
   eq(two.run, 2, 'two in a row')
-  eq(two.dayGood, 2, 'and two stars today')
+  eq(two.dayPoints, 2, 'two points today')
 
-  const wobble = bad()
-  eq(wobble.run, 0, 'a wobble resets the run to nothing — three in a row means in a row')
-  eq(wobble.mastered, false, 'so it certainly does not pass the branch')
-  eq(wobble.good, false, 'the wobble earns no star')
-  eq(wobble.dayGood, 2, "but today's two stars are untouched")
-  eq(wobble.dayDone, false, 'the day is not finished yet')
+  const three = wobble()
+  eq(three.run, 0, 'the wobble resets the run — three in a row means in a row')
+  eq(three.mastered, false, 'and does not pass the branch')
+  eq(three.lostRun, 2, 'it cost her a run of two')
+  eq(three.bonusPoints, 2, 'so it pays two bonus points')
+  eq(three.pointsEarned, 3, 'three points for that set: one for finishing, two bonus')
+  eq(three.dayPoints, 5, 'which is five points for the evening, not three')
+  eq(three.dayDone, true, 'and finishes the day')
+  eq(three.dayJustDone, true, 'saying so once')
 
-  const third = good()
-  eq(third.run, 1, 'the run starts again from one')
-  eq(third.dayGood, 3, 'while the day reaches three stars')
-  eq(third.dayDone, true, 'which finishes the day')
-  eq(third.dayJustDone, true, 'and says so, once')
-  eq(third.mastered, false, 'finishing a day is not the same as passing a branch')
+  // The clean run: three points, and the branch.
+  const q = KM.store.addProfile('DayClean', '\u{1F99C}')
+  const g = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
+  eq(g().pointsEarned, 1, 'a good set is worth one point')
+  g()
+  const passed = g()
+  eq(passed.mastered, true, 'three in a row passes the branch')
+  eq(passed.dayPoints, 3, 'and is worth three points — fewer than the wobbly evening')
+  eq(passed.dayDone, false, 'so the day is not finished by it alone')
 
-  const fourth = good()
-  eq(fourth.dayDone, true, 'more sets after that still count as a finished day')
-  eq(fourth.dayJustDone, false, 'without celebrating it twice')
-  eq(fourth.run, 2, 'and the run keeps building')
-  eq(good().mastered, true, 'three good sets in a row, and only that, passes the branch')
+  // A wobble with nothing behind it pays no bonus.
+  const r = KM.store.addProfile('DayCold', '\u{1F99C}')
+  const cold = playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 4 })
+  eq(cold.bonusPoints, 0, 'a wobble with no run behind it pays no bonus')
+  eq(cold.pointsEarned, 1, 'just the one point for finishing a set')
+  eq(cold.dayPoints, 1, 'one point today')
 
-  // The goal is a setting.
-  KM.store.profile().settings.dayGoal = 2
-  const q = KM.store.addProfile('DayGoalTwo', '\u{1F99C}')
-  q.settings.dayGoal = 2
-  const g = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000 })
-  eq(g().dayGoal, 2, 'the goal can be set lower')
-  eq(g().dayDone, true, 'and two good sets then finish the day')
+  // Points never go down, whatever happens next.
+  const before = KM.store.dayProgress(KM.store.profile()).points
+  playSet(KM.store.profile(), 'A-5', { msEach: 20000, rightFirstTry: 2 })
+  ok(
+    KM.store.dayProgress(KM.store.profile()).points > before,
+    'even a thoroughly bad set adds a point rather than taking any away',
+  )
 
-  // Finishing a day earns its badge at the time, so it is already on the
-  // profile rather than waiting for another awardBadges call.
-  ok(!!KM.store.profile().badges['day-1'], 'finishing a day earns the Day Done badge')
-  ok(!KM.store.profile().badges['day-5'], 'and not the five-day one yet')
-  ;[p, q].forEach((x) => KM.store.removeProfile(x.id))
+  // Finishing a day earns its badge.
+  const t = KM.store.addProfile('DayBadge', '\u{1F99C}')
+  const g3 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000 })
+  const w3 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000, rightFirstTry: 5 })
+  g3()
+  g3()
+  w3()
+  eq(KM.store.dayProgress(KM.store.profile()).done, true, 'the wobbly evening finished the day')
+  ok(!!KM.store.profile().badges['day-1'], 'which earns the Day Done badge')
+  ;[p, q, r, t].forEach((x) => KM.store.removeProfile(x.id))
 }
 
 // --- 6a. progress survives being interrupted --------------------------

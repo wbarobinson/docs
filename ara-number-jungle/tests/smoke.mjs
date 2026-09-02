@@ -198,7 +198,7 @@ try {
     'home greets Ara',
   )
   ok(
-    (await cdp.eval("document.getElementById('home-day').textContent")).includes('of 3 good sets'),
+    (await cdp.eval("document.getElementById('home-day').textContent")).includes('of 5 points'),
     "home shows today's goal",
   )
   await cdp.shot('1-home')
@@ -673,7 +673,7 @@ try {
     rec.mastered = false
     // Part way through today, so the consolation copy is the one under test
     // rather than "today is already finished".
-    p.days[KM.store.today()] = { sets: 2, problems: 20, correct: 20, ms: 8000, good: 1, goal: 3 }
+    p.days[KM.store.today()] = { sets: 2, problems: 20, correct: 20, ms: 8000, good: 1, points: 1, goal: 5 }
     KM.store.save()
     KM.ui.show('home')
   })()`)
@@ -717,9 +717,12 @@ try {
   const kept = await cdp.eval("document.getElementById('res-progress').textContent")
   ok(kept.includes('start again'), 'the screen is honest that the three in a row restart')
   const dayCard = await cdp.eval("document.getElementById('res-day').textContent")
-  ok(
-    dayCard.includes('still counts') || dayCard.includes('still count'),
-    "and today's card says the earlier good set still counts (" + dayCard.slice(0, 120) + ')',
+  ok(dayCard.includes('bonus'), "today's card names the bonus (" + dayCard.slice(0, 140) + ')')
+  ok(dayCard.includes('+3 points'), 'one point for the set plus two bonus for the lost run')
+  eq(
+    await cdp.eval('KM.store.dayProgress(KM.store.profile()).points'),
+    4,
+    'the wobble takes today from 1 point to 4, not backwards',
   )
   ok(
     await cdp.eval("!!document.getElementById('res-day').offsetParent"),
@@ -727,8 +730,8 @@ try {
   )
   eq(
     await cdp.eval("document.querySelectorAll('#res-day .daystars i.on').length"),
-    1,
-    "the star she earned earlier today is still lit after the wobble",
+    4,
+    "today's stars went up after the wobble, not down",
   )
   eq(
     await cdp.eval("document.querySelectorAll('#res-progress .runbeads i.on').length"),
@@ -737,8 +740,8 @@ try {
   )
   eq(
     await cdp.eval("document.querySelectorAll('#res-day .daystars i').length"),
-    3,
-    'out of a goal of three',
+    5,
+    'out of a goal of five',
   )
   await cdp.shot('14-run-lost-day-kept')
 
@@ -759,10 +762,10 @@ try {
   ok(after.includes('1 of 3 in a row'), 'the run starts again at one (' + after.slice(0, 90) + ')')
   eq(
     await cdp.eval("document.querySelectorAll('#res-day .daystars i.on').length"),
-    2,
-    'and the day gains a star, because good sets count there whatever the run did',
+    5,
+    'and the next good set finishes the day',
   )
-  eq(await cdp.eval('KM.store.dayProgress(KM.store.profile()).good'), 2, "today's tally went up, not back")
+  eq(await cdp.eval('KM.store.dayProgress(KM.store.profile()).points'), 5, "today's points went up, not back")
   await cdp.shot('15-day-done')
   await cdp.click('.screen.active [data-go="home"]')
   await sleep(300)

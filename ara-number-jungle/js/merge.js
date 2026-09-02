@@ -105,7 +105,8 @@
         correct: maxOf(x.correct, y.correct),
         ms: maxOf(x.ms, y.ms),
         good: maxOf(x.good, y.good),
-        goal: maxOf(x.goal, y.goal) || 3,
+        points: maxOf(x.points, y.points),
+        goal: maxOf(x.goal, y.goal) || 5,
       }
     })
     return out
@@ -158,12 +159,15 @@
       totals.ms += e.ms || 0
       totals.stars += e.stars || 0
       if (e.count && e.firstTry === e.count) totals.perfectSets++
-      var d = days[e.day] || (days[e.day] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0 })
+      var d =
+        days[e.day] || (days[e.day] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0, points: 0 })
       d.sets++
       d.problems += e.count || 0
       d.correct += e.firstTry || 0
       d.ms += e.ms || 0
       if (e.good) d.good++
+      // Sets logged before points existed are worth the one they earned.
+      d.points += e.points == null ? 1 : e.points
     })
     return { totals: totals, days: days }
   }

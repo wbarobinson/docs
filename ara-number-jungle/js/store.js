@@ -28,8 +28,9 @@ var DEFAULT_SETTINGS = {
   setSize: 10,
   autoNext: true,
   autoCheck: false,
-  // Good sets that finish a day. Three is a sensible evening.
-  dayGoal: 3,
+  // Points that finish a day. Every set earns one, and a broken run pays a
+  // bonus, so five is a comfortable evening.
+  dayGoal: 5,
 }
 
   function today() {
@@ -162,7 +163,7 @@ var DEFAULT_SETTINGS = {
         p.totals || {},
       )
       if (!p.theme) p.theme = KM.DEFAULT_THEME
-      if (!p.settings.dayGoal) p.settings.dayGoal = 3
+      if (!p.settings.dayGoal) p.settings.dayGoal = 5
       // One-off migration for profiles created when the timer was on by default.
       if (!p.settingsVersion) {
         p.settings.timer = false
@@ -346,7 +347,17 @@ var DEFAULT_SETTINGS = {
     // counts towards today's goal whether or not a later wobble breaks the
     // run, so an evening's work is never worth nothing.
     var qualifies = accuracy >= 0.9 && quick
+    var runBefore = st.run
     st.run = qualifies ? st.run + 1 : 0
+
+    // Day points, which is where a broken run is made good:
+    //   every finished set                          +1
+    //   a set that breaks a run of N good ones      +N
+    // So 3★, 3★, 2★ pays 1 + 1 + (1 + 2) = 5 points, more than the three
+    // clean sets that would have levelled her up. The run is gone, but the
+    // evening counted for MORE, not less.
+    var bonusPoints = qualifies ? 0 : runBefore
+    var pointsEarned = 1 + bonusPoints
     var justMastered = false
     if (!st.mastered && st.run >= 3) {
       st.mastered = true
@@ -363,9 +374,10 @@ var DEFAULT_SETTINGS = {
       firstTry: res.firstTry,
       ms: res.ms,
       stars: stars,
-      // Good = the same bar the run uses. Kept per set so a day's tally can be
-      // rebuilt from the log when two devices merge.
+      // Good = the same bar the run uses. Both of these are kept per set so a
+      // day's tally can be rebuilt from the log when two devices merge.
       good: qualifies,
+      points: pointsEarned,
     })
     // Four years of daily practice before this matters, and trimming only ever
     // costs detail, never the totals, because they are baselined below.
@@ -387,17 +399,19 @@ var DEFAULT_SETTINGS = {
     if (accuracy === 1) p.totals.perfectSets++
     p.totals.bestCombo = Math.max(p.totals.bestCombo, res.bestCombo || 0)
 
-    var goal = p.settings.dayGoal || 3
+    var goal = p.settings.dayGoal || 5
     var d =
-      p.days[today()] || (p.days[today()] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0, goal: goal })
+      p.days[today()] ||
+      (p.days[today()] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0, points: 0, goal: goal })
     d.sets++
     d.problems += res.count
     d.correct += res.firstTry
     d.ms += res.ms
     d.goal = goal
-    var goodBefore = d.good || 0
-    if (qualifies) d.good = goodBefore + 1
-    var dayDone = (d.good || 0) >= goal
+    if (qualifies) d.good = (d.good || 0) + 1
+    var pointsBefore = d.points || 0
+    d.points = pointsBefore + pointsEarned
+    var dayDone = d.points >= goal
 
     touchStreak(p)
 
@@ -417,13 +431,16 @@ var DEFAULT_SETTINGS = {
       perProblem: perProblem,
       quick: quick,
       run: st.run,
-      // Today's tally: a good set counts here even if a later wobble breaks
-      // the run, which is the whole point.
+      // Today's tally, which a broken run adds to rather than costing.
       good: qualifies,
+      pointsEarned: pointsEarned,
+      bonusPoints: bonusPoints,
+      lostRun: qualifies ? 0 : runBefore,
       dayGood: d.good || 0,
+      dayPoints: d.points,
       dayGoal: goal,
       dayDone: dayDone,
-      dayJustDone: dayDone && goodBefore < goal,
+      dayJustDone: dayDone && pointsBefore < goal,
       mastered: justMastered,
       levelledUp: levelledUp,
       nextStageId: justMastered && next ? next.id : null,
@@ -527,12 +544,13 @@ var DEFAULT_SETTINGS = {
     // What today looks like so far.
     dayProgress: function (p) {
       var d = (p.days || {})[today()] || {}
-      var goal = p.settings.dayGoal || 3
+      var goal = p.settings.dayGoal || 5
       return {
+        points: d.points || 0,
         good: d.good || 0,
         sets: d.sets || 0,
         goal: goal,
-        done: (d.good || 0) >= goal,
+        done: (d.points || 0) >= goal,
       }
     },
     trickyFacts: trickyFacts,

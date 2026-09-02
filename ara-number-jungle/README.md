@@ -47,10 +47,17 @@ progress on the server. Type the same code on another iPad, a phone or a laptop
 and everything follows them there, including a device whose browser has been
 wiped.
 
-Set it up in **Grown-ups → Family account**: *Create a family code*, then keep
-it somewhere safe (it is the only key). On the second device, type it into
-*Join*. Joining **adds** to what is already on that device rather than
-replacing it.
+Set it up in **Grown-ups → Family account** on the device that already has the
+progress: *Create a family code*. The code is then shown on that screen — it
+lives only in that browser, so nobody else (including whoever built this) can
+look it up for you. Two ways to get it onto the second device:
+
+- **Copy invite link** and send it over (AirDrop, Messages, email). Opening the
+  link joins that family automatically and strips the code out of the address
+  bar. No typing.
+- **Copy code** and type it into *Join* on the other device.
+
+Joining **adds** to what is already on that device rather than replacing it.
 
 How it holds up when two children practise on two devices at once:
 
@@ -166,21 +173,28 @@ branch can only ever produce the kind of question it describes.
 - **Three quick, accurate sets in a row** masters the branch and moves her up.
   One slow or scrappy set resets the run: "in a row" is the point of it, and
   nothing is carried over.
-- **The day is where a lost run still counts.** Every good set earns a star
-  towards finishing the day — three by default — and **those stars are never
-  taken away**. An evening of two good sets and then a wobble still shows two
-  stars and can still be finished, so the work is never worth nothing:
+- **The day is where a lost run is made good.** Finishing any set earns **1
+  point**. A set that breaks a run pays **a bonus point for each good set the
+  run had**. Five points finishes the day (settable to 3 or 8). So:
 
-  | | run | today |
-  | --- | --- | --- |
-  | two good sets | 2 | ⭐⭐ |
-  | then a scrappy one | **0** | ⭐⭐ (kept) |
-  | then one good set | 1 | ⭐⭐⭐ **day done** |
+  | | run | points | today |
+  | --- | --- | --- | --- |
+  | ⭐⭐⭐ good set | 1 | +1 | 1 |
+  | ⭐⭐⭐ good set | 2 | +1 | 2 |
+  | ⭐⭐ wobble | **0** | **+3** (1 + 2 bonus) | **5 — day done 🎉** |
 
-  The results screen shows a **Today** card above the branch card, so after a
-  miss the first thing she reads is what she keeps. Finishing a day gets its
-  own celebration and its own badges. The goal is settable (2, 3 or 5) in
-  Grown-ups.
+  Three clean sets in a row is 3 points *and* a move up. Two good then a
+  wobble is **5 points** — the run is gone, but the evening counted for
+  *more*, not less. Points are never taken away, and the results screen puts a
+  **Today** card above the branch card so the first thing she reads after a
+  miss is *"+3 points for that set — 1 for finishing it, and 2 bonus for the 2
+  good sets the wobble cost you."* Finishing a day gets its own celebration and
+  three badges.
+
+  One thing to know as a parent: because the bonus exists, a wobbly evening
+  fills the day faster than a clean one. Moving up a branch is still the bigger
+  prize, so the incentive points the right way — but it is a deliberate trade,
+  not an accident.
 - **Stars** are per set: ⭐⭐⭐ quick and near-perfect, ⭐⭐ solid, ⭐ finished it.
 
 Timing counts thinking time only — from a problem appearing to the right
@@ -312,9 +326,9 @@ Two consequences worth knowing:
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 381 checks: generators, mastery, stars, badges, storage
-node tests/sync.mjs       #  40 checks: two devices, one family code, real endpoint
-node tests/smoke.mjs      # 109 checks: drives the real UI in headless Chromium
+node tests/selftest.mjs   # 382 checks: generators, mastery, stars, badges, storage
+node tests/sync.mjs       #  48 checks: two devices, one family code, real endpoint
+node tests/smoke.mjs      # 111 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```

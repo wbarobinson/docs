@@ -24,7 +24,7 @@
     var days = p.days || {}
     return Object.keys(days).filter(function (k) {
       var d = days[k]
-      return (d.good || 0) >= (d.goal || 3)
+      return (d.points || d.good || 0) >= (d.goal || 5)
     }).length
   }
 

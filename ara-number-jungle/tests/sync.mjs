@@ -232,6 +232,31 @@ eq(laptop.store.profiles().length, 2, 'both children came across')
   eq(merged.profiles.length, A.profiles.length + 1, 'a child added on one device is kept')
 }
 
+// --- the invite link carries the code --------------------------------
+{
+  // Devices in these tests have no window.location, so the link builder has
+  // nothing to prefix — the code itself is the part that has to be right.
+  const laptopCode = laptop.sync.code()
+  eq(laptopCode, code, 'the second device holds the same family code')
+  const phone = makeDevice('phone')
+  phone.__sandbox.location = { origin: 'https://example.test', pathname: '/', search: '', hash: '#join=' + code }
+  phone.__sandbox.history = { replaceState: () => {} }
+  const joined = await phone.sync.joinFromLink()
+  ok(joined && joined.ok, 'opening an invite link joins that family')
+  eq(phone.sync.code(), code, 'and stores the code it carried')
+  ok(phone.store.profile().totals.problems > 0, 'with the history pulled in')
+  eq(phone.sync.inviteLink(), 'https://example.test/#join=' + code, 'and it can pass the link on')
+
+  // A link for the family you are already in is a no-op, not a re-join.
+  phone.__sandbox.location.hash = '#join=' + code
+  eq(await phone.sync.joinFromLink(), null, 'an invite to the family you are already in does nothing')
+  // Junk in the hash must not throw or wipe anything.
+  phone.__sandbox.location.hash = '#join=' + 'x'
+  const tooShort = await phone.sync.joinFromLink()
+  eq(tooShort && tooShort.ok, false, 'a nonsense invite is refused')
+  ok(phone.store.profile().totals.problems > 0, 'and changes nothing locally')
+}
+
 // --- a wiped device gets everything back -----------------------------
 {
   const wiped = makeDevice('wiped-iphone')

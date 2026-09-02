@@ -425,8 +425,8 @@
     html += sw('s-autocheck', 'Check the answer without tapping ✓', p.settings.autoCheck)
     html +=
       '<p class="tiny muted" style="margin:-2px 0 6px 74px">Faster, but a mistyped digit is marked wrong straight away.</p>'
-    html += '<div class="row" style="margin-top:8px"><span class="grow">Good sets to finish a day</span><select id="s-daygoal">'
-    ;[2, 3, 5].forEach(function (n) {
+    html += '<div class="row" style="margin-top:8px"><span class="grow">Points to finish a day</span><select id="s-daygoal">'
+    ;[3, 5, 8].forEach(function (n) {
       html += '<option value="' + n + '"' + (p.settings.dayGoal === n ? ' selected' : '') + '>' + n + '</option>'
     })
     html += '</select></div>'
@@ -466,10 +466,12 @@
         '</div>' +
         '<div class="row wrap" style="margin-top:10px">' +
         '<button class="btn small" id="g-sync">Sync now</button>' +
+        '<button class="btn small ghost" id="g-copylink">Copy invite link</button>' +
         '<button class="btn small ghost" id="g-copycode">Copy code</button>' +
         '<button class="btn small ghost" id="g-leave">Stop syncing</button>' +
         '</div>' +
-        '<p class="tiny muted" style="margin:8px 0 0">' +
+        '<p class="tiny muted" style="margin:8px 0 0">Send the invite link to another iPad, phone or laptop — opening it joins this family, no typing. Or type the code above into <b>Join</b> over there.</p>' +
+        '<p class="tiny muted" style="margin:6px 0 0">' +
         (sync.lastSyncAt
           ? 'Last synced ' + new Date(sync.lastSyncAt).toLocaleString()
           : 'Not synced yet') +
@@ -490,8 +492,9 @@
       '<div class="card"><h2>How the levels work</h2><p class="tiny muted" style="margin:0">' +
       'She moves up a branch after <b>three sets in a row</b> that are both accurate (9 of 10 right first try) and quick (inside the branch\'s target time). ' +
       'One scrappy or slow set resets the run — the same bargain a Kumon worksheet makes, and "in a row" is the point of it. ' +
-      '<b>The day is where a lost run still counts.</b> Every good set earns a star towards finishing the day, and those stars are never taken away, ' +
-      'so an evening where she got two good sets and then wobbled still shows two stars and can still be finished. ' +
+      '<b>The day is where a lost run is made good.</b> Every finished set earns a point, and a set that breaks a run pays a bonus point for each good set the run had. ' +
+      'So three good sets in a row is 3 points and a move up; two good then a wobble is <b>5 points</b> — the run is gone, but the evening counted for more, not less. ' +
+      'Points are never taken away. ' +
       'Stars are per set: 3 = quick and near-perfect, 2 = solid, 1 = finished it.' +
       '</p></div>'
 
@@ -587,18 +590,24 @@
     return out
   }
 
-  // Today's good sets. Stars here are kept for the whole day whatever happens
-  // to a run, so a broken streak still leaves something to show for the work.
+  // Today's points. Every set earns one and a broken run pays a bonus, so
+  // this only ever goes up — a wobble adds to it rather than costing her.
   function dayRow(day) {
-    var stars = ''
-    for (var i = 0; i < day.goal; i++) stars += '<i class="' + (i < day.good ? 'on' : '') + '">⭐</i>'
+    var body
+    if (day.goal <= 6) {
+      var stars = ''
+      for (var i = 0; i < day.goal; i++) stars += '<i class="' + (i < day.points ? 'on' : '') + '">⭐</i>'
+      body = '<div class="daystars">' + stars + '</div>'
+    } else {
+      var pct = Math.min(100, Math.round((day.points / day.goal) * 100))
+      body = '<div class="bar" style="width:min(280px,70vw)"><i style="width:' + pct + '%"></i></div>'
+    }
     return (
-      '<div class="daystars">' +
-      stars +
-      '</div><span class="tiny muted">' +
+      body +
+      '<span class="tiny muted">' +
       (day.done
-        ? 'Today is done! ' + day.good + ' good sets 🎉'
-        : 'Today: ' + day.good + ' of ' + day.goal + ' good sets') +
+        ? 'Today is done! ' + day.points + ' points 🎉'
+        : 'Today: ' + day.points + ' of ' + day.goal + ' points') +
       '</span>'
     )
   }
@@ -785,24 +794,32 @@
 
     // Today's stars, above the fold: after a miss this is the thing she most
     // needs to see, so it does not go below the buttons.
-    var dayCounted = accurate && res.quick
+    // Where the points came from — the bonus is the whole point of this card,
+    // so it gets said out loud.
+    var earned =
+      '<b>+' +
+      res.pointsEarned +
+      (res.pointsEarned === 1 ? ' point' : ' points') +
+      '</b> for that set' +
+      (res.bonusPoints
+        ? ' — 1 for finishing it, and <b>' +
+          res.bonusPoints +
+          ' bonus</b> for the ' +
+          (res.bonusPoints === 1 ? 'good set' : res.bonusPoints + ' good sets') +
+          ' the wobble cost you.'
+        : '.')
     el('res-day').innerHTML =
       '<h2 class="tiny muted" style="margin:0 0 8px;text-align:center">Today</h2>' +
       '<div class="dayrow">' +
-      dayRow({ good: res.dayGood, goal: res.dayGoal, done: res.dayDone }) +
+      dayRow({ points: res.dayPoints, good: res.dayGood, goal: res.dayGoal, done: res.dayDone }) +
       '</div>' +
-      '<p class="tiny muted" style="margin:8px 0 0;text-align:center">' +
+      '<p class="tiny" style="margin:8px 0 0;text-align:center">' +
+      earned +
+      '</p>' +
+      '<p class="tiny muted" style="margin:4px 0 0;text-align:center">' +
       (res.dayDone
-        ? 'Today is finished — anything more is a bonus. 🎉'
-        : dayCounted
-          ? 'Today\'s stars are yours to keep, whatever happens to the three in a row.'
-          : res.dayGood
-            ? 'The ' +
-              (res.dayGood === 1 ? 'star' : res.dayGood + ' stars') +
-              ' you earned today still ' +
-              (res.dayGood === 1 ? 'counts' : 'count') +
-              ' — nothing was lost.'
-            : 'Good sets earn a star here, and stars are never taken away.') +
+        ? 'Today is finished. Anything more is a bonus. 🎉'
+        : 'Points only ever go up — a wobble adds to today rather than costing you.') +
       '</p>'
 
     // And the shape of the last few sets, so progress is visible over days.

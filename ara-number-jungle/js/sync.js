@@ -188,8 +188,36 @@
     return push()
   }
 
+  // A link that carries the code, so the second device never has to type it:
+  // AirDrop or message it, and opening it joins.
+  function inviteLink() {
+    var c = code()
+    if (!c) return null
+    var base = root.location ? root.location.origin + root.location.pathname : ''
+    return base + '#join=' + c
+  }
+
+  // Called at boot: if this page was opened from an invite link, join.
+  function joinFromLink() {
+    var hash = root.location && root.location.hash
+    var m = hash && /^#join=([a-z0-9-]+)$/i.exec(hash)
+    if (!m) return null
+    var invited = clean(m[1])
+    // Strip it straight away so a shared screenshot or history entry does not
+    // keep handing the code around.
+    try {
+      root.history.replaceState(null, '', root.location.pathname + root.location.search)
+    } catch (e) {
+      root.location.hash = ''
+    }
+    if (invited === code()) return null // already this family
+    return join(invited)
+  }
+
   KM.sync = {
     META: META,
+    inviteLink: inviteLink,
+    joinFromLink: joinFromLink,
     ENDPOINT: ENDPOINT,
     code: code,
     status: status,
