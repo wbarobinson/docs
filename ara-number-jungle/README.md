@@ -164,21 +164,23 @@ branch can only ever produce the kind of question it describes.
 - A set is **quick** if she averages under the branch's target seconds per
   problem, and **accurate** if 9 of 10 are right first try.
 - **Three quick, accurate sets in a row** masters the branch and moves her up.
-- **A near miss is saved, not lost.** Two good sets and then a wobble used to
-  put her back at nothing, which is a crushing thing to do to an eight-year-old
-  who could see the finish line. Now the run she lost is *saved* and rides
-  along with her next good set:
+  One slow or scrappy set resets the run: "in a row" is the point of it, and
+  nothing is carried over.
+- **The day is where a lost run still counts.** Every good set earns a star
+  towards finishing the day — three by default — and **those stars are never
+  taken away**. An evening of two good sets and then a wobble still shows two
+  stars and can still be finished, so the work is never worth nothing:
 
-  | | run | saved |
+  | | run | today |
   | --- | --- | --- |
-  | two good sets | 2 | 0 |
-  | then a scrappy one | 0 | **2** |
-  | then one good set | **3** → passes | 0 |
+  | two good sets | 2 | ⭐⭐ |
+  | then a scrappy one | **0** | ⭐⭐ (kept) |
+  | then one good set | 1 | ⭐⭐⭐ **day done** |
 
-  Saved sets cap at two, so passing always needs a good set after the wobble —
-  they can never carry her up on their own. The results screen leads with
-  *"You keep 2 saved ✨ — nothing was lost"*, and the beads show gold for saved
-  and green for the current run.
+  The results screen shows a **Today** card above the branch card, so after a
+  miss the first thing she reads is what she keeps. Finishing a day gets its
+  own celebration and its own badges. The goal is settable (2, 3 or 5) in
+  Grown-ups.
 - **Stars** are per set: ⭐⭐⭐ quick and near-perfect, ⭐⭐ solid, ⭐ finished it.
 
 Timing counts thinking time only — from a problem appearing to the right
@@ -265,7 +267,8 @@ for sound, motion, timer and set size.
 
 ## Badges
 
-32 of them, from **First Steps** to **Whole Month** (30 days in a row) and
+35 of them, from **First Steps** to **Whole Month** (30 days in a row),
+**Day Done** through **Twenty Days Done**, and
 **Perfect Queen** (25 perfect sets). Each locked badge shows how to get it —
 they are goals, not surprises. Each level has its own badge for mastering
 every branch in it.
@@ -309,9 +312,9 @@ Two consequences worth knowing:
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 380 checks: generators, mastery, stars, badges, storage
+node tests/selftest.mjs   # 381 checks: generators, mastery, stars, badges, storage
 node tests/sync.mjs       #  40 checks: two devices, one family code, real endpoint
-node tests/smoke.mjs      # 103 checks: drives the real UI in headless Chromium
+node tests/smoke.mjs      # 109 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
@@ -340,7 +343,7 @@ js/merge.js             combining two devices' progress, losslessly
 js/sync.js              the family account client (pull, push, conflict retry)
 netlify/functions/      the family account endpoint (compare-and-set)
 js/engine.js            building a set, timing, scoring, mastery
-js/badges.js            32 badges as pure tests against the profile
+js/badges.js            35 badges as pure tests against the profile
 js/audio.js             every sound, synthesised with WebAudio
 js/juice.js             feathers, confetti, ripples, wobbles
 js/ui.js                rendering each screen

@@ -252,6 +252,9 @@
       case 's-autocheck':
         saveSetting('autoCheck', t.checked)
         return
+      case 's-daygoal':
+        saveSetting('dayGoal', parseInt(t.value, 10) || 3)
+        return
       case 's-size':
         saveSetting('setSize', parseInt(t.value, 10) || 10)
         return

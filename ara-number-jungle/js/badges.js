@@ -19,6 +19,14 @@
   function minutes(p) {
     return p.totals.ms / 60000
   }
+  // Days where she reached that day's goal of good sets.
+  function daysFinished(p) {
+    var days = p.days || {}
+    return Object.keys(days).filter(function (k) {
+      var d = days[k]
+      return (d.good || 0) >= (d.goal || 3)
+    }).length
+  }
 
   // ctx (present right after a set) = { accuracy, perProblem, stars, mastered, levelledUp, count, bestCombo, isBestTime }
   KM.BADGES = [
@@ -43,6 +51,9 @@
     { id: 'stage-1', icon: '🎯', name: 'Stage Master', hint: 'Master your first stage', test: function (p) { return mastered(p) >= 1 } },
     { id: 'stage-5', icon: '🏅', name: 'Five Stages', hint: 'Master 5 stages', test: function (p) { return mastered(p) >= 5 } },
     { id: 'stage-15', icon: '🎖️', name: 'Fifteen Stages', hint: 'Master 15 stages', test: function (p) { return mastered(p) >= 15 } },
+    { id: 'day-1', icon: '🌅', name: 'Day Done', hint: 'Finish a whole day of good sets', test: function (p) { return daysFinished(p) >= 1 } },
+    { id: 'day-5', icon: '🌇', name: 'Five Days Done', hint: 'Finish 5 days of good sets', test: function (p) { return daysFinished(p) >= 5 } },
+    { id: 'day-20', icon: '🌄', name: 'Twenty Days Done', hint: 'Finish 20 days of good sets', test: function (p) { return daysFinished(p) >= 20 } },
     { id: 'streak-3', icon: '📅', name: 'Three Days', hint: 'Practise 3 days in a row', test: function (p) { return p.streak.best >= 3 } },
     { id: 'streak-7', icon: '🗓️', name: 'Whole Week', hint: 'Practise 7 days in a row', test: function (p) { return p.streak.best >= 7 } },
     { id: 'streak-30', icon: '🏆', name: 'Whole Month', hint: 'Practise 30 days in a row', test: function (p) { return p.streak.best >= 30 } },

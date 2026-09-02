@@ -385,65 +385,57 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   KM.store.removeProfile(KM.store.profile().id)
 }
 
-// --- 5c. a near miss is saved, not lost -------------------------------
-// Two good sets then a wobble used to put her back at nothing, which lands
-// far too hard on an eight-year-old. The lost run is banked instead.
+// --- 5c. a lost run counts towards the day, not towards moving up -------
+// Moving up still needs three good sets IN A ROW. What a wobble must not do
+// is make the good sets she already did today worth nothing.
 {
-  const p = KM.store.addProfile('Bank', '🦜')
+  const p = KM.store.addProfile('DayGoal', '\u{1F99C}')
   const good = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
   const bad = () => playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 5 })
 
-  eq(good().run, 1, 'a good set starts the run')
+  const one = good()
+  eq(one.run, 1, 'a good set starts the run')
+  eq(one.good, true, 'and counts as a good set')
+  eq(one.dayGood, 1, 'today has one star')
+  eq(one.dayGoal, 3, 'out of three')
+
   const two = good()
-  eq(two.run, 2, 'two good sets in a row')
-  eq(two.bank, 0, 'with nothing saved yet')
+  eq(two.run, 2, 'two in a row')
+  eq(two.dayGood, 2, 'and two stars today')
 
   const wobble = bad()
-  eq(wobble.run, 0, 'the wobble ends the run')
-  eq(wobble.bank, 2, 'but both good sets are saved')
-  eq(wobble.justBanked, 2, 'and the results screen knows it just saved two')
-  eq(wobble.mastered, false, 'a wobble is not a pass')
+  eq(wobble.run, 0, 'a wobble resets the run to nothing — three in a row means in a row')
+  eq(wobble.mastered, false, 'so it certainly does not pass the branch')
+  eq(wobble.good, false, 'the wobble earns no star')
+  eq(wobble.dayGood, 2, "but today's two stars are untouched")
+  eq(wobble.dayDone, false, 'the day is not finished yet')
 
-  const recovery = good()
-  eq(recovery.spentBank, 2, 'the next good set spends what was saved')
-  eq(recovery.run, 3, 'one good set plus two saved is three')
-  eq(recovery.mastered, true, 'so she moves up, instead of starting again')
-  eq(KM.store.stageRecord(KM.store.profile(), 'A-5').bank, 0, 'and the saved sets are used up')
+  const third = good()
+  eq(third.run, 1, 'the run starts again from one')
+  eq(third.dayGood, 3, 'while the day reaches three stars')
+  eq(third.dayDone, true, 'which finishes the day')
+  eq(third.dayJustDone, true, 'and says so, once')
+  eq(third.mastered, false, 'finishing a day is not the same as passing a branch')
 
-  // Saved sets can never carry her up on their own.
-  const q = KM.store.addProfile('BankCap', '🦜')
-  const g2 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000 })
-  const b2 = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000, rightFirstTry: 5 })
-  g2()
-  g2()
-  b2()
-  eq(KM.store.stageRecord(KM.store.profile(), 'A-6').bank, 2, 'two saved after the wobble')
-  const again = b2()
-  eq(again.bank, 2, 'a second wobble does not add more')
-  eq(again.mastered, false, 'and saved sets alone never pass a branch')
-  const third = b2()
-  eq(third.bank, 2, 'nor a third')
-  eq(third.mastered, false, 'still not passed')
-  eq(g2().mastered, true, 'one good set finally does it')
+  const fourth = good()
+  eq(fourth.dayDone, true, 'more sets after that still count as a finished day')
+  eq(fourth.dayJustDone, false, 'without celebrating it twice')
+  eq(fourth.run, 2, 'and the run keeps building')
+  eq(good().mastered, true, 'three good sets in a row, and only that, passes the branch')
 
-  // A single lost set banks one, and needs two more good ones.
-  const r = KM.store.addProfile('BankOne', '🦜')
-  const g3 = () => playSet(KM.store.profile(), 'A-7', { msEach: 2000 })
-  const b3 = () => playSet(KM.store.profile(), 'A-7', { msEach: 2000, rightFirstTry: 5 })
-  g3()
-  const lostOne = b3()
-  eq(lostOne.bank, 1, 'losing a run of one saves one')
-  const after = g3()
-  eq(after.run, 2, 'the next good set counts as two')
-  eq(after.mastered, false, 'which is not yet a pass')
-  eq(g3().mastered, true, 'the set after that passes it')
+  // The goal is a setting.
+  KM.store.profile().settings.dayGoal = 2
+  const q = KM.store.addProfile('DayGoalTwo', '\u{1F99C}')
+  q.settings.dayGoal = 2
+  const g = () => playSet(KM.store.profile(), 'A-6', { msEach: 2000 })
+  eq(g().dayGoal, 2, 'the goal can be set lower')
+  eq(g().dayDone, true, 'and two good sets then finish the day')
 
-  // Nothing to save when there was no run at all.
-  const t = KM.store.addProfile('BankNone', '🦜')
-  const firstBad = playSet(KM.store.profile(), 'A-1', { msEach: 2000, rightFirstTry: 4 })
-  eq(firstBad.bank, 0, 'a bad set with no run behind it saves nothing')
-  eq(firstBad.run, 0, 'and leaves the run at zero')
-  ;[p, q, r, t].forEach((x) => KM.store.removeProfile(x.id))
+  // Finishing a day earns its badge at the time, so it is already on the
+  // profile rather than waiting for another awardBadges call.
+  ok(!!KM.store.profile().badges['day-1'], 'finishing a day earns the Day Done badge')
+  ok(!KM.store.profile().badges['day-5'], 'and not the five-day one yet')
+  ;[p, q].forEach((x) => KM.store.removeProfile(x.id))
 }
 
 // --- 6a. progress survives being interrupted --------------------------

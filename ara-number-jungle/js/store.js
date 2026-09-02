@@ -28,6 +28,8 @@ var DEFAULT_SETTINGS = {
   setSize: 10,
   autoNext: true,
   autoCheck: false,
+  // Good sets that finish a day. Three is a sensible evening.
+  dayGoal: 3,
 }
 
   function today() {
@@ -160,6 +162,7 @@ var DEFAULT_SETTINGS = {
         p.totals || {},
       )
       if (!p.theme) p.theme = KM.DEFAULT_THEME
+      if (!p.settings.dayGoal) p.settings.dayGoal = 3
       // One-off migration for profiles created when the timer was on by default.
       if (!p.settingsVersion) {
         p.settings.timer = false
@@ -292,9 +295,6 @@ var DEFAULT_SETTINGS = {
         stars: 0,
         mastered: false,
         run: 0,
-        // Sets saved from a run she lost. They ride along with her next good
-        // set instead of the near-miss counting for nothing.
-        bank: 0,
         lastAt: null,
       }
     }
@@ -339,31 +339,18 @@ var DEFAULT_SETTINGS = {
     if (st.bestScore === null || accuracy > st.bestScore) st.bestScore = accuracy
 
     // Mastery, the Kumon way: three sets in a row that are both accurate and
-    // quick. But a child who has done two good sets and then has one bad one
-    // should not be back at nothing — that lands far too hard. So the run she
-    // just lost is SAVED, and rides along with her next good set.
+    // quick. One slow or scrappy set resets the run — no credit is carried,
+    // because "in a row" is the whole point of it.
     //
-    //   two good, then a bad one  → 2 saved, run 0
-    //   next good set             → 1 + 2 saved = 3 → she moves up
-    //
-    // Capped at 2, so passing a branch always needs at least one good set
-    // after the wobble: saved sets can never carry her up on their own.
+    // The consolation for a lost run lives on the DAY instead: every good set
+    // counts towards today's goal whether or not a later wobble breaks the
+    // run, so an evening's work is never worth nothing.
     var qualifies = accuracy >= 0.9 && quick
-    var bankBefore = st.bank || 0
-    var banked = 0
-    if (qualifies) {
-      st.run = st.run + 1 + bankBefore
-      st.bank = 0
-    } else {
-      banked = Math.min(2, Math.max(bankBefore, st.run))
-      st.bank = banked
-      st.run = 0
-    }
+    st.run = qualifies ? st.run + 1 : 0
     var justMastered = false
     if (!st.mastered && st.run >= 3) {
       st.mastered = true
       justMastered = true
-      st.bank = 0
     }
 
     // One line per set, with an id no other device will generate.
@@ -376,6 +363,9 @@ var DEFAULT_SETTINGS = {
       firstTry: res.firstTry,
       ms: res.ms,
       stars: stars,
+      // Good = the same bar the run uses. Kept per set so a day's tally can be
+      // rebuilt from the log when two devices merge.
+      good: qualifies,
     })
     // Four years of daily practice before this matters, and trimming only ever
     // costs detail, never the totals, because they are baselined below.
@@ -397,11 +387,17 @@ var DEFAULT_SETTINGS = {
     if (accuracy === 1) p.totals.perfectSets++
     p.totals.bestCombo = Math.max(p.totals.bestCombo, res.bestCombo || 0)
 
-    var d = p.days[today()] || (p.days[today()] = { sets: 0, problems: 0, correct: 0, ms: 0 })
+    var goal = p.settings.dayGoal || 3
+    var d =
+      p.days[today()] || (p.days[today()] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0, goal: goal })
     d.sets++
     d.problems += res.count
     d.correct += res.firstTry
     d.ms += res.ms
+    d.goal = goal
+    var goodBefore = d.good || 0
+    if (qualifies) d.good = goodBefore + 1
+    var dayDone = (d.good || 0) >= goal
 
     touchStreak(p)
 
@@ -421,10 +417,13 @@ var DEFAULT_SETTINGS = {
       perProblem: perProblem,
       quick: quick,
       run: st.run,
-      bank: st.bank || 0,
-      // How many were saved by this particular near miss, for the copy.
-      justBanked: banked,
-      spentBank: qualifies ? bankBefore : 0,
+      // Today's tally: a good set counts here even if a later wobble breaks
+      // the run, which is the whole point.
+      good: qualifies,
+      dayGood: d.good || 0,
+      dayGoal: goal,
+      dayDone: dayDone,
+      dayJustDone: dayDone && goodBefore < goal,
       mastered: justMastered,
       levelledUp: levelledUp,
       nextStageId: justMastered && next ? next.id : null,
@@ -525,6 +524,17 @@ var DEFAULT_SETTINGS = {
     stageRecord: stageRecord,
     recordProblem: recordProblem,
     recordSet: recordSet,
+    // What today looks like so far.
+    dayProgress: function (p) {
+      var d = (p.days || {})[today()] || {}
+      var goal = p.settings.dayGoal || 3
+      return {
+        good: d.good || 0,
+        sets: d.sets || 0,
+        goal: goal,
+        done: (d.good || 0) >= goal,
+      }
+    },
     trickyFacts: trickyFacts,
     recentDays: recentDays,
     levelProgress: levelProgress,

@@ -111,16 +111,16 @@
     }
     el('storage-warning').hidden = KM.store.canStore()
 
-    el('home-run').innerHTML = beadRow(rec.run, rec.bank)
+    el('home-run').innerHTML = beadRow(rec.run)
     var unit = KM.store.theme().unit
-    var have = rec.run + (rec.bank || 0)
     el('home-runlabel').textContent = rec.mastered
       ? 'This ' + unit + ' is already passed — free choice!'
-      : rec.bank
-        ? rec.bank + ' saved ✨ — ' + (3 - have <= 1 ? 'one good set' : 3 - have + ' good sets') + ' and you move up!'
-        : rec.run === 0
-          ? 'Three quick, accurate sets in a row to move up a ' + unit
-          : rec.run + ' of 3 — ' + (3 - rec.run) + ' more to move up!'
+      : rec.run === 0
+        ? 'Three quick, accurate sets in a row to move up a ' + unit
+        : rec.run + ' of 3 in a row — ' + (3 - rec.run) + ' more to move up!'
+
+    // Today's goal is its own thing, and it never resets when a run breaks.
+    el('home-day').innerHTML = dayRow(KM.store.dayProgress(p))
   }
 
   // ---------- who's playing ----------
@@ -425,6 +425,11 @@
     html += sw('s-autocheck', 'Check the answer without tapping ✓', p.settings.autoCheck)
     html +=
       '<p class="tiny muted" style="margin:-2px 0 6px 74px">Faster, but a mistyped digit is marked wrong straight away.</p>'
+    html += '<div class="row" style="margin-top:8px"><span class="grow">Good sets to finish a day</span><select id="s-daygoal">'
+    ;[2, 3, 5].forEach(function (n) {
+      html += '<option value="' + n + '"' + (p.settings.dayGoal === n ? ' selected' : '') + '>' + n + '</option>'
+    })
+    html += '</select></div>'
     html += '<div class="row" style="margin-top:8px"><span class="grow">Problems in a set</span><select id="s-size">'
     ;[5, 10, 20].forEach(function (n) {
       html += '<option value="' + n + '"' + (p.settings.setSize === n ? ' selected' : '') + '>' + n + '</option>'
@@ -484,8 +489,9 @@
     html +=
       '<div class="card"><h2>How the levels work</h2><p class="tiny muted" style="margin:0">' +
       'She moves up a branch after <b>three sets in a row</b> that are both accurate (9 of 10 right first try) and quick (inside the branch\'s target time). ' +
-      '<b>Near misses are saved, not lost:</b> if she has two good sets and then a wobble, those two are kept and ride along with her next good set, so one more good set still takes her up. ' +
-      'Saved sets are capped at two, so passing always needs a good set after the wobble — they can never carry her up on their own. ' +
+      'One scrappy or slow set resets the run — the same bargain a Kumon worksheet makes, and "in a row" is the point of it. ' +
+      '<b>The day is where a lost run still counts.</b> Every good set earns a star towards finishing the day, and those stars are never taken away, ' +
+      'so an evening where she got two good sets and then wobbled still shows two stars and can still be finished. ' +
       'Stars are per set: 3 = quick and near-perfect, 2 = solid, 1 = finished it.' +
       '</p></div>'
 
@@ -539,10 +545,9 @@
     // Passing counts the branch target, never a personal best: the ladder does
     // not get easier because she had a good day.
     var counted = accurate && res.quick
-    var have = res.run + (res.bank || 0)
-    var needed = Math.max(0, 3 - have)
+    var needed = Math.max(0, 3 - res.run)
     var nextStage = KM.nextStage(stage.id)
-    var beads = beadRow(res.run, res.bank)
+    var beads = beadRow(res.run)
 
     return (
       '<h2>Passing ' +
@@ -559,11 +564,9 @@
       beads +
       '</div><p style="margin:10px 0 0;text-align:center">' +
       (counted
-        ? '<b>That one counted!</b>' +
-          (res.spentBank
-            ? ' Your ' + res.spentBank + ' saved ✨ came with it — ' + res.run + ' of 3.'
-            : ' ' + res.run + ' of 3.') +
-          ' ' +
+        ? '<b>That one counted!</b> ' +
+          res.run +
+          ' of 3 in a row. ' +
           (needed === 0
             ? ''
             : (needed === 1 ? 'One more' : needed + ' more') +
@@ -571,27 +574,33 @@
               esc(nextStage ? nextStage.name : 'the next one') +
               '</b> ' +
               KM.store.theme().token)
-        : // A near miss keeps what she had. Say that first, loudly.
-          res.bank
-          ? '<b>You keep ' +
-            res.bank +
-            ' saved ✨</b> — this one did not count, but nothing was lost. ' +
-            (needed === 1 ? 'One good set' : needed + ' good sets') +
-            ' and you move up!'
-          : 'This one did not count. ' + (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
+        : 'This one did not count towards moving up, so the three in a row start again. ' +
+          (res.quick ? 'Just the accuracy to fix.' : 'Just the speed to fix.')) +
       '</p>'
     )
   }
 
-  // Three beads: solid for sets in the current run, sparkling for ones saved
-  // from a run she lost, empty for what is still to do.
-  function beadRow(run, bank) {
+  // Three beads for the run: solid for done, empty for still to do.
+  function beadRow(run) {
     var out = ''
-    for (var i = 0; i < 3; i++) {
-      var cls = i < run ? 'on' : i < run + (bank || 0) ? 'saved' : ''
-      out += '<i class="' + cls + '"></i>'
-    }
+    for (var i = 0; i < 3; i++) out += '<i class="' + (i < run ? 'on' : '') + '"></i>'
     return out
+  }
+
+  // Today's good sets. Stars here are kept for the whole day whatever happens
+  // to a run, so a broken streak still leaves something to show for the work.
+  function dayRow(day) {
+    var stars = ''
+    for (var i = 0; i < day.goal; i++) stars += '<i class="' + (i < day.good ? 'on' : '') + '">⭐</i>'
+    return (
+      '<div class="daystars">' +
+      stars +
+      '</div><span class="tiny muted">' +
+      (day.done
+        ? 'Today is done! ' + day.good + ' good sets 🎉'
+        : 'Today: ' + day.good + ' of ' + day.goal + ' good sets') +
+      '</span>'
+    )
   }
 
   function req(done, label, actual) {
@@ -774,6 +783,28 @@
             's again on every problem</div>'
           : ''
 
+    // Today's stars, above the fold: after a miss this is the thing she most
+    // needs to see, so it does not go below the buttons.
+    var dayCounted = accurate && res.quick
+    el('res-day').innerHTML =
+      '<h2 class="tiny muted" style="margin:0 0 8px;text-align:center">Today</h2>' +
+      '<div class="dayrow">' +
+      dayRow({ good: res.dayGood, goal: res.dayGoal, done: res.dayDone }) +
+      '</div>' +
+      '<p class="tiny muted" style="margin:8px 0 0;text-align:center">' +
+      (res.dayDone
+        ? 'Today is finished — anything more is a bonus. 🎉'
+        : dayCounted
+          ? 'Today\'s stars are yours to keep, whatever happens to the three in a row.'
+          : res.dayGood
+            ? 'The ' +
+              (res.dayGood === 1 ? 'star' : res.dayGood + ' stars') +
+              ' you earned today still ' +
+              (res.dayGood === 1 ? 'counts' : 'count') +
+              ' — nothing was lost.'
+            : 'Good sets earn a star here, and stars are never taken away.') +
+      '</p>'
+
     // And the shape of the last few sets, so progress is visible over days.
     el('res-history').innerHTML = sparkline(res.history, stage.target)
 
@@ -808,7 +839,14 @@
       if (star >= 3) {
         root.clearInterval(timer)
         if (res.stars >= 3) KM.juice.confetti(90)
-        if (res.improvedBy > 0 || res.beatOwnBest) {
+        if (res.dayJustDone) {
+        KM.juice.confetti(110)
+        KM.juice.rain(40)
+        KM.audio.levelUp()
+        KM.audio.cheer()
+        toast('Today is done! 🎉')
+      }
+      if (res.improvedBy > 0 || res.beatOwnBest) {
           var banner = doc.querySelector('.improve')
           if (banner) {
             KM.juice.pop(banner)

@@ -81,7 +81,6 @@
         // A run is a claim about consecutive sets on one device; the fresher
         // device is the only one that can speak to it.
         run: fresher.run || 0,
-        bank: fresher.bank || 0,
         lastAt: maxOf(x.lastAt, y.lastAt),
       }
     })
@@ -105,6 +104,8 @@
         problems: maxOf(x.problems, y.problems),
         correct: maxOf(x.correct, y.correct),
         ms: maxOf(x.ms, y.ms),
+        good: maxOf(x.good, y.good),
+        goal: maxOf(x.goal, y.goal) || 3,
       }
     })
     return out
@@ -157,11 +158,12 @@
       totals.ms += e.ms || 0
       totals.stars += e.stars || 0
       if (e.count && e.firstTry === e.count) totals.perfectSets++
-      var d = days[e.day] || (days[e.day] = { sets: 0, problems: 0, correct: 0, ms: 0 })
+      var d = days[e.day] || (days[e.day] = { sets: 0, problems: 0, correct: 0, ms: 0, good: 0 })
       d.sets++
       d.problems += e.count || 0
       d.correct += e.firstTry || 0
       d.ms += e.ms || 0
+      if (e.good) d.good++
     })
     return { totals: totals, days: days }
   }

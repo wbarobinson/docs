@@ -372,17 +372,37 @@ h2 {
   background: var(--good);
   box-shadow: 0 0 0 3px rgb(47 168 79 / 25%);
 }
-/* Saved from a run she lost: hers to keep, but not yet a finished set. */
-.runbeads i.saved {
-  background: var(--gold);
-  box-shadow: 0 0 0 3px rgb(255 201 60 / 30%);
-  animation: saved-pulse 1.8s ease-in-out infinite;
-}
 
-@keyframes saved-pulse {
-  50% {
-    transform: scale(1.16);
-  }
+/* Today's stars. Earned for good sets and never taken away, whatever a
+   later wobble does to the run. */
+.dayrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+}
+.daystars {
+  display: flex;
+  gap: 4px;
+  font-size: clamp(18px, 2.6vw, 26px);
+  line-height: 1;
+}
+.daystars i {
+  font-style: normal;
+  filter: grayscale(1) opacity(0.3);
+  transition: filter 300ms ease, transform 300ms cubic-bezier(0.2, 1.7, 0.3, 1);
+}
+.daystars i.on {
+  filter: none;
+  transform: scale(1.08);
+}
+#res-day .dayrow {
+  margin-top: 0;
+}
+#res-day .daystars {
+  font-size: clamp(26px, 4vw, 40px);
+  gap: 8px;
 }
 
 /* ---------- play ---------- */
