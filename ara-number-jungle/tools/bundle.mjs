@@ -46,7 +46,9 @@ const head = `<title>Ara's Number Jungle</title>
 <link rel="icon" href="${FAVICON}" type="image/svg+xml" />
 <style>\n${css}\n</style>`
 
-const body = `${markup}\n<script>window.KM_NO_SW = true</script>\n${inlined}`
+// Stamp the build so a parent can tell me which version they are looking at.
+const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+const body = `${markup}\n<script>window.KM_NO_SW = true; window.KM_BUILD = ${JSON.stringify(stamp)}</script>\n${inlined}`
 
 mkdirSync(join(root, 'dist'), { recursive: true })
 writeFileSync(

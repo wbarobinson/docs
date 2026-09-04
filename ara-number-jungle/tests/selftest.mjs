@@ -453,6 +453,42 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   ;[p, q, r, t].forEach((x) => KM.store.removeProfile(x.id))
 }
 
+// --- 5d. the two ways a bonus does not appear --------------------------
+// Reported from real use: two sets, one of them lost, and only 2 points. Both
+// of these produce exactly that, and neither is a fault in the arithmetic.
+{
+  const p = KM.store.addProfile('NoBonus', '\u{1F99C}')
+
+  // (a) The first set was accurate but slower than the branch target, so it
+  //     was never a "good" set and there was no run for the second to break.
+  const slow = playSet(KM.store.profile(), 'A-5', { msEach: 9000 })
+  eq(slow.accuracy, 1, 'every answer right first try')
+  eq(slow.quick, false, 'but slower than the branch target')
+  eq(slow.good, false, 'so it does not count as a good set')
+  eq(slow.run, 0, 'and starts no run')
+  const thenLost = playSet(KM.store.profile(), 'A-5', { msEach: 9000, rightFirstTry: 5 })
+  eq(thenLost.bonusPoints, 0, 'the next set has no run to break, so no bonus')
+  eq(thenLost.dayPoints, 2, 'two sets, two points — the reported case')
+
+  // (b) The good set and the lost set were on different branches. A run
+  //     belongs to its branch, so there is nothing to break on the other one.
+  const q = KM.store.addProfile('NoBonus2', '\u{1F99C}')
+  const onA5 = playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
+  eq(onA5.good, true, 'a genuinely good set on one branch')
+  eq(onA5.run, 1, 'starts a run there')
+  const onA6 = playSet(KM.store.profile(), 'A-6', { msEach: 2000, rightFirstTry: 5 })
+  eq(onA6.bonusPoints, 0, 'a loss on a different branch pays no bonus')
+  eq(onA6.dayPoints, 2, 'also two points from two sets')
+
+  // And the case that must still work: same branch, good then lost.
+  const r = KM.store.addProfile('YesBonus', '\u{1F99C}')
+  playSet(KM.store.profile(), 'A-5', { msEach: 2000 })
+  const lost = playSet(KM.store.profile(), 'A-5', { msEach: 2000, rightFirstTry: 5 })
+  eq(lost.bonusPoints, 1, 'one good set lost pays one bonus point')
+  eq(lost.dayPoints, 3, 'so two sets are worth three points')
+  ;[p, q, r].forEach((x) => KM.store.removeProfile(x.id))
+}
+
 // --- 6a. progress survives being interrupted --------------------------
 {
   const p = KM.store.profile()

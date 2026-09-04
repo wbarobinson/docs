@@ -779,6 +779,13 @@ try {
     (await cdp.eval("document.getElementById('grown-body').textContent")).includes('Family account'),
     'Grown-ups offers a family account',
   )
+  const grown = await cdp.eval("document.getElementById('grown-body').textContent")
+  ok(grown.includes('Today, set by set'), "Grown-ups breaks today down set by set")
+  ok(
+    grown.includes('good set') || grown.includes('too slow') || grown.includes('accuracy'),
+    'saying which sets counted and why',
+  )
+  ok(grown.includes('Build '), 'and stamps which build is running')
   const problemsBefore = await cdp.eval('KM.store.profile().totals.problems')
   await cdp.click('#g-newcode')
   await sleep(900)

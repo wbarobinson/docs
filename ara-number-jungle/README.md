@@ -275,6 +275,12 @@ of later sets**, dropped into the middle where they do the least damage to
 morale. **Grown-ups → Facts to watch** lists the worst offenders, so you can
 see that it is `+9 crossing the ten` rather than "she's bad at adding".
 
+**Grown-ups → Today, set by set** lists every set from today with its score,
+its seconds per problem against the branch target, whether it counted as a
+good set, and the points it earned. If a bonus does not appear, this says why:
+a bonus needs the previous set to have been good (accurate *and* inside the
+target) **on the same branch**, since a run belongs to its branch.
+
 Also in Grown-ups: 14-day practice chart, per-branch history (sets, first-try
 accuracy, best time, stars), streaks, one child or several, and the switches
 for sound, motion, timer and set size.
@@ -326,9 +332,9 @@ Two consequences worth knowing:
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 382 checks: generators, mastery, stars, badges, storage
+node tests/selftest.mjs   # 394 checks: generators, mastery, stars, badges, storage
 node tests/sync.mjs       #  48 checks: two devices, one family code, real endpoint
-node tests/smoke.mjs      # 111 checks: drives the real UI in headless Chromium
+node tests/smoke.mjs      # 114 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```

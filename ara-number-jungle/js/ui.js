@@ -436,6 +436,60 @@
     })
     html += '</select></div></div>'
 
+    // Today, set by set. This exists because "she did two sets and only got
+    // two points" is impossible to answer without seeing which sets counted.
+    var todaysSets = (p.log || []).filter(function (e) {
+      return e.day === KM.store.today()
+    })
+    html += '<div class="card"><h2>Today, set by set</h2>'
+    if (!todaysSets.length) {
+      html += '<p class="muted" style="margin:0">Nothing yet today.</p>'
+    } else {
+      html +=
+        '<table class="data"><tr><th>Time</th><th>Branch</th><th>First try</th><th>Each</th><th>Counted?</th><th>Points</th></tr>'
+      todaysSets.forEach(function (e) {
+        var st = KM.stage(e.stageId)
+        var per = e.count ? e.ms / e.count / 1000 : 0
+        var target = st ? st.target : 0
+        var why = e.good
+          ? '<span style="color:var(--good-dark)">✅ good set</span>'
+          : '<span style="color:var(--bad-dark)">' +
+            (e.firstTry < Math.ceil(e.count * 0.9) ? 'accuracy' : 'too slow') +
+            '</span>'
+        var pts = e.points == null ? 1 : e.points
+        html +=
+          '<tr><td>' +
+          new Date(e.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+          '</td><td>' +
+          esc(st ? st.name : e.stageId) +
+          '</td><td>' +
+          e.firstTry +
+          '/' +
+          e.count +
+          '</td><td>' +
+          per.toFixed(1) +
+          's<span class="tiny muted"> / ' +
+          target +
+          's</span></td><td>' +
+          why +
+          '</td><td><b>+' +
+          pts +
+          '</b>' +
+          (pts > 1 ? '<span class="tiny muted"> (1 + ' + (pts - 1) + ' bonus)</span>' : '') +
+          '</td></tr>'
+      })
+      var dayNow = KM.store.dayProgress(p)
+      html +=
+        '</table><p class="tiny muted" style="margin:8px 0 0">' +
+        dayNow.points +
+        ' of ' +
+        dayNow.goal +
+        ' points today. A set earns 1 point, plus a bonus point for each good set in a run it breaks — ' +
+        'so the bonus only appears when the set before it was <b>good</b> (accurate <i>and</i> inside the target) <b>on the same branch</b>.' +
+        '</p>'
+    }
+    html += '</div>'
+
     // Backup you can paste somewhere safe
     html +=
       '<div class="card"><h2>Backup</h2>' +
@@ -503,6 +557,11 @@
       '<button class="btn small ghost" id="g-remove">Remove this child</button>' +
       '<button class="btn small ghost" id="g-wipe">Erase everything</button>' +
       '</div><p class="tiny muted" style="margin:8px 0 0">Everything lives in this browser only — nothing is uploaded anywhere.</p></div>'
+
+    html +=
+      '<p class="tiny muted" style="text-align:center;margin:4px 0 0">Build ' +
+      esc(root.KM_BUILD || 'dev') +
+      '</p>'
 
     el('grown-body').innerHTML = html + '</div>'
   }
