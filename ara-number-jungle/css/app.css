@@ -562,6 +562,124 @@ h2 {
 }
 
 /* The numpad: telephone order, big fat keys, thumb-reachable. */
+/* ---------- the explanation picture ---------- */
+
+.picture {
+  background: #fffdf7;
+  border-radius: 20px;
+  padding: 12px 14px 10px;
+  box-shadow: 0 4px 0 var(--card-edge);
+  text-align: center;
+  animation: star-pop 400ms cubic-bezier(0.2, 1.7, 0.3, 1) both;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.picture svg {
+  width: 100%;
+  height: auto;
+  max-height: 22vh;
+  overflow: visible;
+}
+.pbond {
+  font-size: clamp(13px, 1.8vw, 17px);
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+.pbond b {
+  color: #1a63c4;
+}
+.pstory {
+  font-size: clamp(14px, 2vw, 19px);
+  font-weight: 800;
+  margin-top: 2px;
+}
+.pstory b {
+  color: var(--good-dark);
+}
+
+/* Ten frames: what she already has, what is being added, and the ones that
+   complete the ten picked out in blue. */
+.pf-frame {
+  fill: none;
+  stroke: var(--card-edge);
+  stroke-width: 2;
+}
+.pf-mid {
+  stroke: var(--card-edge);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+.pf-dot.pf-have {
+  fill: var(--accent);
+}
+.pf-dot.pf-bridge {
+  fill: #2c7be5;
+}
+.pf-dot.pf-add {
+  fill: var(--good);
+}
+.pf-dot.pf-empty {
+  fill: #eee8d8;
+}
+
+/* Number line: the jumps are the strategy, so they are the loud part. */
+.pl-axis {
+  stroke: var(--ink-soft);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.pl-jump {
+  fill: none;
+  stroke: #2c7be5;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: jump-draw 520ms ease forwards;
+}
+.pl-jump-2 {
+  stroke: var(--good);
+  animation-delay: 380ms;
+}
+.pl-jump-3 {
+  stroke: var(--gold-dark);
+  animation-delay: 760ms;
+}
+.pl-jumplabel {
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+.pl-dot {
+  fill: var(--ink-soft);
+}
+.pl-dot.pl-end {
+  fill: var(--good-dark);
+}
+.pl-num {
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--ink-soft);
+  text-anchor: middle;
+}
+.pl-num.pl-end {
+  fill: var(--good-dark);
+  font-size: 17px;
+}
+
+@keyframes jump-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* With a picture on screen the sum itself can afford to be smaller. */
+.playmain .left:has(#picture:not([hidden])) .problem {
+  font-size: min(clamp(30px, 7vh, 74px), 8vw);
+}
+
 .pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

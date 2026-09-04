@@ -27,7 +27,7 @@ const sandbox = {
 }
 sandbox.globalThis = sandbox
 const ctx = createContext(sandbox)
-for (const f of ['curriculum', 'store', 'badges', 'engine']) {
+for (const f of ['curriculum', 'store', 'badges', 'engine', 'picture']) {
   runInContext(readFileSync(join(root, 'js', `${f}.js`), 'utf8'), ctx, { filename: `${f}.js` })
 }
 const KM = sandbox.KM
@@ -487,6 +487,65 @@ function playSet(profile, stageId, { rightFirstTry = 10, msEach = 2000, size = 1
   eq(lost.bonusPoints, 1, 'one good set lost pays one bonus point')
   eq(lost.dayPoints, 3, 'so two sets are worth three points')
   ;[p, q, r].forEach((x) => KM.store.removeProfile(x.id))
+}
+
+// --- 5e. the teaching picture picks the right strategy -----------------
+// Which picture is drawn is a teaching decision, so it is tested like one.
+{
+  const plan = (a, b, op, answer) => KM.picture.plan({ a, b, op, answer })
+
+  // Ten frames while the numbers are small enough to see; a number line after.
+  eq(plan(8, 6, '+', 14).kind, 'tenframe', 'sums inside 20 get a ten frame')
+  eq(plan(15, 8, '-', 7).kind, 'tenframe', 'and so do differences inside 20')
+  eq(plan(18, 6, '+', 24).kind, 'numberline', 'past 20 it switches to a number line')
+  eq(plan(63, 11, '+', 74).kind, 'numberline', 'as do two-digit sums')
+  eq(plan(7, 8, '*', 56).kind, 'array', 'multiplication is an array, which is what it is')
+  eq(plan(12, 3, '/', 4).kind, 'groups', 'and sharing is equal groups')
+
+  // Bridging: the added number splits so the first jump lands on the ten.
+  const bridge = plan(8, 6, '+', 14)
+  eq(bridge.bond.parts.join('+'), '2+4', '8 + 6 splits the 6 into 2 and 4')
+  eq(bridge.steps.map((s) => s.to).join(','), '10,14', 'landing on 10 first')
+
+  const bridge20 = plan(18, 6, '+', 24)
+  eq(bridge20.bond.parts.join('+'), '2+4', '18 + 6 splits the same way')
+  eq(bridge20.steps.map((s) => s.to).join(','), '20,24', 'landing on 20 first')
+
+  // Two-digit addends go tens first, which is how +11 is taught.
+  const tensFirst = plan(63, 11, '+', 74)
+  eq(tensFirst.bond.parts.join('+'), '10+1', '11 splits into 10 and 1')
+  eq(tensFirst.steps.map((s) => s.to).join(','), '73,74', 'add the ten, then the one')
+
+  // Tens first AND a bridge after it, when both are needed.
+  const both = plan(68, 15, '+', 83)
+  eq(both.steps.map((s) => s.to).join(','), '78,80,83', '68 + 15 goes +10, +2 to the ten, then +3')
+
+  // No invented strategy where none is needed.
+  eq(plan(22, 3, '+', 25).bond, null, '22 + 3 crosses nothing, so no split is shown')
+  eq(plan(25, 10, '+', 35).bond, null, 'nor does a clean jump of ten')
+  eq(plan(22, 3, '+', 25).steps.length, 1, 'just the one jump')
+
+  // Subtraction goes back to the ten first.
+  const back = plan(24, 6, '-', 18)
+  eq(back.bond.parts.join('+'), '4+2', '24 − 6 splits the 6 into 4 and 2')
+  eq(back.steps.map((s) => s.to).join(','), '20,18', 'stepping back onto 20 first')
+
+  // Every branch in the curriculum must produce a drawable plan.
+  let broken = null
+  KM.STAGES.forEach((stage) => {
+    for (let i = 0; i < 40 && !broken; i++) {
+      const p = stage.gen()
+      const pl = KM.picture.plan(p)
+      if (!pl || !pl.kind) broken = stage.id + ' produced no picture'
+      else if (pl.steps) {
+        const last = pl.steps[pl.steps.length - 1]
+        if (last.to !== p.answer) broken = stage.id + ': steps end at ' + last.to + ', answer is ' + p.answer
+        const bad = pl.steps.some((s) => s.from + s.add !== s.to)
+        if (bad) broken = stage.id + ': a jump does not add up'
+      }
+    }
+  })
+  ok(!broken, 'every branch can be drawn, and the jumps always add up (' + broken + ')')
 }
 
 // --- 6a. progress survives being interrupted --------------------------

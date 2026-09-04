@@ -96,6 +96,9 @@
         case 'btn-quit':
           KM.play.quit()
           return
+        case 'btn-help':
+          KM.play.help()
+          return
         case 'who-add':
         case 'g-add': {
           var made = KM.store.addProfile('New explorer', pickAvatar(), 'jungle')
@@ -297,6 +300,8 @@
         ev.preventDefault()
       } else if (ev.key === 'Escape') {
         KM.play.quit()
+      } else if (ev.key === '?' || ev.key === 'h') {
+        KM.play.help()
       }
       return
     }

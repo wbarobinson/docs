@@ -6,7 +6,8 @@
  *   node tests/smoke.mjs [--shots <dir>]
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync, existsSync, readdirSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -122,6 +123,7 @@ const browser = spawn(
   [
     ...chrome.extra,
     '--no-sandbox',
+    '--user-data-dir=' + mkdtempSync(join(tmpdir(), 'ara-test-')),
     '--disable-gpu',
     '--hide-scrollbars',
     `--remote-debugging-port=${CDP_PORT}`,
@@ -164,6 +166,9 @@ try {
   await cdp.send('Log.enable')
   // SMOKE_PATH lets the same run verify a bundled single-file build.
   const page = process.env.SMOKE_PATH || '/index.html'
+  // Tests must always exercise the code on disk. The app's own opt-out flag
+  // is set before any page script runs, so no worker can serve a stale build.
+  await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.KM_NO_SW = true' })
   await cdp.send('Page.navigate', { url: `http://127.0.0.1:${PORT}${page}` })
   await sleep(1200)
 
@@ -178,6 +183,11 @@ try {
     .map((e) => JSON.stringify(e.params))
   ok(errors.length === 0, 'the page loads with no console errors: ' + errors.join(' | '))
   eq(await cdp.eval('typeof KM.play.begin'), 'function', 'all the scripts loaded')
+  eq(
+    await cdp.eval("!!(navigator.serviceWorker && navigator.serviceWorker.controller)"),
+    false,
+    'the page under test is served fresh, not by a service worker holding an old build',
+  )
   eq(await cdp.eval("document.querySelector('.screen.active').id"), 'home', 'it opens on the home screen')
   eq(
     await cdp.eval(
@@ -663,6 +673,66 @@ try {
     await sleep(250)
   }
 
+  // --- the picture only appears when it should ------------------------
+  await cdp.eval("KM.ui.show('home')")
+  await sleep(200)
+  await cdp.click('.screen.active #btn-play')
+  await sleep(400)
+  eq(
+    await cdp.eval("document.getElementById('picture').hidden"),
+    true,
+    'no picture during normal answering — this is a fluency drill',
+  )
+
+  // She asks for help.
+  await cdp.click('#btn-help')
+  await sleep(300)
+  eq(await cdp.eval("document.getElementById('picture').hidden"), false, 'the help button draws one')
+  ok(
+    (await cdp.eval("document.getElementById('picture').innerHTML")).includes('<svg'),
+    'and it is an actual drawing',
+  )
+  ok(
+    (await cdp.eval("document.getElementById('picture').textContent")).length > 5,
+    'with the steps written out underneath',
+  )
+  await cdp.shot('16-help-picture')
+
+  // Answering correctly puts it away.
+  const helped = await cdp.eval(
+    `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+      const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+  )
+  for (const ch of String(helped.a + helped.b)) await cdp.click(`.key[data-k="${ch}"]`)
+  await cdp.click('.key[data-k="go"]')
+  await sleep(800)
+  eq(
+    await cdp.eval("document.getElementById('picture').hidden"),
+    true,
+    'a right answer puts the picture away',
+  )
+
+  // Two wrong goes should teach, not just state the number.
+  const next2 = await cdp.eval(
+    `(() => { const s = [...document.querySelectorAll('#problem span')].map(x => x.textContent);
+      const nums = s.filter(t => /^\\d+$/.test(t)); return { a: +nums[0], b: +nums[1] }; })()`,
+  )
+  const right2 = next2.a + next2.b
+  const wrong2 = String(right2 % 10 === 0 ? right2 + 1 : right2 - 1)
+  for (let go = 0; go < 2; go++) {
+    for (const ch of wrong2) await cdp.click(`.key[data-k="${ch}"]`)
+    await cdp.click('.key[data-k="go"]')
+    await sleep(500)
+  }
+  eq(
+    await cdp.eval("document.getElementById('picture').hidden"),
+    false,
+    'the second wrong go shows how it works',
+  )
+  await cdp.shot('17-wrong-answer-picture')
+  await cdp.click('.screen.active #btn-quit')
+  await sleep(300)
+
   // --- a lost run still leaves the day's stars standing ---------------
   // Two good sets, then a deliberately scrappy one: the run resets (it must),
   // but today's stars have to survive and stay on screen.
@@ -822,6 +892,21 @@ try {
       "padVisible: document.querySelector('.key').getBoundingClientRect().bottom <= innerHeight })",
   )
   eq(fits.overflowX, 0, 'nothing spills off the side in portrait')
+
+  // With the explanation open too — the tightest the screen ever gets.
+  await cdp.click('#btn-help')
+  await sleep(400)
+  const withPicture = await cdp.eval(
+    '({ overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,' +
+      ' overflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight,' +
+      " padVisible: document.querySelector('.key').getBoundingClientRect().bottom <= innerHeight," +
+      " pictureVisible: document.getElementById('picture').getBoundingClientRect().bottom <= innerHeight })",
+  )
+  eq(withPicture.overflowX, 0, 'the picture does not push the page sideways in portrait')
+  eq(withPicture.overflowY, 0, 'nor off the bottom')
+  ok(withPicture.padVisible, 'the numpad is still reachable with the picture open')
+  ok(withPicture.pictureVisible, 'and the picture itself is fully on screen')
+  await cdp.shot('18-portrait-picture')
   eq(fits.overflowY, 0, 'nothing spills off the bottom in portrait')
   ok(fits.padVisible, 'the whole numpad is reachable in portrait')
   await cdp.shot('7-portrait')

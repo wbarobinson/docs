@@ -249,6 +249,36 @@ taps, no undo.
 - The next-set button says where it goes: *One more set* on the same branch, or
   *Start &lt;next branch&gt;* when she has just mastered one.
 
+## Showing how the numbers fit together
+
+When she gets one wrong twice, or taps the 💡 button, the app draws the
+strategy instead of just stating the answer. Which picture depends on the
+maths, not the operation:
+
+| | picture | why |
+| --- | --- | --- |
+| sums and differences inside 20 | **ten frame** | the five-and-ten structure is the point: "make ten first" |
+| anything bigger | **empty number line** | keeps working when the numbers are past drawing as dots |
+| times | **array** | rows and columns are what multiplication is |
+| sharing | **equal groups** | |
+
+Underneath either arithmetic picture sits the **number bond** — the split that
+makes bridging work. 18 + 6 shows 6 splitting into 2 and 4, a jump onto 20, and
+a jump to 24. A two-digit addend goes tens first instead (63 + 11 is +10 then
++1), because that is how it is taught, not as a bridge over 70. Where nothing
+crosses a ten, no split is invented: 22 + 3 is one jump.
+
+The number line is drawn **schematically, not to scale** — jumps are evenly
+spaced so a +1 beside a +10 stays readable, the way it is drawn on a board.
+
+**It never appears during ordinary answering.** This is a fluency drill and the
+whole ladder is built on automatic recall; a picture over every problem would
+work against that. Asking for help is free and costs nothing but the clock.
+
+This follows the sequence England's NCETM and Singapore's curriculum both use
+(bond → ten frame → number line), and the structural "bridging through ten"
+approach it teaches has trial evidence behind it.
+
 ## Getting it wrong
 
 Nothing bad happens. A soft low note, a wobble, the slot clears, try again.
@@ -332,9 +362,9 @@ Two consequences worth knowing:
 ## Tests
 
 ```sh
-node tests/selftest.mjs   # 394 checks: generators, mastery, stars, badges, storage
+node tests/selftest.mjs   # 413 checks: generators, mastery, stars, badges, storage
 node tests/sync.mjs       #  48 checks: two devices, one family code, real endpoint
-node tests/smoke.mjs      # 114 checks: drives the real UI in headless Chromium
+node tests/smoke.mjs      # 125 checks: drives the real UI in headless Chromium
 
 SMOKE_PATH=/dist/ara-number-jungle.html node tests/smoke.mjs   # same, on the bundle
 ```
@@ -366,6 +396,7 @@ js/engine.js            building a set, timing, scoring, mastery
 js/badges.js            35 badges as pure tests against the profile
 js/audio.js             every sound, synthesised with WebAudio
 js/juice.js             feathers, confetti, ripples, wobbles
+js/picture.js           the teaching pictures: ten frames, number lines, arrays
 js/ui.js                rendering each screen
 js/play.js              the play loop and input handling
 js/app.js               boot and event wiring

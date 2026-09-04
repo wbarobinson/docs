@@ -13,6 +13,7 @@
 
   var s = null // the live session
   var typed = ''
+  var helped = false // she asked to be shown this one
   var locked = false // true between a right answer and the next problem
   var revealed = false
   var ticker = null
@@ -47,6 +48,8 @@
     typed = ''
     locked = false
     revealed = false
+    helped = false
+    hidePicture()
     KM.ui.theme(stage.level)
     KM.ui.show('play')
     var showTimer = p.settings.timer
@@ -91,6 +94,36 @@
     var c = el('combo')
     c.classList.toggle('on', s.combo >= 3)
     c.querySelector('b').textContent = s.combo
+  }
+
+  // The explanation panel: a ten frame or a number line showing how the
+  // numbers fit together. Only on a wrong answer or on request — a picture
+  // over every problem would work against the recall this is for.
+  function showPicture(prob) {
+    var box = el('picture')
+    if (!box || !KM.picture) return
+    box.innerHTML = KM.picture.html(prob)
+    box.hidden = false
+    KM.juice.pop(box)
+  }
+
+  function hidePicture() {
+    var box = el('picture')
+    if (!box) return
+    box.hidden = true
+    box.innerHTML = ''
+  }
+
+  // The 💡 button. Free — it costs her nothing but the clock — because a
+  // child who asks how it works is doing the right thing.
+  function help() {
+    if (!s || locked) return
+    var prob = KM.engine.current(s)
+    if (!prob) return
+    helped = true
+    showPicture(prob)
+    KM.audio.tap()
+    el('hint').innerHTML = '<span class="muted tiny">Have a look, then type your answer</span>'
   }
 
   function drawProblem() {
@@ -196,6 +229,8 @@
       KM.juice.buzz(45)
       drawSlot('wrong')
       revealed = res.reveal
+      // Second wrong go: show how it works rather than just stating the number.
+      if (res.reveal) showPicture(prob)
       var msg = res.reveal
         ? 'It\'s <b>' + res.answer + '</b> — type it in 🪶'
         : ['Not quite — try again!', 'So close! Have another go.', 'Nearly! One more try.'][
@@ -212,6 +247,7 @@
     // Right.
     revealed = false
     locked = true
+    hidePicture()
     drawSlot('right')
     drawGo()
     KM.juice.pop(el('slot'))
@@ -249,6 +285,8 @@
     locked = false
     typed = ''
     revealed = false
+    helped = false
+    hidePicture()
     s.shownAt = Date.now() // the clock on a problem starts when she sees it
     drawProblem()
     drawDots()
@@ -281,6 +319,7 @@
   KM.play = {
     begin: begin,
     resume: resume,
+    help: help,
     press: press,
     quit: quit,
     active: function () {
